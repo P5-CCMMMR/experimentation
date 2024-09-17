@@ -24,5 +24,4 @@ def trainer(model, epoch):
         for j in range(len(data)):
             pass
 
-
 trainer(model, 10)
