@@ -42,6 +42,8 @@ df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]
 
 df = df[df.IndoorTemp.diff().abs() <= MAX_TEMP_DELTA & (df.OutdoorTemp.diff().abs() <= MAX_TEMP_DELTA)]
 
+df = df.dropna()
+
 df.to_csv("NIST_cleaned.csv", index=False)
 
 # Plotting of the cleaned data
