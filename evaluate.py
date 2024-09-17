@@ -7,12 +7,13 @@ import numpy as np
 from model import LSTM
 from hyper_parameters import hidden_size, seq_len
 from sequenizer import create_sequences
+from data import test_data
 
 matplotlib.use("Agg")
 
-def evaluate(model: nn.Module, data: np.ndarray):
+def evaluate(model: nn.Module, test_data: np.ndarray):
     model.eval()
-    xs, ys = create_sequences(data, seq_len)
+    xs, ys = create_sequences(test_data, seq_len)
     xs = torch.tensor(xs, dtype=torch.float32)
     ys = torch.tensor(ys, dtype=torch.float32)
 
@@ -28,9 +29,7 @@ def evaluate(model: nn.Module, data: np.ndarray):
 model = LSTM(hidden_size)
 model.load_state_dict(torch.load("trained_model.pth", weights_only=True))
 
-data = pd.read_csv("NIST_cleaned.csv").iloc[:, 1:].values
-
-predictions, actuals = evaluate(model, data)
+predictions, actuals = evaluate(model, test_data)
 
 mape = np.mean(np.abs((actuals - predictions) / actuals)) * 100
 print(f'Total Percentage Error (MAPE): {mape:.2f}%')
