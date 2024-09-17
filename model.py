@@ -1,14 +1,15 @@
 import torch
 import torch.nn as nn
-import pandas as pd
 
-data = pd.read_csv("HVAC-hour_cleaned.csv").values
-
-class TestModel(nn.Module):
-    def __init__(self, stacked_layers: int, hidden_size: int):
-        super().__init__()
-        self.lstm = nn.LSTM(stacked_layers, hidden_size, stacked_layers)
-        self.label = nn.Linear(hidden_size, 1)
+class LSTM(nn.Module):
+    def __init__(self, hidden_size: int):
+        super(LSTM, self).__init__()
+        self.output_size = 1
+        self.num_layers = 1
+        self.input_size = 3
+        self.hidden_size = hidden_size
+        self.lstm = nn.LSTM(self.input_size, self.hidden_size)
+        self.fc = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, x):
         h0 = torch.zeros(self.num_layers, self.hidden_size)

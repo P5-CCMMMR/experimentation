@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
 from model import LSTM
 
 def create_sequences(data: np.ndarray, seq_len: int):
@@ -23,6 +25,7 @@ def trainer(model: nn.Module, epochs: int, data: np.ndarray, learning_rate: floa
 
     model.train()
 
+    epoch_losses = []
     for epoch in range(epochs):
         epoch_loss = 0.0
         for i in range(len(xs)):
@@ -37,7 +40,10 @@ def trainer(model: nn.Module, epochs: int, data: np.ndarray, learning_rate: floa
 
             epoch_loss += loss.item()
 
-        print(f'Epoch {epoch + 1}/{epochs}, Loss: {epoch_loss / len(xs)}')
+        avg_epoch_loss = epoch_loss / len(xs)
+        epoch_losses.append(avg_epoch_loss)
+        print(f'Epoch {epoch + 1}/{epochs}, Loss: {avg_epoch_loss}')
+    return epoch_losses
         
 # Hyper params
 hidden_size = 50
@@ -48,4 +54,11 @@ model = LSTM(hidden_size)
 
 data = pd.read_csv("NIST_cleaned.csv").iloc[:, 1:].values
 
-trainer(model, epochs, data, learning_rate, seq_len)
+epoch_losses = trainer(model, epochs, data, learning_rate, seq_len)
+
+plt.plot(range(1, epochs + 1), epoch_losses, marker='o')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Training Loss Over Epochs')
+plt.grid(True)
+plt.show()
