@@ -8,14 +8,16 @@ from model import LSTM
 from hyper_parameters import hidden_size, seq_len
 from sequenizer import create_sequences
 from data import test_data
+from device import device
 
 matplotlib.use("Agg")
 
-def evaluate(model: nn.Module, test_data: np.ndarray):
+def evaluate(model: nn.Module, test_data: np.ndarray, device: torch.device):
+    model.to(device)
     model.eval()
     xs, ys = create_sequences(test_data, seq_len)
-    xs = torch.tensor(xs, dtype=torch.float32)
-    ys = torch.tensor(ys, dtype=torch.float32)
+    xs = torch.tensor(xs, dtype=torch.float32).to(device)
+    ys = torch.tensor(ys, dtype=torch.float32).to(device)
 
     predictions = []
     with torch.no_grad():

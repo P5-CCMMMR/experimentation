@@ -8,17 +8,19 @@ from model import LSTM
 from hyper_parameters import hidden_size, epochs, learning_rate, seq_len
 from sequenizer import create_sequences
 from data import train_data
+from device import device
 
 matplotlib.use("Agg")
 
-def trainer(model: nn.Module, epochs: int, train_data: np.ndarray, learning_rate: float, seq_len: int):
+def trainer(model: nn.Module, epochs: int, train_data: np.ndarray, learning_rate: float, seq_len: int, device: torch.device):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     xs, ys = create_sequences(train_data, seq_len)
-    xs = torch.tensor(xs, dtype=torch.float32)
-    ys = torch.tensor(ys, dtype=torch.float32)
+    xs = torch.tensor(xs, dtype=torch.float32).to(device)
+    ys = torch.tensor(ys, dtype=torch.float32).to(device)
 
+    model.to(device)
     model.train()
 
     epoch_losses = []
@@ -45,7 +47,7 @@ def trainer(model: nn.Module, epochs: int, train_data: np.ndarray, learning_rate
         
 model = LSTM(hidden_size)
 
-epoch_losses = trainer(model, epochs, train_data, learning_rate, seq_len)
+epoch_losses = trainer(model, epochs, train_data, learning_rate, seq_len, device)
 
 plt.plot(range(1, epochs + 1), epoch_losses, marker='o')
 plt.xlabel('Epoch')
