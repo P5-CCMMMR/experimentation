@@ -32,6 +32,9 @@ data = pd.read_csv("NIST_cleaned.csv").iloc[:, 1:].values
 
 predictions, actuals = evaluate(model, data)
 
+mape = np.mean(np.abs((actuals - predictions) / actuals)) * 100
+print(f'Total Percentage Error (MAPE): {mape:.2f}%')
+
 plt.plot(predictions, label="Predictions")
 plt.plot(actuals, label="Actual")
 plt.xlabel("Time")
