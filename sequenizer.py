@@ -1,10 +1,14 @@
+import torch
 import numpy as np
 
-def create_sequences(data: np.ndarray, seq_len: int):
-    xs = []
-    ys = []
-    for i in range(len(data) - seq_len):
-        x, y = data[i:(i + seq_len)], data[i + seq_len, 1]
-        xs.append(x)
-        ys.append(y)
-    return np.array(xs), np.array(ys)
+def create_sequences(data: np.ndarray, seq_len: int, device: torch.device):
+    num_sequences = len(data) - seq_len
+    num_features = data.shape[1]
+
+    xs = np.zeros((num_sequences, seq_len, num_features), dtype=np.float32)
+    ys = np.zeros((num_sequences, 1), dtype=np.float32)
+    for i in range(num_sequences):
+        xs[i] = data[i:i + seq_len]
+        ys[i] = data[i + seq_len, 1]
+
+    return torch.tensor(xs).to(device), torch.tensor(ys).to(device)
