@@ -4,6 +4,12 @@ import matplotlib.pyplot as plt
 
 matplotlib.use("Agg")
 
+# Paths
+DATASETFOLDER = "dataset/"
+HVAC_MIN_PATH = DATASETFOLDER + "HVAC-minute.csv"
+INDENV_MIN_PATH = DATASETFOLDER + "IndEnv-minute.csv"
+OUTENV_MIN_PATH = DATASETFOLDER + "OutEnv-minute.csv"
+
 SAMPLE_TIME = "15min"
 TIMESTAMP = "Timestamp"
 USE_UTC = True
@@ -11,7 +17,7 @@ COL_AXIS = 1
 MAX_TEMP_DELTA = 15
 
 # HVAC
-hvac_df = pd.read_csv("HVAC-minute.csv")
+hvac_df = pd.read_csv(HVAC_MIN_PATH)
 hvac_df = hvac_df[[TIMESTAMP, "HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"]]
 hvac_df["PowerConsumption"] = hvac_df.HVAC_HeatPumpIndoorUnitPower + hvac_df.HVAC_HeatPumpOutdoorUnitPower
 hvac_df = hvac_df.drop(["HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"], axis=COL_AXIS)
@@ -19,7 +25,7 @@ hvac_df.Timestamp = pd.to_datetime(hvac_df.Timestamp, utc=USE_UTC)
 hvac_df = hvac_df.resample(SAMPLE_TIME, on=TIMESTAMP).mean().reset_index()
 
 # Indoor
-indoor_df = pd.read_csv("IndEnv-minute.csv")
+indoor_df = pd.read_csv(INDENV_MIN_PATH)
 indoor_df = indoor_df[[TIMESTAMP, "IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]]
 indoor_df["IndoorTemp"] = indoor_df[["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]].mean(axis=COL_AXIS)
 indoor_df = indoor_df.drop(["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"], axis=COL_AXIS)
@@ -27,7 +33,7 @@ indoor_df.Timestamp = pd.to_datetime(indoor_df.Timestamp, utc=USE_UTC)
 indoor_df = indoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
 
 # Outdoor
-outdoor_df = pd.read_csv("OutEnv-minute.csv")
+outdoor_df = pd.read_csv(OUTENV_MIN_PATH)
 outdoor_df = outdoor_df[[TIMESTAMP, "OutEnv_OutdoorAmbTemp"]]
 outdoor_df.Timestamp = pd.to_datetime(outdoor_df.Timestamp, utc=USE_UTC)
 outdoor_df = outdoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()

@@ -1,7 +1,7 @@
 import torch.nn as nn
 import pandas as pd
 
-data = pd.read_csv("HVAC-hour_cleaned.csv").values
+data = pd.read_csv("dataset/NIST_cleaned.csv").values
 
 class TestModel(nn.Module):
     def __init__(self, stacked_layers: int, hidden_size: int):
