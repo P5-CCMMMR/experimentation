@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 import numpy as np
+import pandas as pd
 from simple_lstm import model
 from hyper_parameters import seq_len, batch_size
 from sequenizer import create_sequences
@@ -11,9 +12,9 @@ from data import test_data
 
 matplotlib.use("Agg")
 
-def evaluate(model: nn.Module, test_data: np.ndarray, batch_size: int):
+def evaluate(model: nn.Module, features: np.ndarray, batch_size: int):
     model.eval()
-    xs, ys = create_sequences(test_data, seq_len)
+    xs, ys = create_sequences(features, seq_len)
     loader = data.DataLoader(data.TensorDataset(xs, ys), batch_size=batch_size, drop_last=True)
 
     predictions = []
@@ -31,7 +32,10 @@ def evaluate(model: nn.Module, test_data: np.ndarray, batch_size: int):
     
 model.load_state_dict(torch.load("trained_model.pth", weights_only=True))
 
-predictions, actuals = evaluate(model, test_data, batch_size)
+timestamps = test_data[:, 0]
+features = test_data[:, 1:]
+
+predictions, actuals = evaluate(model, features, batch_size)
 
 rmse = np.sqrt(np.mean((predictions - actuals) ** 2))
 mae = np.mean(np.abs(predictions - actuals))
@@ -41,11 +45,20 @@ print(f'RMSE: {rmse:.2f}')
 print(f'MAE: {mae:.2f}')
 print(f'MAXE: {maxe:.2f}')
 
-plt.plot(predictions, label="Predictions")
-plt.plot(actuals, label="Actual")
+timestamps = pd.to_datetime(timestamps)
+
+# Make all same size
+min_length = min(len(timestamps), len(predictions), len(actuals))
+timestamps = timestamps[:min_length]
+predictions = predictions[:min_length]
+actuals = actuals[:min_length]
+
+plt.plot(timestamps, predictions, label="Predictions")
+plt.plot(timestamps, actuals, label="Actual")
 plt.xlabel("Time")
 plt.ylabel("Indoor Temperature")
 plt.title("Predictions vs Actual")
 plt.legend()
 plt.grid()
+plt.gcf().autofmt_xdate()
 plt.savefig("model_eval.png")

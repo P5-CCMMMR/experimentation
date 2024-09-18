@@ -12,11 +12,11 @@ from device import device
 
 matplotlib.use("Agg")
 
-def trainer(model: nn.Module, epochs: int, train_data: np.ndarray, learning_rate: float, seq_len: int, device: torch.device):
+def trainer(model: nn.Module, epochs: int, features: np.ndarray, learning_rate: float, seq_len: int):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    xs, ys = create_sequences(train_data, seq_len)
+    xs, ys = create_sequences(features, seq_len)
     loader = data.DataLoader(data.TensorDataset(xs, ys), batch_size=batch_size, drop_last=True, shuffle=True)
 
     model.to(device)
@@ -39,7 +39,8 @@ def trainer(model: nn.Module, epochs: int, train_data: np.ndarray, learning_rate
     torch.save(model.state_dict(), "trained_model.pth")
     return epoch_losses
 
-epoch_losses = trainer(model, epochs, train_data, learning_rate, seq_len, device)
+features = train_data[:, 1:]
+epoch_losses = trainer(model, epochs, features, learning_rate, seq_len)
 
 torch.save(model.state_dict(), "trained_model.pth")
 

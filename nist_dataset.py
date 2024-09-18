@@ -55,17 +55,20 @@ power_consumption = [i[1] for i in values]
 indoor_temp = [i[2] for i in values]
 outdoor_temp = [i[3] for i in values]
 
-ax[0].plot(power_consumption)
+timestamps = df[TIMESTAMP]
+
+ax[0].plot(timestamps, power_consumption)
 ax[0].set_title("Power Consumption")
 ax[0].grid()
 
-ax[1].plot(indoor_temp, color="r")
+ax[1].plot(timestamps, indoor_temp, color="r")
 ax[1].set_title("Indoor Temperature")
 ax[1].grid()
 
-ax[2].plot(outdoor_temp, color="g")
+ax[2].plot(timestamps, outdoor_temp, color="g")
 ax[2].set_title("Outdoor Temperature")
 ax[2].grid()
 
 plt.subplots_adjust(hspace=1)
+plt.gcf().autofmt_xdate()
 plt.savefig("NIST_cleaned_graph.png")
