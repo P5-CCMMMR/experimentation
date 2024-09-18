@@ -6,9 +6,9 @@ matplotlib.use("Agg")
 
 # Paths
 DATASETFOLDER = "dataset/"
-HVAC_MIN_PATH = DATASETFOLDER + "HVAC-minute.csv"
-INDENV_MIN_PATH = DATASETFOLDER + "IndEnv-minute.csv"
-OUTENV_MIN_PATH = DATASETFOLDER + "OutEnv-minute.csv"
+HVAC_MIN_PATH = DATASETFOLDER + "HVAC-minute-2015.csv"
+INDENV_MIN_PATH = DATASETFOLDER + "IndEnv-minute-2015.csv"
+OUTENV_MIN_PATH = DATASETFOLDER + "OutEnv-minute-2015.csv"
 CLEAN_NIST_PATH = DATASETFOLDER + "NIST_cleaned.csv"
 
 # Data parameters
