@@ -5,15 +5,13 @@ from hyper_parameters import hidden_size, batch_size
 from device import device
 
 class LSTM(nn.Module):
-    def __init__(self, hidden_size: int, batch_size: int = 1, dropout: float = 0.0):
+    def __init__(self, hidden_size: int, batch_size: int = 1):
         super(LSTM, self).__init__()
-        self.output_size = 1
-        self.num_layers = 1
         self.input_size = 3
+        self.output_size = 1
         self.batch_size = batch_size
         self.hidden_size = hidden_size
-        self.dropout = dropout
-        self.lstm = nn.LSTM(self.input_size, self.hidden_size, batch_first=True, dropout=self.dropout)
+        self.lstm = nn.LSTM(self.input_size, self.hidden_size, batch_first=True)
         self.fc = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, x):
