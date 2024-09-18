@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 import numpy as np
-from model import model
+from simple_lstm import model
 from hyper_parameters import seq_len, batch_size
 from sequenizer import create_sequences
 from data import test_data

@@ -4,7 +4,7 @@ import torch.utils.data as data
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from model import model
+from simple_lstm import model
 from hyper_parameters import epochs, learning_rate, seq_len, batch_size
 from sequenizer import create_sequences
 from data import train_data
