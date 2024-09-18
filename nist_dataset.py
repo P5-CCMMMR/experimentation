@@ -9,7 +9,9 @@ DATASETFOLDER = "dataset/"
 HVAC_MIN_PATH = DATASETFOLDER + "HVAC-minute.csv"
 INDENV_MIN_PATH = DATASETFOLDER + "IndEnv-minute.csv"
 OUTENV_MIN_PATH = DATASETFOLDER + "OutEnv-minute.csv"
+CLEAN_NIST_PATH = DATASETFOLDER + "NIST_cleaned.csv"
 
+# Data parameters
 SAMPLE_TIME = "15min"
 TIMESTAMP = "Timestamp"
 USE_UTC = True
@@ -50,7 +52,7 @@ df = df[df.IndoorTemp.diff().abs() <= MAX_TEMP_DELTA & (df.OutdoorTemp.diff().ab
 
 df = df.dropna()
 
-df.to_csv("NIST_cleaned.csv", index=False)
+df.to_csv(CLEAN_NIST_PATH, index=False)
 
 # Plotting of the cleaned data
 fig, ax = plt.subplots(3)
