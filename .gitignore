@@ -1,3 +1,5 @@
 *.csv
 pytorch
 __pycache__
+*.png
+.venv
