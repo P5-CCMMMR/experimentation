@@ -1,40 +1,45 @@
 import matplotlib
 import matplotlib.pyplot as plt
-import pandas as pd
 import torch
 import torch.nn as nn
+import torch.utils.data as data
 import numpy as np
-from model import LSTM
-from hyper_parameters import hidden_size, seq_len
+from model import model
+from hyper_parameters import seq_len, batch_size
 from sequenizer import create_sequences
 from data import test_data
-from device import device
 
 matplotlib.use("Agg")
 
-def evaluate(model: nn.Module, test_data: np.ndarray, device: torch.device):
-    model.to(device)
+def evaluate(model: nn.Module, test_data: np.ndarray, batch_size: int):
     model.eval()
     xs, ys = create_sequences(test_data, seq_len)
-    xs = torch.tensor(xs, dtype=torch.float32).to(device)
-    ys = torch.tensor(ys, dtype=torch.float32).to(device)
+    loader = data.DataLoader(data.TensorDataset(xs, ys), batch_size=batch_size, drop_last=True)
 
     predictions = []
+    actuals = []
     with torch.no_grad():
-        for i in range(len(xs)):
-            input_seq = xs[i]
-            prediction = model(input_seq)
-            predictions.append(prediction.item())
+        for x_batch, y_batch in loader:
+            prediction = model(x_batch)
+            predictions.append(prediction.cpu().numpy())
+            actuals.append(y_batch.cpu().numpy())
     
-    return np.array(predictions), ys.numpy()
+    predictions = np.concatenate(predictions)
+    actuals = np.concatenate(actuals)
+
+    return np.array(predictions), np.array(actuals)
     
-model = LSTM(hidden_size)
 model.load_state_dict(torch.load("trained_model.pth", weights_only=True))
 
-predictions, actuals = evaluate(model, test_data)
+predictions, actuals = evaluate(model, test_data, batch_size)
 
-mape = np.mean(np.abs((actuals - predictions) / actuals)) * 100
-print(f'Total Percentage Error (MAPE): {mape:.2f}%')
+rmse = np.sqrt(np.mean((predictions - actuals) ** 2))
+mae = np.mean(np.abs(predictions - actuals))
+maxe = np.max(np.abs(predictions - actuals))
+
+print(f'RMSE: {rmse:.2f}')
+print(f'MAE: {mae:.2f}')
+print(f'MAXE: {maxe:.2f}')
 
 plt.plot(predictions, label="Predictions")
 plt.plot(actuals, label="Actual")

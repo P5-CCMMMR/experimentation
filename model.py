@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 
+from hyper_parameters import hidden_size, batch_size
+from device import device
+
 class LSTM(nn.Module):
     def __init__(self, hidden_size: int, batch_size: int = 1, dropout: float = 0.0):
         super(LSTM, self).__init__()
@@ -19,4 +22,6 @@ class LSTM(nn.Module):
         out, _ = self.lstm(x, (h0, c0))
         out = out[:, -1, :]
         return self.fc(out)
-    
+
+model = LSTM(hidden_size, batch_size)
+model.to(device)

@@ -1,7 +1,8 @@
 import torch
 import numpy as np
+from device import device
 
-def create_sequences(data: np.ndarray, seq_len: int, device: torch.device):
+def create_sequences(data: np.ndarray, seq_len: int):
     num_sequences = len(data) - seq_len
     num_features = data.shape[1]
 
