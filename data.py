@@ -1,28 +1,45 @@
 from datetime import datetime
 import pandas as pd
+from hyper_parameters import training_days, test_days
 
-data = pd.read_csv("dataset/NIST_cleaned.csv").values
-train_size = int(len(data) * 0.8)
+TIMESTAMP = "Timestamp"
 
-date_format = '%Y-%m-%d %H:%M:%S%z'
 
-date_object = datetime.strptime(data[0][0], date_format)
+TRAIN_DATA_PATH = "dataset/NIST_cleaned_train.csv"
+TEST_DATA_PATH = "dataset/NIST_cleaned_test.csv"
+DATA_PATH = "dataset/NIST_cleaned.csv"
 
-last_date = datetime.strptime(data[0][0], date_format).date()
-dayCounter = 0
+try:
+    train_data = pd.read_csv(TRAIN_DATA_PATH).values
+    test_data = pd.read_csv(TEST_DATA_PATH).values
+except FileNotFoundError as e:
+    try:
+        df = pd.read_csv(DATA_PATH)
+    except FileNotFoundError as e:
+        print(DATA_PATH + " not found")
 
-train_data = []
-test_data = []
-for row in data:
-    date = datetime.strptime(row[0], date_format).date()
 
-    if dayCounter <= 16:
-            train_data.append(row)
-    else:
-        test_data.append(row)
+    train_test_split_days = training_days + test_days
+    def filter_days(global_day: int, last_day: int, current_date: datetime):
+        if current_date.date() != last_day[0]:
+            last_day[0] = current_date.date()
+            global_day[0] += 1
+            if global_day[0] == train_test_split_days:
+                global_day[0] = 0
+        return global_day[0] < training_days
 
-    if date > last_date:
-        last_date = date
-        dayCounter += 1
-        if dayCounter == 20:
-            dayCounter == 0
+    global_day = [0]
+    last_day = [None]
+
+    traindf = df[df[TIMESTAMP].apply(lambda x: filter_days(global_day, last_day, pd.to_datetime(x)))]
+
+    global_day = [0]
+    last_day = [None]
+
+    testdf = df[df[TIMESTAMP].apply(lambda x: not filter_days(global_day, last_day, pd.to_datetime(x)))]
+
+    traindf.to_csv(TRAIN_DATA_PATH, index=False)
+    testdf.to_csv(TEST_DATA_PATH, index=False)
+
+    train_data = traindf.values
+    test_data = testdf.values

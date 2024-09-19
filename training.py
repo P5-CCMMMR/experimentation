@@ -39,6 +39,7 @@ def trainer(model: nn.Module, epochs: int, features: np.ndarray, learning_rate: 
     torch.save(model.state_dict(), "trained_model.pth")
     return epoch_losses
 
+# Extract features (all rows, columns from index 1 to the end)
 features = train_data[:, 1:]
 epoch_losses = trainer(model, epochs, features, learning_rate, seq_len)
 
