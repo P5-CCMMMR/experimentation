@@ -11,8 +11,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 matplotlib.use("Agg")
 
-
-
 # Hyper params
 hidden_size = 32
 epochs = 1
@@ -50,7 +48,6 @@ class SimpleLSTM(nn.Module):
         out, _ = self.lstm(x, (h0, c0))
         out = out[:, -1, :]
         return self.fc(out)
-
 
 class LSTMTrainer(L.LightningModule):
     def __init__(self, model, learning_rate, timestamps):
