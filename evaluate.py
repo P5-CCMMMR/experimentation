@@ -12,7 +12,7 @@ from data import test_data
 
 matplotlib.use("Agg")
 
-def evaluate(model: nn.Module, features: np.ndarray, batch_size: int):
+def evaluate(model: nn.Module, features: pd.DataFrame, batch_size: int):
     model.eval()
     xs, ys = create_sequences(features, seq_len)
     loader = data.DataLoader(data.TensorDataset(xs, ys), batch_size=batch_size, drop_last=True)
@@ -32,10 +32,9 @@ def evaluate(model: nn.Module, features: np.ndarray, batch_size: int):
     
 model.load_state_dict(torch.load("trained_model.pth", weights_only=True))
 
-timestamps = test_data[:, 0]
-features = test_data[:, 1:]
+timestamps = test_data.values[:, 0]
 
-predictions, actuals = evaluate(model, features, batch_size)
+predictions, actuals = evaluate(model, test_data, batch_size)
 
 rmse = np.sqrt(np.mean((predictions - actuals) ** 2))
 mae = np.mean(np.abs(predictions - actuals))

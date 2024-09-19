@@ -10,8 +10,8 @@ TEST_DATA_PATH = "dataset/NIST_cleaned_test.csv"
 DATA_PATH = "dataset/NIST_cleaned.csv"
 
 try:
-    train_data = pd.read_csv(TRAIN_DATA_PATH).values
-    test_data = pd.read_csv(TEST_DATA_PATH).values
+    train_data = pd.read_csv(TRAIN_DATA_PATH)
+    test_data = pd.read_csv(TEST_DATA_PATH)
 except FileNotFoundError as e:
     try:
         df = pd.read_csv(DATA_PATH)
@@ -41,5 +41,5 @@ except FileNotFoundError as e:
     traindf.to_csv(TRAIN_DATA_PATH, index=False)
     testdf.to_csv(TEST_DATA_PATH, index=False)
 
-    train_data = traindf.values
-    test_data = testdf.values
+    train_data = traindf
+    test_data = testdf
