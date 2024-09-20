@@ -43,8 +43,8 @@ class SimpleLSTM(nn.Module):
         self.fc = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size)
-        c0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size)
+        h0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(x)
+        c0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(x)
         out, _ = self.lstm(x, (h0, c0))
         out = out[:, -1, :]
         return self.fc(out)
