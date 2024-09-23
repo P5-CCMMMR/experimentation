@@ -2,12 +2,15 @@ import lightning as L
 import torch
 import torch.nn as nn
 import pandas as pd
+import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 matplotlib.use("Agg")
+
+TARGET_COLUMN = 1
 
 # Hyper parameters
 training_batch_size = 64
@@ -44,24 +47,26 @@ class NormalLSTM(nn.Module):
         return self.fc(out).squeeze()
 
 class TimeSeriesDataset(Dataset):
-    def __init__(self, data, seq_len: int):
+    def __init__(self, data, seq_len: int, target_column: int):
         self.data = data
         self.seq_length = seq_len
+        self.target_column = target_column
 
     def __len__(self):
         return len(self.data) - self.seq_length
 
     def __getitem__(self, idx):
         x = self.data[idx:idx + self.seq_length, :]
-        y = self.data[idx + self.seq_length, 1]
+        y = self.data[idx + self.seq_length, self.target_column]
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
     
 class LitLSTM(L.LightningModule):
-    def __init__(self, model: nn.Module, learning_rate: float, test_timestamps):
+    def __init__(self, model: nn.Module, learning_rate: float):
         super().__init__()
         self.model = model
         self.learning_rate = learning_rate
-        self.test_timestamps = test_timestamps
+        self.all_predictions = []
+        self.all_actuals = []
     
     def training_step(self, batch):
         x, y = batch
@@ -72,7 +77,7 @@ class LitLSTM(L.LightningModule):
     
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-    
+
     def test_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
@@ -81,48 +86,54 @@ class LitLSTM(L.LightningModule):
 
         self.all_predictions.extend(y_hat.detach().cpu().numpy().flatten())
         self.all_actuals.extend(y.detach().cpu().numpy().flatten())
+    
+    def get_results(self):
+        return self.all_predictions, self.all_actuals
 
-    def on_test_epoch_start(self):
-        self.writer = SummaryWriter()
-        self.all_predictions = []
-        self.all_actuals = []
-
-    def on_test_epoch_end(self):
-        min_length = min(len(self.test_timestamps), len(self.all_predictions))
-        timestamps = self.test_timestamps[:min_length]
-        predictions = self.all_predictions
-        actuals = self.all_actuals
-
-        plt.plot(timestamps, predictions, label="Predictions")
-        plt.plot(timestamps, actuals, label="Actual")
-        plt.xlabel("Time")
-        plt.ylabel("Indoor Temperature")
-        plt.title("Predictions vs actuals")
-        plt.legend()
-        plt.grid()
-        plt.gcf().autofmt_xdate()
-
-        self.writer.add_figure("predictions", plt.gcf(), global_step=self.current_epoch)
-
-def normalize(data):
+def normalize(data: np.ndarray):
     min_vals = data.min(axis=0)
     max_vals = data.max(axis=0)
-    return (data - min_vals) / (max_vals - min_vals)
+    return (data - min_vals) / (max_vals - min_vals), min_vals, max_vals
+
+def plot_results(predictions, actuals, timestamps, min_vals, max_vals):
+    writer = SummaryWriter()
+
+    predictions = np.array(predictions)
+    actuals = np.array(actuals)
+
+    predictions = predictions * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
+    actuals = actuals * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
+    timestamps = timestamps[:len(predictions)]
+
+    plt.plot(timestamps, predictions, label="Prediction")
+    plt.plot(timestamps, actuals, label="Actual")
+    plt.xlabel("Time")
+    plt.ylabel("Indoor Temperature")
+    plt.title("Predictions vs Actuals")
+    plt.legend()
+    plt.grid()
+    plt.gcf().autofmt_xdate()
+
+    writer.add_figure("predictions", plt.gcf())
+    writer.close()
 
 dfv = pd.read_csv("NIST_cleaned.csv").values
 train_len = int(len(dfv) * 0.8)
-train_data = normalize(dfv[:train_len, 1:].astype(float))
-test_data = normalize(dfv[train_len:, 1:].astype(float))
-test_timestamps = pd.to_datetime(dfv[train_len:, 0])
+train_data, _, _ = normalize(dfv[:train_len, 1:].astype(float))
+test_data, test_min_vals, test_max_vals = normalize(dfv[train_len:, 1:].astype(float))
 
 model = NormalLSTM(hidden_size, num_layers, dropout)
-lit_lstm = LitLSTM(model, learning_rate, test_timestamps)
+lit_lstm = LitLSTM(model, learning_rate)
 trainer = L.Trainer(max_epochs=n_epochs)
-train_dataset = TimeSeriesDataset(train_data, seq_len)
+train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
 train_loader = DataLoader(train_dataset, batch_size=training_batch_size, shuffle=False, num_workers=num_workers)
 trainer.fit(lit_lstm, train_loader)
 
-test_dataset = TimeSeriesDataset(test_data, seq_len)
-test_dataset = TimeSeriesDataset(test_data, seq_len)
+test_dataset = TimeSeriesDataset(test_data, seq_len, TARGET_COLUMN)
 test_loader = DataLoader(test_dataset, batch_size=test_batch_size, num_workers=num_workers)
+
 trainer.test(lit_lstm, test_loader)
+predictions, actuals = lit_lstm.get_results()
+test_timestamps = pd.to_datetime(dfv[train_len:, 0])
+
+plot_results(predictions, actuals, test_timestamps, test_min_vals, test_max_vals)
