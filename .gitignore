@@ -1,5 +1,7 @@
 *.csv
 pytorch
+lightning_logs
+runs
 __pycache__
 *.png
 .venv
