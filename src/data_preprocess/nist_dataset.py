@@ -85,4 +85,4 @@ ax[2].grid()
 
 plt.subplots_adjust(hspace=1)
 plt.gcf().autofmt_xdate()
-plt.savefig("NIST_cleaned_graph.png")
+plt.savefig("graph/NIST_cleaned_graph.png")
