@@ -19,10 +19,10 @@ training_batch_size = 64
 test_batch_size = 105
 hidden_size = 32
 n_epochs = 10
-seq_len = 16
+seq_len = 96
 learning_rate = 0.005
-num_layers = 2
-dropout = 0.2
+num_layers = 1
+dropout = 0
 
 def RMSE(y_hat: float, y: float):
         # Add small term to avoid divison by zero
@@ -127,7 +127,7 @@ model = NormalLSTM(hidden_size, num_layers, dropout)
 lit_lstm = LitLSTM(model, learning_rate)
 trainer = L.Trainer(max_epochs=n_epochs)
 train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
-train_loader = DataLoader(train_dataset, batch_size=training_batch_size, shuffle=False, num_workers=NUM_WORKERS)
+train_loader = DataLoader(train_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
 trainer.fit(lit_lstm, train_loader)
 
 test_dataset = TimeSeriesDataset(test_data, seq_len, TARGET_COLUMN)
