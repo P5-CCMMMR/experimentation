@@ -1,10 +1,8 @@
 import torch
 import numpy as np
 import pandas as pd
-from device import device
-
-
-TIMESTAMP = "Timestamp"
+from src.util.device import device
+from src.util.hyper_parameters import TIMESTAMP
 
 def create_sequences(features: pd.DataFrame, seq_len: int):
     """

@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from hyper_parameters import hidden_size, batch_size
-from device import device
+from src.util.hyper_parameters import hidden_size, batch_size
+from src.util.device import device
 
 class SimpleLSTM(nn.Module):
     def __init__(self, hidden_size: int, batch_size: int = 1):

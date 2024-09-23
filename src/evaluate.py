@@ -5,10 +5,10 @@ import torch.nn as nn
 import torch.utils.data as data
 import numpy as np
 import pandas as pd
-from simple_lstm import model
-from hyper_parameters import seq_len, batch_size
-from sequenizer import create_sequences
-from data import test_data
+from .util.simple_lstm import model
+from .util.hyper_parameters import GRAPH_PATH, seq_len, batch_size
+from .util.sequenizer import create_sequences
+from .data_preprocess.data import test_data
 
 matplotlib.use("Agg")
 
@@ -60,4 +60,4 @@ plt.title("Predictions vs Actual")
 plt.legend()
 plt.grid()
 plt.gcf().autofmt_xdate()
-plt.savefig("model_eval.png")
+plt.savefig(GRAPH_PATH + "model_eval.png")

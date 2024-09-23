@@ -1,13 +1,10 @@
 from datetime import datetime
 import pandas as pd
-from hyper_parameters import training_days, test_days
+from src.util.hyper_parameters import TIMESTAMP, DATASETFOLDER, training_days, test_days
 
-TIMESTAMP = "Timestamp"
-
-
-TRAIN_DATA_PATH = "dataset/NIST_cleaned_train.csv"
-TEST_DATA_PATH = "dataset/NIST_cleaned_test.csv"
-DATA_PATH = "dataset/NIST_cleaned.csv"
+TRAIN_DATA_PATH = DATASETFOLDER + "/NIST_cleaned_train.csv"
+TEST_DATA_PATH = DATASETFOLDER + "/NIST_cleaned_test.csv"
+DATA_PATH = DATASETFOLDER + "/NIST_cleaned.csv"
 
 try:
     train_data = pd.read_csv(TRAIN_DATA_PATH)

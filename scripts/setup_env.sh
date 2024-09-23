@@ -22,10 +22,10 @@ else
 fi
 
 # Check if python3-venv is installed
-if [ "$(package_installed python3.10-venv)" -eq 0 ]; then
+if [ "$(package_installed python3-venv)" -eq 0 ]; then
     echo "python3-venv is not installed. Installing python3-venv..."
     sudo apt update
-    sudo apt install -y python3.10-venv
+    sudo apt install -y python3-venv
 else
     echo "python3-venv is already installed. Upgrading to the latest version..."
     sudo apt update
@@ -57,46 +57,23 @@ fi
 echo "Downloading datasets from NIST..."
 mkdir -p dataset
 
-if [ ! -f "dataset/HVAC-minute-2014.csv" ]; then
-    echo "Downloading HVAC-minute-2014.csv..."
-    wget -O dataset/HVAC-minute-2014.csv https://s3.amazonaws.com/nist-netzero/2014-data-files/HVAC-minute.csv
-else
-    echo "HVAC-minute-2014.csv already exists."
-fi
+declare -A datasets
 
-if [ ! -f "dataset/HVAC-minute-2015.csv" ]; then
-    echo "Downloading HVAC-minute-2015.csv..."
-    wget -O dataset/HVAC-minute-2015.csv https://s3.amazonaws.com/nist-netzero/2015-data-files/HVAC-minute.csv
-else
-    echo "HVAC-minute-2015.csv already exists."
-fi
+datasets[dataset/HVAC-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/HVAC-minute.csv"
+datasets[dataset/HVAC-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/HVAC-minute.csv"
+datasets[dataset/IndEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/IndEnv-minute.csv"
+datasets[dataset/IndEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/IndEnv-minute.csv"
+datasets[dataset/OutEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/OutEnv-minute.csv"
+datasets[dataset/OutEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/OutEnv-minute.csv"
 
-if [ ! -f "dataset/IndEnv-minute-2014.csv" ]; then
-    echo "Downloading IndEnv-minute-2014.csv..."
-    wget -O dataset/IndEnv-minute-2014.csv https://s3.amazonaws.com/nist-netzero/2014-data-files/IndEnv-minute.csv
-else
-    echo "IndEnv-minute-2014.csv already exists."
-fi
-
-if [ ! -f "dataset/IndEnv-minute-2015.csv" ]; then
-    echo "Downloading IndEnv-minute-2015.csv..."
-    wget -O dataset/IndEnv-minute-2015.csv https://s3.amazonaws.com/nist-netzero/2015-data-files/IndEnv-minute.csv
-else
-    echo "IndEnv-minute-2015.csv already exists."
-fi
-
-if [ ! -f "dataset/OutEnv-minute-2014.csv" ]; then
-    echo "Downloading OutEnv-minute-2014.csv..."
-    wget -O dataset/OutEnv-minute-2014.csv https://s3.amazonaws.com/nist-netzero/2014-data-files/OutEnv-minute.csv
-else
-    echo "OutEnv-minute-2014.csv already exists."
-fi
-
-if [ ! -f "dataset/OutEnv-minute-2015.csv" ]; then
-    echo "Downloading OutEnv-minute-2015.csv..."
-    wget -O dataset/OutEnv-minute-2015.csv https://s3.amazonaws.com/nist-netzero/2015-data-files/OutEnv-minute.csv
-else
-    echo "OutEnv-minute-2015.csv already exists."
-fi
+for key in "${!datasets[@]}" 
+do 
+    if [ ! -f "$key" ]; then
+        echo "Downloading $key..."
+        wget -O $key "${!datasets[$key]}"
+    else
+        echo "$key already exists."
+    fi
+done
 
 echo "Setup complete."
