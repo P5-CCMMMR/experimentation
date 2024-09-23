@@ -4,12 +4,12 @@ import pandas as pd
 import multiprocessing
 
 from torch.utils.data import DataLoader
-
-from src.data_preprocess.data import split_data_train_and_test
+from src.util.normalize import normalize
 from src.network.normal_lstm import NormalLSTM
 from src.network.lit_lstm import LitLSTM
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
 from src.util.plot import plot_results
+from src.data_preprocess.data import split_data_train_and_test
 
 matplotlib.use("Agg")
 
@@ -36,17 +36,22 @@ DATA_PATH = "dataset/NIST_cleaned.csv"
 
 def main():
     try:
-        df = pd.read_csv(DATA_PATH)
-        train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
-    except FileNotFoundError as e:
-        print(DATA_PATH + " not found")
+        train_data = pd.read_csv(TRAIN_DATA_PATH)
+        test_data = pd.read_csv(TEST_DATA_PATH)
+    except FileNotFoundError:
+        try:
+            df = pd.read_csv(DATA_PATH)
+            train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
+        except FileNotFoundError:
+            raise RuntimeError(DATA_PATH + " not found")
 
-    dfv = df.values
-    train_len = int(len(dfv) * 0.8)
+    train_data = train_data.values
+    test_data = test_data.values
 
-    data = dfv[train_len:, 1:].astype(float)
-    test_min_vals = data.min(axis=0)
-    test_max_vals = data.max(axis=0)
+    test_timestamps = pd.to_datetime(test_data[:,0])
+
+    train_data, _, _ = normalize(train_data[:,1:].astype(float))
+    test_data, test_min_vals, test_max_vals = normalize(test_data[:,1:].astype(float))
 
     model = NormalLSTM(hidden_size, num_layers, dropout)
     lit_lstm = LitLSTM(model, learning_rate)
@@ -60,9 +65,8 @@ def main():
 
     trainer.test(lit_lstm, test_loader)
     predictions, actuals = lit_lstm.get_results()
-    test_timestamps = pd.to_datetime(dfv[train_len:, 0])
 
-    plot_results(predictions, actuals, test_timestamps, test_min_vals, test_max_vals)
+    plot_results(predictions, actuals, test_timestamps, test_min_vals, test_max_vals, TARGET_COLUMN)
 
 main()
 
