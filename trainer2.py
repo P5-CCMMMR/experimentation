@@ -9,6 +9,12 @@ from torch.utils.tensorboard import SummaryWriter
 
 matplotlib.use("Agg")
 
+# Hyper paramts
+training_batch_size = 64
+test_batch_size = 64
+hidden_size = 64
+n_epochs = 10
+
 class SimpleLSTM(nn.Module):
     def __init__(self, hidden_size: int):
         super(SimpleLSTM, self).__init__()
@@ -86,19 +92,19 @@ class TimeSeriesDataset(Dataset):
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32).unsqueeze(0)
 
 dfv = pd.read_csv("NIST_cleaned.csv").values
-train_len = int(len(dfv) * 0.7)
+train_len = int(len(dfv) * 0.8)
 
 train_data = dfv[:train_len, 1:].astype(float)
 test_data = dfv[train_len:, 1:].astype(float)
 test_timestamps = dfv[train_len:, 0]
 
-model = SimpleLSTM(64)
+model = SimpleLSTM(hidden_size)
 lit_lstm = LitLSTM(model, test_timestamps)
-trainer = L.Trainer(max_epochs=10)
+trainer = L.Trainer(max_epochs=n_epochs)
 train_dataset = TimeSeriesDataset(train_data)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=training_batch_size, shuffle=True)
 trainer.fit(lit_lstm, train_loader)
 
 test_dataset = TimeSeriesDataset(test_data)
-test_loader = DataLoader(test_dataset, batch_size=32)
+test_loader = DataLoader(test_dataset, batch_size=test_batch_size)
 trainer.test(lit_lstm, train_loader)
