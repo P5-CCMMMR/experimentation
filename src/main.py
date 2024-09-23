@@ -26,7 +26,6 @@ TRAIN_DATA_PATH = "dataset/NIST_cleaned_train.csv"
 TEST_DATA_PATH = "dataset/NIST_cleaned_test.csv"
 DATA_PATH = "dataset/NIST_cleaned.csv"
 
-
 def main():
     try:
         train_data = pd.read_csv(TRAIN_DATA_PATH)
