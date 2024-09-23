@@ -69,15 +69,15 @@ def main(iterartions):
 
         trainer.fit(lit_lstm, train_loader)
         test_results = trainer.test(lit_lstm, test_loader)
+
         predictions, actuals = lit_lstm.get_results()
 
-        
-        test_loss = test_results[0].get('test_loss', None) if test_results else None
+        test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
 
-        if best_loss is None or best_loss > test_loss:
+        if best_loss is None or best_loss > test_loss :
             print("NEW BEST")
             plot_results(predictions, actuals, test_timestamps, test_min_vals, test_max_vals, TARGET_COLUMN)
-            best_loss = test_loss
+            best_loss = test_loss 
             torch.save(model.state_dict(), 'model.pth')
 
 if __name__ == "__main__":
