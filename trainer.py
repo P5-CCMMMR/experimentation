@@ -5,12 +5,14 @@ import pandas as pd
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import multiprocessing
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 matplotlib.use("Agg")
 
 TARGET_COLUMN = 1
+NUM_WORKERS = multiprocessing.cpu_count()
 
 # Hyper parameters
 training_batch_size = 64
@@ -21,7 +23,6 @@ seq_len = 16
 learning_rate = 0.005
 num_layers = 2
 dropout = 0.2
-num_workers = 13
 
 def RMSE(y_hat: float, y: float):
         # Add small term to avoid divison by zero
@@ -126,11 +127,11 @@ model = NormalLSTM(hidden_size, num_layers, dropout)
 lit_lstm = LitLSTM(model, learning_rate)
 trainer = L.Trainer(max_epochs=n_epochs)
 train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
-train_loader = DataLoader(train_dataset, batch_size=training_batch_size, shuffle=False, num_workers=num_workers)
+train_loader = DataLoader(train_dataset, batch_size=training_batch_size, shuffle=False, num_workers=NUM_WORKERS)
 trainer.fit(lit_lstm, train_loader)
 
 test_dataset = TimeSeriesDataset(test_data, seq_len, TARGET_COLUMN)
-test_loader = DataLoader(test_dataset, batch_size=test_batch_size, num_workers=num_workers)
+test_loader = DataLoader(test_dataset, batch_size=test_batch_size, num_workers=NUM_WORKERS)
 
 trainer.test(lit_lstm, test_loader)
 predictions, actuals = lit_lstm.get_results()
