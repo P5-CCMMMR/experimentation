@@ -3,11 +3,10 @@ import lightning as L
 import matplotlib
 import pandas as pd
 import multiprocessing
-
 import torch
 from torch.utils.data import DataLoader
 from src.util.normalize import normalize
-from src.network.normal_lstm import NormalLSTM
+from src.network.models.normal_lstm import NormalLSTM
 from src.network.lit_lstm import LitLSTM
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
 from src.util.plot import plot_results
@@ -32,11 +31,11 @@ training_days = 18
 test_days = 20 - training_days
 
 TIMESTAMP = "Timestamp"
-TRAIN_DATA_PATH = "dataset/NIST_cleaned_train.csv"
-TEST_DATA_PATH = "dataset/NIST_cleaned_test.csv"
-DATA_PATH = "dataset/NIST_cleaned.csv"
+TRAIN_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_train.csv"
+TEST_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_test.csv"
+DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned.csv"
 
-def main(iterartions):
+def main(iterations):
     try:
         train_data = pd.read_csv(TRAIN_DATA_PATH)
         test_data = pd.read_csv(TEST_DATA_PATH)
@@ -57,7 +56,7 @@ def main(iterartions):
 
     best_loss = None
     
-    for i in range(0, iterartions):
+    for i in range(0, iterations):
         model = NormalLSTM(hidden_size, num_layers, dropout)
         lit_lstm = LitLSTM(model, learning_rate)
         trainer = L.Trainer(max_epochs=n_epochs)
