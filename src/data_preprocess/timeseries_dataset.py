@@ -14,4 +14,3 @@ class TimeSeriesDataset(Dataset):
         x = self.data[idx:idx + self.seq_length, :]
         y = self.data[idx + self.seq_length, self.target_column]
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
-

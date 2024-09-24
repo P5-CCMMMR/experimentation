@@ -21,22 +21,21 @@ CLEAN_NIST_PATH = DATASETFOLDER + "NIST_cleaned.csv"
 SAMPLE_TIME = "15min"
 TIMESTAMP = "Timestamp"
 USE_UTC = True
-COL_AXIS = 1
 MAX_TEMP_DELTA = 15
 
 # HVAC
 hvac_df = pd.concat([pd.read_csv(HVAC_MIN_PATH_2014), pd.read_csv(HVAC_MIN_PATH_2015)])
 hvac_df = hvac_df[[TIMESTAMP, "HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"]]
 hvac_df["PowerConsumption"] = hvac_df.HVAC_HeatPumpIndoorUnitPower + hvac_df.HVAC_HeatPumpOutdoorUnitPower
-hvac_df = hvac_df.drop(["HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"], axis=COL_AXIS)
+hvac_df = hvac_df.drop(["HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"], axis="columns")
 hvac_df.Timestamp = pd.to_datetime(hvac_df.Timestamp, utc=USE_UTC)
 hvac_df = hvac_df.resample(SAMPLE_TIME, on=TIMESTAMP).mean().reset_index()
 
 # Indoor
 indoor_df = pd.concat([pd.read_csv(INDENV_MIN_PATH_2014), pd.read_csv(INDENV_MIN_PATH_2015)])
 indoor_df = indoor_df[[TIMESTAMP, "IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]]
-indoor_df["IndoorTemp"] = indoor_df[["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]].mean(axis=COL_AXIS)
-indoor_df = indoor_df.drop(["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"], axis=COL_AXIS)
+indoor_df["IndoorTemp"] = indoor_df[["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]].mean(axis="columns")
+indoor_df = indoor_df.drop(["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"], axis="columns")
 indoor_df.Timestamp = pd.to_datetime(indoor_df.Timestamp, utc=USE_UTC)
 indoor_df = indoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
 
@@ -53,8 +52,7 @@ df = df.join(outdoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
 
 df = df[(df.IndoorTemp >= 10) & (df.IndoorTemp <= 30)]
 df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]
-
-df = df[df.IndoorTemp.diff().abs() <= MAX_TEMP_DELTA & (df.OutdoorTemp.diff().abs() <= MAX_TEMP_DELTA)]
+series = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
 df = df[df.PowerConsumption > 0]
 
 df = df.dropna()
@@ -65,6 +63,7 @@ df.to_csv(CLEAN_NIST_PATH, index=False)
 fig, ax = plt.subplots(3)
 
 values = df.values
+
 power_consumption = [i[1] for i in values]
 indoor_temp = [i[2] for i in values]
 outdoor_temp = [i[3] for i in values]
