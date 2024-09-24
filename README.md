@@ -1,8 +1,5 @@
 # Setup
-Run to setup
-    - python
-    - python env
-    - dataset
+Run to setup python, python env and datasets
     
 'bash scripts/setup_env.sh'
 
