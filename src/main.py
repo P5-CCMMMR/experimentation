@@ -31,9 +31,9 @@ training_days = 18
 test_days = 20 - training_days
 
 TIMESTAMP = "Timestamp"
-TRAIN_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_train.csv"
-TEST_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_test.csv"
-DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned.csv"
+TRAIN_DATA_PATH = "src/data_preprocess/dataset/Dengiz_cleaned_train.csv"
+TEST_DATA_PATH = "src/data_preprocess/dataset/Dengiz_cleaned_test.csv"
+DATA_PATH = "src/data_preprocess/dataset/Dengiz_cleaned.csv"
 
 def main(iterations):
     try:

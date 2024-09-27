@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 matplotlib.use("Agg")
 
 # Paths
-DATASETFOLDER = "src/data_preprocess/dataset/"
+DATASETFOLDER = "src/data_preprocess/nist/data_root/"
 HVAC_MIN_PATH_2014 = DATASETFOLDER + "HVAC-minute-2014.csv"
 HVAC_MIN_PATH_2015 = DATASETFOLDER + "HVAC-minute-2015.csv"
 

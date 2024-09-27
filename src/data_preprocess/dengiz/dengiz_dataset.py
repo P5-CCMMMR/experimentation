@@ -19,33 +19,28 @@ MAX_TEMP_DELTA = 15
 WEEKS = 52
 HOUSE_AMOUNT = 20
 KWH_AMOUNT = 3
-START_PATH = "src/data_preprocess/dengiz/data_root"
+
+
+# Paths
+PREPROSS_PATH = "src/data_preprocess/"
+START_PATH = PREPROSS_PATH + "dengiz/data_root"
 WEEK_PATH = "Week"
 HOUSE_PATH = "BT4_HH"
 MIDDLE_FOLDER_PATH = "Min_Costs_Scaled_PV_0_kWp_30_Min_A"
 
-OUTPUT_PATH = "src/data_preprocess/dataset/"
+OUTPUT_PATH = PREPROSS_PATH + "dengiz/result_data/"
 
 # Dataset Columns
 TIME = "time of week"
 INDOOR = "temperatureBufferStorage" 
 OUTDOOR = "Outside Temperature [C]"
 POWER_USAGE = "Space Heating [W]"
+TIMESTAMP = "Timestamp"
 
 START_DATE = "2023-01-01 00:00:00"
 
-
-#df1 = pd.read_csv(f"{START_PATH}/{KWH_CATEGORIES[0]}/{MIDDLE_FOLDER_PATH}/{HOUSE_PATH}1/{WEEK_PATH}1/{HOUSE_PATH}1.csv",
-#                  sep=";",
-#                  header=0)
-#                      
-#df2 = pd.read_csv(f"{START_PATH}/{KWH_CATEGORIES[0]}/{MIDDLE_FOLDER_PATH}/{HOUSE_PATH}1/{WEEK_PATH}2/{HOUSE_PATH}1.csv",
-#                  sep=";",
-#                  header=0)
-#
-#print(pd.concat([df1, df2]))
-
-for kWh in range(0, KWH_AMOUNT):
+df_array = []
+for kWh in range(0, KWH_AMOUNT):    
     for house in range(1, HOUSE_AMOUNT + 1):
         week_df_arr = []
         for week in range(1, WEEKS + 1):
@@ -56,16 +51,30 @@ for kWh in range(0, KWH_AMOUNT):
                                       header=0)
             except:
                 continue
-            print("hi")
             week_df_arr.append(temp_df)
         df = pd.concat(week_df_arr) 
         df = df[[TIME, POWER_USAGE, INDOOR, OUTDOOR]]
 
         date_range = pd.date_range(start=START_DATE, periods=len(df), freq='30min')
         df[TIME] = date_range
-        df.columns = ["Timestamp", "PowerConsumption", "IndoorTemp", "OutdoorTemp"]
+        df.columns = [TIMESTAMP, "PowerConsumption", "IndoorTemp", "OutdoorTemp"]
 
         df.to_csv(f"{OUTPUT_PATH}{KWH_CATEGORIES[kWh]}/{HOUSE_PATH}{house}.csv",
                   sep=";",
                   header=0,
+                  index=False)
+        
+        df_array.append(df)
+
+
+df = df[(df.IndoorTemp >= 10) & (df.IndoorTemp <= 30)]
+df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]
+series = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
+df = df[df.PowerConsumption > 0]
+
+df = df.dropna()
+
+df = pd.concat(df_array) 
+df.to_csv(f"{PREPROSS_PATH}dataset/Dengiz_cleaned.csv",
+          
                   index=False)

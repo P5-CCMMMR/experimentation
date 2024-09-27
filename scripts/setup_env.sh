@@ -55,23 +55,25 @@ fi
 
 # Download datasets from NIST
 echo "Downloading datasets from NIST..."
-mkdir -p dataset
+mkdir -p src
+mkdir -p src/data_preprocess
+mkdir -p src/data_preprocess/nist
+mkdir -p src/data_preprocess/nist/data_root
 
 declare -A datasets
 
-datasets[dataset/HVAC-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/HVAC-minute.csv"
-datasets[dataset/HVAC-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/HVAC-minute.csv"
-datasets[dataset/IndEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/IndEnv-minute.csv"
-datasets[dataset/IndEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/IndEnv-minute.csv"
-datasets[dataset/OutEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/OutEnv-minute.csv"
-datasets[dataset/OutEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/OutEnv-minute.csv"
-#https://dryad-assetstore-merritt-west.s3.us-west-2.amazonaws.com/ark%3A/13030/m5s5366j%7C1%7Cproducer/Building_59.zip?response-content-disposition=attachment%3B%20filename%3DBuilding_59.zip&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA2KERHV5E3OITXZXC%2F20240924%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20240924T083049Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=a67e07e467320c3e34f667d110d97506b7ae0f5e21174e8e316bc01fdac84260
+datasets[src/data_preprocess/nist/data_root/HVAC-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/HVAC-minute.csv"
+datasets[src/data_preprocess/nist/data_root/HVAC-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/HVAC-minute.csv"
+datasets[src/data_preprocess/nist/data_root/IndEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/IndEnv-minute.csv"
+datasets[src/data_preprocess/nist/data_root/IndEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/IndEnv-minute.csv"
+datasets[src/data_preprocess/nist/data_root/OutEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/OutEnv-minute.csv"
+datasets[src/data_preprocess/nist/data_root/OutEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/OutEnv-minute.csv"
 
 for key in "${!datasets[@]}" 
 do 
     if [ ! -f "$key" ]; then
         echo "Downloading $key..."
-        wget -O $key "${!datasets[$key]}"
+        wget -O $key "${datasets[$key]}"
     else
         echo "$key already exists."
     fi
