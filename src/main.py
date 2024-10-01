@@ -22,15 +22,15 @@ TARGET_COLUMN = 1
 NUM_WORKERS = multiprocessing.cpu_count()
 
 # Hyper parameters
-training_batch_size = 64
+training_batch_size = 128
 test_batch_size = 64
-hidden_size = 16
-n_epochs = 10
+hidden_size = 24
+n_epochs = 100
 seq_len = 96
 learning_rate = 0.005
 swa_learning_rate = 0.01
 num_layers = 2
-dropout = 0.35
+dropout = 0.5
 test_sample_nbr = 50
 
 training_days = 18
