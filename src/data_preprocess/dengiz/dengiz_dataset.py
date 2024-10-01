@@ -76,5 +76,4 @@ df = df.dropna()
 
 df = pd.concat(df_array) 
 df.to_csv(f"{PREPROSS_PATH}dataset/Dengiz_cleaned.csv",
-          
-                  index=False)
+          index=False)

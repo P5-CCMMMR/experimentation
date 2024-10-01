@@ -10,7 +10,7 @@ from src.network.models.normal_lstm import NormalLSTM
 from src.network.lit_lstm import LitLSTM
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
 from src.util.plot import plot_results
-from src.data_preprocess.data import split_data_train_and_test
+from src.data_preprocess.data import DataSplitter
 
 matplotlib.use("Agg")
 
@@ -42,7 +42,14 @@ def main(iterations):
     except FileNotFoundError:
         try:
             df = pd.read_csv(DATA_PATH)
-            train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
+            ds = DataSplitter(df, TIMESTAMP)
+            ds.set_split_interval(test_days + training_days)
+            train_data = ds.get_first_of_split(training_days)
+            test_data = ds.get_last_of_split(test_days)
+
+            train_data.to_csv(TRAIN_DATA_PATH , index=False)
+            test_data.to_csv(CLEAN_NIST_PATH, index=False)
+
         except FileNotFoundError:
             raise RuntimeError(DATA_PATH + " not found")
 
