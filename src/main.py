@@ -4,13 +4,17 @@ import matplotlib
 import pandas as pd
 import multiprocessing
 import torch
+import numpy as np
 from torch.utils.data import DataLoader
 from src.util.normalize import normalize
-from src.network.models.normal_lstm import NormalLSTM
-from src.network.lit_lstm import LitLSTM
+from src.network.models.mc_dropout_lstm import MCDropoutLSTM
+from src.network.models.mc_dropout_gru import MCDropoutGRU
+from src.network.lit_model import LitModel
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
 from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 
 matplotlib.use("Agg")
 
@@ -19,13 +23,15 @@ NUM_WORKERS = multiprocessing.cpu_count()
 
 # Hyper parameters
 training_batch_size = 64
-test_batch_size = 105
-hidden_size = 32
+test_batch_size = 64
+hidden_size = 16
 n_epochs = 10
 seq_len = 96
 learning_rate = 0.005
-num_layers = 1
-dropout = 0
+swa_learning_rate = 0.01
+num_layers = 2
+dropout = 0.35
+test_sample_nbr = 50
 
 training_days = 18
 test_days = 20 - training_days
@@ -36,37 +42,58 @@ TEST_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_test.csv"
 DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned.csv"
 
 def main(iterations):
-    try:
-        train_data = pd.read_csv(TRAIN_DATA_PATH)
-        test_data = pd.read_csv(TEST_DATA_PATH)
-    except FileNotFoundError:
-        try:
-            df = pd.read_csv(DATA_PATH)
-            train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
-        except FileNotFoundError:
-            raise RuntimeError(DATA_PATH + " not found")
+    #try:
+    #    train_data = pd.read_csv(TRAIN_DATA_PATH)
+    #    test_data = pd.read_csv(TEST_DATA_PATH)
+    #except FileNotFoundError:
+    #    try:
+    #        df = pd.read_csv(DATA_PATH)
+    #        train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
+    #    except FileNotFoundError:
+    #
+    # raise RuntimeError(DATA_PATH + " not found")
+    
+    # TODO: function used to generate sine wave data for testing
+    def generate_sine_wave_data(num_samples, num_features, noise=0):
+        x = np.linspace(0, 360, num_samples)
+        data = np.sin(x) + noise * np.random.randn(num_samples)
+        data = data.reshape(-1, 1) 
+        return np.hstack([data] * num_features)
 
+    #df = generate_sine_wave_data(10000, 4, 0.1)
+
+    df = pd.read_csv(DATA_PATH)
+    train_len = int(len(df) * 0.8)
+    val_len = int(len(df) * 0.1)
+    
+    train_data = df[:train_len]
+    val_data = df[train_len:train_len+val_len]
+    test_data = df[train_len+val_len:]
+    
     train_data = train_data.values
+    val_data = val_data.values
     test_data = test_data.values
 
     test_timestamps = pd.to_datetime(test_data[:,0])
 
     train_data, _, _ = normalize(train_data[:,1:].astype(float))
+    val_data, _, _ = normalize(val_data[:,1:].astype(float))
     test_data, test_min_vals, test_max_vals = normalize(test_data[:,1:].astype(float))
 
     best_loss = None
     
-    for i in range(0, iterations):
-        model = NormalLSTM(hidden_size, num_layers, dropout)
-        lit_lstm = LitLSTM(model, learning_rate)
-        trainer = L.Trainer(max_epochs=n_epochs)
+    for _ in range(iterations):
+        model = MCDropoutGRU(hidden_size, num_layers, dropout)
+        lit_lstm = LitModel(model, learning_rate, test_sample_nbr)
+        trainer = L.Trainer(min_epochs=5, max_epochs=n_epochs, callbacks=[EarlyStopping(monitor="val_loss", mode="min"), StochasticWeightAveraging(swa_lrs=swa_learning_rate)])
         train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
         train_loader = DataLoader(train_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
+        val_dataset = TimeSeriesDataset(val_data, seq_len, TARGET_COLUMN)
+        val_loader = DataLoader(val_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
         test_dataset = TimeSeriesDataset(test_data, seq_len, TARGET_COLUMN)
         test_loader = DataLoader(test_dataset, batch_size=test_batch_size, num_workers=NUM_WORKERS)
 
-
-        trainer.fit(lit_lstm, train_loader)
+        trainer.fit(lit_lstm, train_loader, val_loader)
         test_results = trainer.test(lit_lstm, test_loader)
 
         predictions, actuals = lit_lstm.get_results()
