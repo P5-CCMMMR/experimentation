@@ -27,21 +27,61 @@ learning_rate = 0.005
 num_layers = 1
 dropout = 0
 
-training_days = 18
-test_days = 20 - training_days
+# Data Parameters
+nist = {
+    "training_days"       : 18, 
+    "test_days"           : 2,
+    "validation_days"     : 0,
+    "off_limit_w"         : 100,
+    "on_limit_w"          : 1500,   
+    "consecutive_points"  : 3,
+    "train_data_path"     : "src/data_preprocess/dataset/train/NIST.csv",
+    "test_data_path"      : "src/data_preprocess/dataset/train/NIST.csv",
+    "on_data_path"        : "src/data_preprocess/dataset/on/NIST.csv",
+    "off_data_path"       : "src/data_preprocess/dataset/off/NIST.csv",
+    "data_path"           : "src/data_preprocess/dataset/NIST_cleaned.csv"
+}
 
+dengiz = {
+    "training_days"       : 18, 
+    "test_days"           : 2,
+    "validation_days"     : 0,
+    "off_limit_w"         : None,   # Yet to be known
+    "on_limit_w"          : None,   # Yet to be known
+    "consecutive_points"  : 3,
+    "train_data_path"     : "src/data_preprocess/dataset/train/Dengiz.csv",
+    "test_data_path"      : "src/data_preprocess/dataset/test/Dengiz.csv",
+    "on_data_path"        : "src/data_preprocess/dataset/on/Dengiz.csv",
+    "off_data_path"       : "src/data_preprocess/dataset/off/Dengiz.csv",
+    "data_path"           : "src/data_preprocess/dataset/Dengiz_cleaned.csv"
+}
+
+used_dataset       = nist
+training_days      = used_dataset["training_days"]
+test_days          = used_dataset["test_days"]
+validation_days    = used_dataset["validation_days"]
+off_limit          = used_dataset["off_limit_w"]
+on_limit           = used_dataset["on_limit_w"]
+consecutive_points = used_dataset["consecutive_points"]
+
+# General Constant
 TIMESTAMP = "Timestamp"
-TRAIN_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_train.csv"
-TEST_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_test.csv"
-DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned.csv"
+POWER     = "PowerConsumption"
+
+# Paths
+TRAIN_DATA_PATH = used_dataset[ "train_data_path"]
+TEST_DATA_PATH  = used_dataset["test_data_path"]
+ON_DATA_PATH    = used_dataset["on_data_path"]
+OFF_DATA_PATH   = used_dataset["off_data_path"]
+DATA_PATH       = used_dataset["data_path"]
 
 def main(iterations):
     try:
+        df = pd.read_csv(DATA_PATH)
         train_data = pd.read_csv(TRAIN_DATA_PATH)
         test_data = pd.read_csv(TEST_DATA_PATH)
     except FileNotFoundError:
         try:
-            df = pd.read_csv(DATA_PATH)
             ds = DataSplitter(df, TIMESTAMP)
             ds.set_split_interval(test_days + training_days)
             train_data = ds.get_first_of_split(training_days)
@@ -85,6 +125,17 @@ def main(iterations):
             plot_results(predictions, actuals, test_timestamps, test_min_vals, test_max_vals, TARGET_COLUMN)
             best_loss = test_loss 
             torch.save(model.state_dict(), 'model.pth')
+
+    try:
+        off_df = pd.read_csv(OFF_DATA_PATH)
+        on_df = pd.read_csv(ON_DATA_PATH)
+    except FileNotFoundError:
+        ds = DataSplitter(df, TIMESTAMP, POWER)
+        off_df = ds.get_lt_power(off_limit, 3)
+        on_df = ds.get_mt_power(on_limit, 3)
+
+        off_df.to_csv(OFF_DATA_PATH , index=False)
+        on_df.to_csv(ON_DATA_PATH, index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the LSTM model training and testing.")
