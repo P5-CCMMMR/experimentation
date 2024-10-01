@@ -84,7 +84,7 @@ def main(iterations):
     
     for _ in range(iterations):
         model = MCDropoutGRU(hidden_size, num_layers, dropout)
-        lit_lstm = LitModel(model, learning_rate, test_sample_nbr)
+        lit_model = LitModel(model, learning_rate, test_sample_nbr)
         trainer = L.Trainer(min_epochs=5, max_epochs=n_epochs, callbacks=[EarlyStopping(monitor="val_loss", mode="min"), StochasticWeightAveraging(swa_lrs=swa_learning_rate)])
         train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
         train_loader = DataLoader(train_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
@@ -93,10 +93,10 @@ def main(iterations):
         test_dataset = TimeSeriesDataset(test_data, seq_len, TARGET_COLUMN)
         test_loader = DataLoader(test_dataset, batch_size=test_batch_size, num_workers=NUM_WORKERS)
 
-        trainer.fit(lit_lstm, train_loader, val_loader)
-        test_results = trainer.test(lit_lstm, test_loader)
+        trainer.fit(lit_model, train_loader, val_loader)
+        test_results = trainer.test(lit_model, test_loader)
 
-        predictions, actuals = lit_lstm.get_results()
+        predictions, actuals = lit_model.get_results()
 
         test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
 
