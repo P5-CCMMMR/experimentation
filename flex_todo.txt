@@ -1,0 +1,4 @@
+# TODO
+    - split off and on dataset into arrays of actual sequences
+    - run flex predict on these arrays
+    - make multi-timestep forecasting by reusing power and out door temps with model predictions for input

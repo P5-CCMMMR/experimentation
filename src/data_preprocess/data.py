@@ -96,6 +96,8 @@ class DataSplitter():
         # Calculate the average time difference
         self.average_time_diff  = self.df['time_diff'].mean()  
 
+        self.df = self.df.drop(columns=['time_diff'])
+
 
 
 # Example usage
