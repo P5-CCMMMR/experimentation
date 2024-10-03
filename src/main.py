@@ -15,6 +15,7 @@ from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+from src.util.conditional_early_stopping import ConditionalEarlyStopping
 
 matplotlib.use("Agg")
 
@@ -25,13 +26,13 @@ NUM_WORKERS = multiprocessing.cpu_count()
 training_batch_size = 128
 test_batch_size = 64
 hidden_size = 24
-n_epochs = 100
+n_epochs = 125
 seq_len = 96
 learning_rate = 0.005
 swa_learning_rate = 0.01
 num_layers = 2
-dropout = 0.5
-test_sample_nbr = 50
+dropout = 0.55
+test_sample_nbr = 200
 
 training_days = 18
 test_days = 20 - training_days
@@ -85,7 +86,7 @@ def main(iterations):
     for _ in range(iterations):
         model = MCDropoutGRU(hidden_size, num_layers, dropout)
         lit_model = LitModel(model, learning_rate, test_sample_nbr)
-        trainer = L.Trainer(min_epochs=5, max_epochs=n_epochs, callbacks=[EarlyStopping(monitor="val_loss", mode="min"), StochasticWeightAveraging(swa_lrs=swa_learning_rate)])
+        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=0.2)])
         train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
         train_loader = DataLoader(train_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
         val_dataset = TimeSeriesDataset(val_data, seq_len, TARGET_COLUMN)
@@ -111,4 +112,3 @@ if __name__ == "__main__":
     parser.add_argument('--iterations', type=int, required=True, help='Number of iterations to run the training and testing loop.')
     args = parser.parse_args()
     main(args.iterations)
-

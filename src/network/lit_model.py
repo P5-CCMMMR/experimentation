@@ -2,7 +2,7 @@ import lightning as L
 import torch
 import torch.nn as nn
 import numpy as np
-from src.util.error import RMSE
+from src.util.error import RMSE, NRMSE
 
 class LitModel(L.LightningModule):
     def __init__(self, model: nn.Module, learning_rate: float, test_sample_nbr: int):
