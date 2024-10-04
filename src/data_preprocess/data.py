@@ -4,7 +4,7 @@ from datetime import datetime
 def split_data_train_and_test(df, training_days, test_days, time_row_name):
     train_test_split_days = training_days + test_days
 
-    def filter_days(global_day: int, last_day: int, current_date: datetime):
+    def filter_days(global_day, last_day, current_date: datetime):
         if current_date.date() != last_day[0]:
             last_day[0] = current_date.date()
             global_day[0] += 1
