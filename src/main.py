@@ -10,6 +10,7 @@ from src.util.normalize import normalize, denormalize
 from src.network.models.normal_lstm import NormalLSTM
 from src.network.lit_lstm import LitLSTM
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
+from src.data_preprocess.usage_timeseries_dataset import UsageTimeSeriesDataset
 from src.util.plot import plot_results
 from src.data_preprocess.data import DataSplitter
 
@@ -79,10 +80,15 @@ DATA_PATH       = used_dataset["data_path"]
 
 
 def main():
+    seq_len = 4
+
     train_data, test_data = getTrainTestDataset()
     modelTrainingAndEval(train_data, test_data, MODEL_ITERATIONS)
     on_df, off_df = getOnOffDataset()
-    flexPredictEval(on_df, off_df)
+    model = NormalLSTM(hidden_size, num_layers, dropout)
+    model.load_state_dict(torch.load('model.pth', weights_only=True))
+    model.eval()
+    flexPredictEval(on_df, model, seq_len)
 
 def getOnOffDataset():
     try:
@@ -173,63 +179,36 @@ def splitDateframeByContinuity(df, time_difference: int, sequence_min_len: int):
         sequences.append(np.array(temp_sequence))
     return sequences
 
-def flexPredictEval(df, model):
-    df_sequences = splitDateframeByContinuity(df, 15, 3)
+def flexPredictEval(df, model, seq_len):
+    df_data = splitDateframeByContinuity(df, 15, 3)
 
     predictions = []
 
-    for seq in df_sequences:
-        #print(seq)
-        #print(len(seq))
-        mutiTimestepForecasting(model, seq, len(seq))
-        break
+    for data in df_data:
+        predictions.append([multiTimestepForecasting(model, data, len(data), seq_len)])
+    print(predictions)
 
-# 
-def mutiTimestepForecasting(model, seq, timesteps):
+# problem is that the dataloader takes input AND expected output making it take 1 more than the inputs needed
+def multiTimestepForecasting(model, data, timesteps, sequence_len):
+    if (len(data) < sequence_len): 
+        return []
     predictions = []
-    print(seq[0:4,1:].astype(float))
-    data, min_vals, max_vals = normalize(seq[0:4,1:].astype(float))
-    last_out_temp = data[3]
-    print(last_out_temp)
-    print(data)
-    data = data[0:4:]
-    print(data[0])
-#    for i in range(0, timesteps):
-#        dataset = TimeSeriesDataset(data, 4, TARGET_COLUMN)
-#        loader = DataLoader(dataset, batch_size=1, num_workers=NUM_WORKERS)
-#        data = data[1:4:].append()
+    seq, min_vals, max_vals = normalize(data[0:sequence_len, 1:].astype(float)) 
+    last_out_temp = seq[3][2] # magick numbers doesn't work if data not in this format (Power, inTemp, outTemp)
+    last_out_power = seq[3][0]
+    
+    for _ in range(0, timesteps - sequence_len):
+        dataset = UsageTimeSeriesDataset(seq, sequence_len)
+        dataloader = DataLoader(dataset, batch_size=1, num_workers=NUM_WORKERS)
 
-#    off_data, off_min_vals, off_max_vals = normalize(off_df.values[:,1:].astype(float))
-#    on_data, on_min_vals, on_max_vals  = normalize(on_df.values[:,1:].astype(float))
-#
-#    off_dataset = TimeSeriesDataset(off_data, 4, TARGET_COLUMN)
-#    off_loader = DataLoader(off_dataset, batch_size=test_batch_size, num_workers=NUM_WORKERS)
-#
-#    # Check the content of the test_loader
-#    last_batch = None
-#    for batch in off_loader:
-#        last_batch = batch
-#
-#
-#    model = NormalLSTM(hidden_size, num_layers, dropout)
-#    model.load_state_dict(torch.load('model.pth', weights_only=True))
-#    model.eval()
-#    model.cuda()
-#
-#    if last_batch is not None:
-#        features, labels = last_batch
-#        features = features.cuda()
-#        with torch.no_grad():
-#            predictions = model(features)
-#        
-#        predictions_np = predictions.cpu().numpy()
-#        print("Predictions:")
-#        print(denormalize(predictions_np, off_min_vals[1], off_max_vals[1]))
-#        print("actual values: ")
-#        print(denormalize(labels, off_min_vals[1], off_max_vals[1]))
-#    else:
-#        print("No batches found in the DataLoader.")
+        for batch in dataloader:
+            outputs = model(batch)
+            predictions.append(outputs.item())
 
+        seq = seq[1:sequence_len]
+        new_row = np.array([[last_out_power, predictions[len(predictions) - 1], last_out_temp]])
+        seq = np.append(seq, new_row, axis=0)
+    return denormalize(predictions, min_vals[1:2], max_vals[1:2])
 
 
 main()
