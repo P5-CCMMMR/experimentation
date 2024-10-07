@@ -34,13 +34,41 @@ num_layers = 2
 dropout = 0.55
 test_sample_nbr = 200
 
-training_days = 18
-test_days = 20 - training_days
 
+# Data Parameters
+nist = {
+    "training_days"       : 18, 
+    "test_days"           : 2,
+    "validation_days"     : 0,
+    "off_limit_w"         : 100,
+    "on_limit_w"          : 1500,   
+    "consecutive_points"  : 3,
+    "train_data_path"     : "src/data_preprocess/dataset/train/NIST.csv",
+    "test_data_path"      : "src/data_preprocess/dataset/train/NIST.csv",
+    "on_data_path"        : "src/data_preprocess/dataset/on/NIST.csv",
+    "off_data_path"       : "src/data_preprocess/dataset/off/NIST.csv",
+    "data_path"           : "src/data_preprocess/dataset/NIST_cleaned.csv"
+}
+
+
+used_dataset       = nist
+training_days      = used_dataset["training_days"]
+test_days          = used_dataset["test_days"]
+validation_days    = used_dataset["validation_days"]
+off_limit          = used_dataset["off_limit_w"]
+on_limit           = used_dataset["on_limit_w"]
+consecutive_points = used_dataset["consecutive_points"]
+
+# General Constant
 TIMESTAMP = "Timestamp"
-TRAIN_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_train.csv"
-TEST_DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned_test.csv"
-DATA_PATH = "src/data_preprocess/dataset/NIST_cleaned.csv"
+POWER     = "PowerConsumption"
+
+# Paths
+TRAIN_DATA_PATH = used_dataset[ "train_data_path"]
+TEST_DATA_PATH  = used_dataset["test_data_path"]
+ON_DATA_PATH    = used_dataset["on_data_path"]
+OFF_DATA_PATH   = used_dataset["off_data_path"]
+DATA_PATH       = used_dataset["data_path"]
 
 def main(iterations):
     #try:
