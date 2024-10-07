@@ -88,7 +88,8 @@ def main():
     model = NormalLSTM(hidden_size, num_layers, dropout)
     model.load_state_dict(torch.load('model.pth', weights_only=True))
     model.eval()
-    flexPredictEval(on_df, model, seq_len)
+    getMafe(on_df, model, seq_len)
+    getMafe(off_df, model, seq_len)
 
 def getOnOffDataset():
     try:
@@ -179,16 +180,30 @@ def splitDateframeByContinuity(df, time_difference: int, sequence_min_len: int):
         sequences.append(np.array(temp_sequence))
     return sequences
 
-def flexPredictEval(df, model, seq_len):
+def getMafe(df, model, seq_len):
     df_data = splitDateframeByContinuity(df, 15, 3)
 
-    predictions = []
+    flex_predictions = []
+    flex_actual_values = []
 
+    temp_boundery = 0.5
+
+    print("data arrays: " + str(len(df_data)))
     for data in df_data:
-        predictions.append([multiTimestepForecasting(model, data, len(data), seq_len)])
-    print(predictions)
+        in_temp_predictions = multiTimestepForecasting(model, data, len(data), seq_len)
 
-# problem is that the dataloader takes input AND expected output making it take 1 more than the inputs needed
+        in_temp_actual = data[4: ,2:3]
+        last_in_temp = data[3][1]
+
+        predicted_flex = flexPredict(in_temp_predictions, last_in_temp - temp_boundery, last_in_temp + temp_boundery, len(data))
+        actual_flex = flexPredict(in_temp_actual, last_in_temp - temp_boundery, last_in_temp + temp_boundery, len(data))
+
+        flex_predictions.append(predicted_flex)
+        flex_actual_values.append(actual_flex)
+
+        print(f"actual flex: {actual_flex} & len: {str(len(in_temp_actual))} \npredicted_flex: {predicted_flex} & len: {str(len(in_temp_predictions))}")
+        # need to check why the prediction allways perfect, and why its either all the data its flexible or no data
+
 def multiTimestepForecasting(model, data, timesteps, sequence_len):
     if (len(data) < sequence_len): 
         return []
@@ -210,5 +225,15 @@ def multiTimestepForecasting(model, data, timesteps, sequence_len):
         seq = np.append(seq, new_row, axis=0)
     return denormalize(predictions, min_vals[1:2], max_vals[1:2])
 
+def flexPredict(forecasts, lower_bound, upper_bound, error):
+    flex_iter = 0
+
+    for forecast in forecasts:
+        if lower_bound + error <= forecast or upper_bound - error >= forecast:
+            flex_iter = flex_iter + 1
+        else:
+            break
+    
+    return flex_iter
 
 main()
