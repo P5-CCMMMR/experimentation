@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 matplotlib.use("Agg")
 
 # Paths
-DATASETFOLDER = "dataset/"
+DATASETFOLDER = "src/data_preprocess/nist/data_root/"
 HVAC_MIN_PATH_2014 = DATASETFOLDER + "HVAC-minute-2014.csv"
 HVAC_MIN_PATH_2015 = DATASETFOLDER + "HVAC-minute-2015.csv"
 
@@ -15,7 +15,7 @@ INDENV_MIN_PATH_2015 = DATASETFOLDER + "IndEnv-minute-2015.csv"
 OUTENV_MIN_PATH_2014 = DATASETFOLDER + "OutEnv-minute-2014.csv"
 OUTENV_MIN_PATH_2015 = DATASETFOLDER + "OutEnv-minute-2015.csv"
 
-CLEAN_NIST_PATH = DATASETFOLDER + "NIST_cleaned.csv"
+CLEAN_NIST_PATH = "src/data_preprocess/dataset/NIST_cleaned.csv"
 
 # Data parameters
 SAMPLE_TIME = "15min"

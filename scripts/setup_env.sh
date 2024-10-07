@@ -55,22 +55,25 @@ fi
 
 # Download datasets from NIST
 echo "Downloading datasets from NIST..."
-mkdir -p dataset
+mkdir -p src
+mkdir -p src/data_preprocess
+mkdir -p src/data_preprocess/nist
+mkdir -p src/data_preprocess/nist/data_root
 
 declare -A datasets
 
-datasets[dataset/HVAC-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/HVAC-minute.csv"
-datasets[dataset/HVAC-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/HVAC-minute.csv"
-datasets[dataset/IndEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/IndEnv-minute.csv"
-datasets[dataset/IndEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/IndEnv-minute.csv"
-datasets[dataset/OutEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/OutEnv-minute.csv"
-datasets[dataset/OutEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/OutEnv-minute.csv"
+datasets[src/data_preprocess/nist/data_root/HVAC-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/HVAC-minute.csv"
+datasets[src/data_preprocess/nist/data_root/HVAC-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/HVAC-minute.csv"
+datasets[src/data_preprocess/nist/data_root/IndEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/IndEnv-minute.csv"
+datasets[src/data_preprocess/nist/data_root/IndEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/IndEnv-minute.csv"
+datasets[src/data_preprocess/nist/data_root/OutEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/OutEnv-minute.csv"
+datasets[src/data_preprocess/nist/data_root/OutEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/OutEnv-minute.csv"
 
 for key in "${!datasets[@]}" 
 do 
     if [ ! -f "$key" ]; then
         echo "Downloading $key..."
-        wget -O $key "${!datasets[$key]}"
+        wget -O $key "${datasets[$key]}"
     else
         echo "$key already exists."
     fi
