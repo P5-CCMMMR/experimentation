@@ -59,6 +59,12 @@ mkdir -p src
 mkdir -p src/data_preprocess
 mkdir -p src/data_preprocess/nist
 mkdir -p src/data_preprocess/nist/data_root
+mkdir -p graph
+mkdir -p src/data_preprocess/dataset
+mkdir -p src/data_preprocess/dataset/off
+mkdir -p src/data_preprocess/dataset/on
+mkdir -p src/data_preprocess/dataset/test
+mkdir -p src/data_preprocess/dataset/train
 
 declare -A datasets
 
