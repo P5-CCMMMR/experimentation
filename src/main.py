@@ -3,11 +3,8 @@ import lightning as L
 import matplotlib
 import pandas as pd
 import torch
+import src.network.models.mc_model as mc
 from src.util.normalize import normalize
-from src.network.models.monte_carlo.mc_dropout_lstm import MCDropoutLSTM
-from src.network.models.monte_carlo.mc_dropout_gru import MCDropoutGRU
-from src.network.models.monte_carlo.mc_dropout_rnn import MCDropoutRNN
-from src.network.mc_model import MCModel
 from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
 from lightning.pytorch.tuner import Tuner
@@ -95,8 +92,8 @@ def main(iterations):
     best_loss = None
     
     for _ in range(iterations):
-        model = MCDropoutLSTM(hidden_size, num_layers, dropout)
-        lit_model = LitModel(model, learning_rate, test_sample_nbr, seq_len, batch_size, train_data, val_data, test_data)
+        model = mc.MCDropoutLSTM(hidden_size, num_layers, dropout)
+        lit_model = mc.MCModel(model, learning_rate, test_sample_nbr, seq_len, batch_size, train_data, val_data, test_data)
         trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping)
         tuner = Tuner(trainer)
         tuner.lr_find(lit_model)
