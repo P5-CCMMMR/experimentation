@@ -18,16 +18,17 @@ matplotlib.use("Agg")
 TARGET_COLUMN = 1
 
 # Hyper parameters
-batch_size = 128
 hidden_size = 24
 n_epochs = 125
 seq_len = 96
-learning_rate = 0.005
 swa_learning_rate = 0.01
 num_layers = 4
 dropout = 0.50
 test_sample_nbr = 50
 
+# Controlled by tuner
+batch_size = 128
+learning_rate = 0.005
 
 # Data Parameters
 nist = {
