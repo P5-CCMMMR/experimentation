@@ -66,16 +66,8 @@ OFF_DATA_PATH   = used_dataset["off_data_path"]
 DATA_PATH       = used_dataset["data_path"]
 
 def main(iterations):
-    #try:
-    #    train_data = pd.read_csv(TRAIN_DATA_PATH)
-    #    test_data = pd.read_csv(TEST_DATA_PATH)
-    #except FileNotFoundError:
-    #    try:
-    #        df = pd.read_csv(DATA_PATH)
-    #        train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
-    #    except FileNotFoundError:
-    #
-    # raise RuntimeError(DATA_PATH + " not found")
+    #df = pd.read_csv(DATA_PATH)
+    #train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
 
     df = pd.read_csv(DATA_PATH)
     train_len = int(len(df) * 0.8)
