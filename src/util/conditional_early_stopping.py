@@ -20,8 +20,7 @@ class ConditionalEarlyStopping(EarlyStopping):
 
         if current < self.threshold:
             self.enabled = True
-
-        if current >= self.threshold:
+        else:
             self.enabled = False
             self.wait_count = 0
             

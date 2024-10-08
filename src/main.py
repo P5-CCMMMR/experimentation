@@ -30,9 +30,9 @@ n_epochs = 125
 seq_len = 96
 learning_rate = 0.005
 swa_learning_rate = 0.01
-num_layers = 2
-dropout = 0.55
-test_sample_nbr = 200
+num_layers = 4
+dropout = 0.50
+test_sample_nbr = 50
 
 
 # Data Parameters
@@ -114,7 +114,7 @@ def main(iterations):
     for _ in range(iterations):
         model = MCDropoutGRU(hidden_size, num_layers, dropout)
         lit_model = LitModel(model, learning_rate, test_sample_nbr)
-        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=0.2)])
+        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=0.1)])
         train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
         train_loader = DataLoader(train_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
         val_dataset = TimeSeriesDataset(val_data, seq_len, TARGET_COLUMN)
