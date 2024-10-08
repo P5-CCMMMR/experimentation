@@ -186,6 +186,7 @@ def getMafe(df, model, seq_len):
     flex_predictions = []
     flex_actual_values = []
 
+    error = 0
     temp_boundery = 0.5
 
     print("data arrays: " + str(len(df_data)))
@@ -193,15 +194,18 @@ def getMafe(df, model, seq_len):
         in_temp_predictions = multiTimestepForecasting(model, data, len(data), seq_len)
 
         in_temp_actual = data[4: ,2:3]
-        last_in_temp = data[3][1]
+        last_in_temp = data[3][2]
 
-        predicted_flex = flexPredict(in_temp_predictions, last_in_temp - temp_boundery, last_in_temp + temp_boundery, len(data))
-        actual_flex = flexPredict(in_temp_actual, last_in_temp - temp_boundery, last_in_temp + temp_boundery, len(data))
+        lower_boundery = last_in_temp - temp_boundery
+        upper_boundery = last_in_temp + temp_boundery
 
+        actual_flex = flexPredict(in_temp_actual, lower_boundery, upper_boundery, error)
+        predicted_flex = flexPredict(in_temp_predictions, lower_boundery, upper_boundery, error)
+
+  
         flex_predictions.append(predicted_flex)
         flex_actual_values.append(actual_flex)
 
-        print(f"actual flex: {actual_flex} & len: {str(len(in_temp_actual))} \npredicted_flex: {predicted_flex} & len: {str(len(in_temp_predictions))}")
         # need to check why the prediction allways perfect, and why its either all the data its flexible or no data
 
 def multiTimestepForecasting(model, data, timesteps, sequence_len):
@@ -228,8 +232,9 @@ def multiTimestepForecasting(model, data, timesteps, sequence_len):
 def flexPredict(forecasts, lower_bound, upper_bound, error):
     flex_iter = 0
 
+
     for forecast in forecasts:
-        if lower_bound + error <= forecast or upper_bound - error >= forecast:
+        if lower_bound + error <= forecast and upper_bound - error >= forecast:    
             flex_iter = flex_iter + 1
         else:
             break

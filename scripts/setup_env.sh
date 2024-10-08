@@ -64,6 +64,8 @@ declare -A datasets
 
 datasets[src/data_preprocess/nist/data_root/HVAC-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/HVAC-minute.csv"
 datasets[src/data_preprocess/nist/data_root/HVAC-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/HVAC-minute.csv"
+datasets[src/data_preprocess/nist/data_root/DHW-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/DHW-minute.csv"
+datasets[src/data_preprocess/nist/data_root/DHW-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/DHW-minute.csv"
 datasets[src/data_preprocess/nist/data_root/IndEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/IndEnv-minute.csv"
 datasets[src/data_preprocess/nist/data_root/IndEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/IndEnv-minute.csv"
 datasets[src/data_preprocess/nist/data_root/OutEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/OutEnv-minute.csv"
