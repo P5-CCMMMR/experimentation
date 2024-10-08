@@ -13,7 +13,7 @@ class BaseModel(L.LightningModule):
         self.learning_rate = learning_rate
         self.seq_len = seq_len
         self.batch_size = batch_size
-        self.all_predictions: tuple[list[float], list[float]] = ([], [])
+        self.all_predictions: list[float] = []
         self.all_actuals: list[float] = []
         
         self.setup_data_loaders(train_data, val_data, test_data)

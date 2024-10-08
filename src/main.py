@@ -32,6 +32,7 @@ learning_rate = 0.005
 
 # Other
 early_stopping_threshold = 0.1
+debug = False
 
 # Data Parameters
 nist = {
@@ -95,7 +96,7 @@ def main(iterations):
     for _ in range(iterations):
         model = base.LSTM(hidden_size, num_layers, dropout)
         lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, test_sample_nbr)
-        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=False)
+        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
         tuner = Tuner(trainer)
         tuner.lr_find(lit_model)
         tuner.scale_batch_size(lit_model, mode="binsearch")

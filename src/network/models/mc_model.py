@@ -9,6 +9,7 @@ class MCModel(BaseModel):
     def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int, train_data, val_data, test_data, test_sample_nbr: int):
         super().__init__(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
         self.test_sample_nbr = test_sample_nbr
+        self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
     def test_step(self, batch):
         x, y = batch
