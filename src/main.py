@@ -70,11 +70,6 @@ dengiz = {
 }
 
 
-# General Constant
-TIMESTAMP = "Timestamp"
-POWER     = "PowerConsumption"
-
-
 def main():
     temp_boundery = 0.5
     seq_len = 4
