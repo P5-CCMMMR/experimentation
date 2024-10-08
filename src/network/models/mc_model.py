@@ -5,13 +5,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
 from src.util.error import RMSE
-from src.network.models.base_model import BaseModel
+from src.network.models.base_model import ProbabilisticBaseModel
+from src.util.constants import TARGET_COLUMN
 
-class MCModel(BaseModel):
+class MCModel(ProbabilisticBaseModel):
     def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int, train_data, val_data, test_data, test_sample_nbr: int):
         super().__init__(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
         self.test_sample_nbr = test_sample_nbr
-        self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
     def test_step(self, batch):
         x, y = batch
@@ -38,18 +38,18 @@ class MCModel(BaseModel):
 
         return mean_prediction, std_prediction
     
-    def plot_results(predictions, actuals, timestamps, min_vals, max_vals, target_column):
+    def plot_results(self, timestamps, min_vals, max_vals):
         writer = SummaryWriter()
 
-        mean_predictions, std_predictions = predictions
+        mean_predictions, std_predictions = self.all_predictions
         mean_predictions = np.array(mean_predictions)
         std_predictions = np.array(std_predictions)
-        actuals = np.array(actuals)
+        actuals = np.array(self.all_actuals)
 
         # Rescale predictions and actuals
-        mean_predictions = mean_predictions * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
-        std_predictions = std_predictions * (max_vals[target_column] - min_vals[target_column])
-        actuals = actuals * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
+        mean_predictions = mean_predictions * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
+        std_predictions = std_predictions * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN])
+        actuals = actuals * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
         timestamps = timestamps[:len(mean_predictions)]
 
         plt.plot(timestamps, mean_predictions, label="Prediction")

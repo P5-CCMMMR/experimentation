@@ -58,9 +58,6 @@ class BaseModel(L.LightningModule):
         self.all_predictions.extend(y_hat.flatten())
         self.all_actuals.extend(y.detach().cpu().numpy().flatten())
     
-    def get_results(self):
-        return self.all_predictions, self.all_actuals
-    
     def train_dataloader(self):
         return self.train_loader
     
@@ -70,15 +67,15 @@ class BaseModel(L.LightningModule):
     def test_dataloader(self):
         return self.test_loader
     
-    def plot_results(predictions, actuals, timestamps, min_vals, max_vals, target_column):
+    def plot_results(self, timestamps, min_vals, max_vals):
         writer = SummaryWriter()
 
-        predictions = np.array(predictions)
-        actuals = np.array(actuals)
+        predictions = np.array(self.all_predictions)
+        actuals = np.array(self.all_actuals)
 
         # Rescale predictions and actuals 
-        predictions = predictions * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
-        actuals = actuals * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
+        predictions = predictions * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
+        actuals = actuals * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
         timestamps = timestamps[:len(predictions)]
 
         plt.plot(timestamps, predictions, label="Prediction")
@@ -90,6 +87,11 @@ class BaseModel(L.LightningModule):
         plt.legend()
         plt.grid()
         plt.gcf().autofmt_xdate()
+        
+class ProbabilisticBaseModel(BaseModel):
+    def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int, train_data, val_data, test_data):
+        super().__init__(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
+        self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
 class RNN(nn.Module):
     def __init__(self, hidden_size: int, num_layers: int, dropout: float):

@@ -6,7 +6,6 @@ import torch
 import src.network.models.mc_model as mc
 import src.network.models.base_model as base
 from src.util.normalize import normalize
-from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
 from lightning.pytorch.tuner import Tuner
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
@@ -32,7 +31,7 @@ learning_rate = 0.005
 
 # Other
 early_stopping_threshold = 0.1
-debug = False
+debug = True
 
 # Data Parameters
 nist = {
@@ -95,7 +94,7 @@ def main(iterations):
     
     for _ in range(iterations):
         model = base.LSTM(hidden_size, num_layers, dropout)
-        lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, test_sample_nbr)
+        lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
         trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
         tuner = Tuner(trainer)
         tuner.lr_find(lit_model)
@@ -104,13 +103,11 @@ def main(iterations):
         trainer.fit(lit_model)
         test_results = trainer.test(lit_model)
 
-        predictions, actuals = lit_model.get_results()
-
         test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
 
         if best_loss is None or best_loss > test_loss :
             print("NEW BEST")
-            lit_model.plot_results(predictions, actuals, test_timestamps, test_min_vals, test_max_vals, TARGET_COLUMN)
+            lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
             best_loss = test_loss 
             torch.save(model.state_dict(), 'model.pth')
 

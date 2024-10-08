@@ -1,8 +1,37 @@
+import torch
 import torch.nn as nn
-from src.network.models.base_model import BaseModel
+import numpy as np
+from src.network.models.base_model import ProbabilisticBaseModel
+from src.util.error import RMSE
 
-class DeepEnsemblingModel(BaseModel):
+class DeepEnsemblingModel(ProbabilisticBaseModel):
     def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int, train_data, val_data, test_data, num_models: int):
         super().__init__(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
         self.num_models = num_models
+        self.models = [model for _ in range(num_models)]
+            
+    def test_step(self, batch):
+        x, y = batch
+        mean_prediction, std_prediction = self.__predict_with_deep_ensembling(x)
+        loss = RMSE(torch.tensor(mean_prediction, device=y.device), y)
+        self.log('test_loss', loss, on_step=True, logger=True, prog_bar=True)
+        
+        self.all_predictions[0].extend(mean_prediction.flatten())
+        self.all_predictions[1].extend(std_prediction.flatten())
+        self.all_actuals.extend(y.detach().cpu().numpy().flatten())
+        
+    def __predict_with_deep_ensembling(self, x):
+        predictions = []
+        
+        with torch.no_grad():
+            for model in self.models:
+                y_hat = model(x)
+                predictions.append(y_hat.cpu().numpy())
+        
+        predictions = np.array(predictions)
+        mean_prediction = np.mean(predictions, axis=0)
+        std_prediction = np.std(predictions, axis=0)
+        
+        return mean_prediction, std_prediction
+        
         
