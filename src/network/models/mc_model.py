@@ -1,17 +1,13 @@
-import lightning as L
 import torch
 import torch.nn as nn
 import numpy as np
-import matplotlib.pyplot as plt
-from torch.utils.tensorboard import SummaryWriter
 from src.util.error import RMSE
 from src.network.models.base_model import ProbabilisticBaseModel
-from src.util.constants import TARGET_COLUMN
 
 class MCModel(ProbabilisticBaseModel):
-    def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int, train_data, val_data, test_data, test_sample_nbr: int = 50):
+    def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int, train_data, val_data, test_data, inference_samples: int = 50):
         super().__init__(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
-        self.test_sample_nbr = test_sample_nbr
+        self.test_sample_nbr = inference_samples
 
     def test_step(self, batch):
         x, y = batch

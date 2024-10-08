@@ -10,6 +10,9 @@ from src.data_preprocess.data import split_data_train_and_test
 from lightning.pytorch.tuner import Tuner
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
+from src.util.plot import plot_results
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from src.util.constants import NUM_WORKERS
 
 matplotlib.use("Agg")
 
@@ -23,6 +26,7 @@ swa_learning_rate = 0.01
 num_layers = 2
 dropout = 0.50
 gradient_clipping = 0
+num_ensembles = 1
 
 # MC ONLY
 inference_samples = 50
@@ -33,7 +37,6 @@ learning_rate = 0.005
 
 # Other
 early_stopping_threshold = 0.1
-debug = False
 
 # Data Parameters
 nist = {
@@ -49,7 +52,6 @@ nist = {
     "off_data_path"       : "src/data_preprocess/dataset/off/NIST.csv",
     "data_path"           : "src/data_preprocess/dataset/NIST_cleaned.csv"
 }
-
 
 used_dataset       = nist
 training_days      = used_dataset["training_days"]
@@ -70,7 +72,12 @@ ON_DATA_PATH    = used_dataset["on_data_path"]
 OFF_DATA_PATH   = used_dataset["off_data_path"]
 DATA_PATH       = used_dataset["data_path"]
 
-def main(iterations):
+def train_and_test_model(trainer, lit_model):
+    trainer.fit(lit_model)
+    trainer.test(lit_model)
+    return lit_model.get_predictions(), lit_model.get_actuals()
+
+def main(iterations, debug):
     #df = pd.read_csv(DATA_PATH)
     #train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
 
@@ -92,31 +99,60 @@ def main(iterations):
     val_data, _, _ = normalize(val_data[:,1:].astype(float))
     test_data, test_min_vals, test_max_vals = normalize(test_data[:,1:].astype(float))
 
-    best_loss = None
+    #best_loss = None
     
+    # TODO: change iterations to save folder with best ensembled model
     for _ in range(iterations):
-        model = bm.GRU(hidden_size, num_layers, dropout)
-        lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
-        trainer = L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
-        tuner = Tuner(trainer)
-        tuner.lr_find(lit_model)
-        tuner.scale_batch_size(lit_model, mode="binsearch")
+        all_models = []
+        for _ in range(num_ensembles):
+            model = bm.GRU(hidden_size, num_layers, dropout)
+            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+            all_models.append(lit_model)
+        
+        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
+        
+        tuners = [Tuner(trainer) for trainer in trainers]
+        for tuner, lit_model in zip(tuners, all_models):
+            tuner.lr_find(lit_model)
+            tuner.scale_batch_size(lit_model, mode="binsearch")
+            
+        all_predictions = []
+        all_actuals = None
+        
+        # Run ensembles in parallel
+        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
+            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
+            for future in as_completed(futures):
+                predictions, actuals = future.result()
+                all_predictions.append(predictions)
+                if all_actuals is None:
+                    all_actuals = actuals
+            
+        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
-        trainer.fit(lit_model)
-        test_results = trainer.test(lit_model)
+        #model = bm.GRU(hidden_size, num_layers, dropout)
+        #lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, #train_data, val_data, test_data, inference_samples)
+        #trainer = L.Trainer(max_epochs=num_epochs, callbacks=#[StochasticWeightAveraging(swa_lrs=swa_learning_rate), #ConditionalEarlyStopping(threshold=early_stopping_threshold)], #gradient_clip_val=gradient_clipping, fast_dev_run=debug)
+        #tuner = Tuner(trainer)
+        #tuner.lr_find(lit_model)
+        #tuner.scale_batch_size(lit_model, mode="binsearch")
 
-        test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
+        #trainer.fit(lit_model)
+        #test_results = trainer.test(lit_model)
 
-        if best_loss is None or best_loss > test_loss :
-            print("NEW BEST")
-            lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
-            best_loss = test_loss 
-            torch.save(model.state_dict(), 'model.pth')
+        #test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
+
+        #if best_loss is None or best_loss > test_loss :
+         #   print("NEW BEST")
+          #  lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
+           # best_loss = test_loss 
+            #torch.save(model.state_dict(), 'model.pth')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")
     parser.add_argument('--iterations', type=int, required=True, help='Number of iterations to run the training and testing loop.')
+    parser.add_argument('--debug', action='store_true', help='Debug mode')
     args = parser.parse_args()
-    if debug:
+    if args.debug:
         print("DEBUG MODE")
-    main(args.iterations)
+    main(args.iterations, args.debug)

@@ -1,9 +1,6 @@
 import lightning as L
 import torch
 import torch.nn as nn
-import numpy as np
-import matplotlib.pyplot as plt
-from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
 from src.util.error import RMSE
@@ -67,81 +64,16 @@ class BaseModel(L.LightningModule):
     def test_dataloader(self):
         return self.test_loader
     
-    def plot_results(self, timestamps, min_vals, max_vals):
-        writer = SummaryWriter()
-
-        predictions = np.array(self.all_predictions)
-        actuals = np.array(self.all_actuals)
-
-        # Rescale predictions and actuals 
-        predictions = predictions * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
-        actuals = actuals * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
-        timestamps = timestamps[:len(predictions)]
-
-        plt.plot(timestamps, predictions, label="Prediction")
-        plt.plot(timestamps, actuals, label="Actual")
-
-        plt.xlabel("Time")
-        plt.ylabel("Indoor Temperature")
-        plt.title("Predictions vs Actuals")
-        plt.legend()
-        plt.grid()
-        plt.gcf().autofmt_xdate()
-        
-        writer.add_figure("predictions", plt.gcf())
-        writer.close()
+    def get_predictions(self):
+        return self.all_predictions
+    
+    def get_actuals(self):
+        return self.all_actuals
         
 class ProbabilisticBaseModel(BaseModel):
     def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int, train_data, val_data, test_data):
         super().__init__(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
         self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
-    
-    def plot_results(self, timestamps, min_vals, max_vals):
-        writer = SummaryWriter()
-
-        mean_predictions, std_predictions = self.all_predictions
-        mean_predictions = np.array(mean_predictions)
-        std_predictions = np.array(std_predictions)
-        actuals = np.array(self.all_actuals)
-
-        # Rescale predictions and actuals
-        mean_predictions = mean_predictions * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
-        std_predictions = std_predictions * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN])
-        actuals = actuals * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
-        timestamps = timestamps[:len(mean_predictions)]
-        
-        print(mean_predictions)
-        print(std_predictions)
-
-        plt.plot(timestamps, mean_predictions, label="Prediction")
-        plt.plot(timestamps, actuals, label="Actual")
-
-        # Uncertainty bands
-        plt.fill_between(timestamps, 
-                        mean_predictions - 3 * std_predictions, 
-                        mean_predictions + 3 * std_predictions, 
-                        color='gray', alpha=0.2, label='3σ')
-        
-        plt.fill_between(timestamps,
-                        mean_predictions - 2 * std_predictions,
-                        mean_predictions + 2 * std_predictions,
-                        color='gray', alpha=0.5, label='2σ')
-        
-        plt.fill_between(timestamps,
-                        mean_predictions - std_predictions,
-                        mean_predictions + std_predictions,
-                        color='gray', alpha=0.8, label='σ')
-
-        plt.xlabel("Time")
-        plt.ylabel("Indoor Temperature")
-        plt.title("Predictions vs Actuals with Uncertainty")
-        plt.legend()
-        plt.grid()
-        plt.gcf().autofmt_xdate()
-
-        # Save plot to TensorBoard
-        writer.add_figure("predictions", plt.gcf())
-        writer.close()
 
 class RNN(nn.Module):
     def __init__(self, hidden_size: int, num_layers: int, dropout: float):
