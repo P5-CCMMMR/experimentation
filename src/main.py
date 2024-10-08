@@ -5,7 +5,6 @@ import pandas as pd
 import torch
 import src.network.models.base_model as bm
 import src.network.models.mc_model as mc
-import src.network.models.deep_ensembling as de
 from src.util.normalize import normalize
 from src.data_preprocess.data import split_data_train_and_test
 from lightning.pytorch.tuner import Tuner
@@ -26,10 +25,7 @@ dropout = 0.50
 gradient_clipping = 0
 
 # MC ONLY
-test_sample_nbr = 50
-
-# DEEP ENSAMBLE ONLY
-num_networks = 5
+inference_samples = 50
 
 # Controlled by tuner
 batch_size = 128
@@ -100,7 +96,7 @@ def main(iterations):
     
     for _ in range(iterations):
         model = bm.GRU(hidden_size, num_layers, dropout)
-        lit_model = de.DeepEnsemblingModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, num_networks)
+        lit_model = de.DeepEnsemblingModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
         trainer = L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
         tuner = Tuner(trainer)
         tuner.lr_find(lit_model)

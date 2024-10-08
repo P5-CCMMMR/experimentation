@@ -88,6 +88,9 @@ class BaseModel(L.LightningModule):
         plt.grid()
         plt.gcf().autofmt_xdate()
         
+        writer.add_figure("predictions", plt.gcf())
+        writer.close()
+        
 class ProbabilisticBaseModel(BaseModel):
     def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int, train_data, val_data, test_data):
         super().__init__(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
@@ -106,6 +109,9 @@ class ProbabilisticBaseModel(BaseModel):
         std_predictions = std_predictions * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN])
         actuals = actuals * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
         timestamps = timestamps[:len(mean_predictions)]
+        
+        print(mean_predictions)
+        print(std_predictions)
 
         plt.plot(timestamps, mean_predictions, label="Prediction")
         plt.plot(timestamps, actuals, label="Actual")
