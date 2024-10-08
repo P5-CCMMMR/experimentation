@@ -7,7 +7,7 @@ from src.util.normalize import normalize
 from src.network.models.monte_carlo.mc_dropout_lstm import MCDropoutLSTM
 from src.network.models.monte_carlo.mc_dropout_gru import MCDropoutGRU
 from src.network.models.monte_carlo.mc_dropout_rnn import MCDropoutRNN
-from src.network.mc_model import LitModel
+from src.network.mc_model import MCModel
 from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
 from lightning.pytorch.tuner import Tuner
