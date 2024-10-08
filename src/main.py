@@ -4,6 +4,7 @@ import matplotlib
 import pandas as pd
 import torch
 import src.network.models.mc_model as mc
+import src.network.models.base_model as base
 from src.util.normalize import normalize
 from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
@@ -92,9 +93,9 @@ def main(iterations):
     best_loss = None
     
     for _ in range(iterations):
-        model = mc.MCDropoutLSTM(hidden_size, num_layers, dropout)
-        lit_model = mc.MCModel(model, learning_rate, test_sample_nbr, seq_len, batch_size, train_data, val_data, test_data)
-        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping)
+        model = base.LSTM(hidden_size, num_layers, dropout)
+        lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, test_sample_nbr)
+        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=False)
         tuner = Tuner(trainer)
         tuner.lr_find(lit_model)
         tuner.scale_batch_size(lit_model, mode="binsearch")
