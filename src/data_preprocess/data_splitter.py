@@ -51,7 +51,7 @@ class DataSplitter():
         consec_rows = []
         new_df = pd.DataFrame()
 
-        for index, row in temp_df.iterrows():
+        for _, row in temp_df.iterrows():
             if row[self.power_col_name] < power_watt:
                 if consec_rows and consec_rows[len(consec_rows) - 1][self.time_col_name] - row[self.time_col_name] > self.average_time_diff:
                     consec_rows = []
@@ -71,7 +71,7 @@ class DataSplitter():
         consec_rows = []
         new_df = pd.DataFrame()
 
-        for index, row in temp_df.iterrows():
+        for _, row in temp_df.iterrows():
             if row[self.power_col_name] > power_watt:
                 if consec_rows and consec_rows[len(consec_rows) - 1][self.time_col_name] - row[self.time_col_name] > self.average_time_diff:
                     consec_rows = []
@@ -97,8 +97,6 @@ class DataSplitter():
         self.average_time_diff  = self.df['time_diff'].mean()  
 
         self.df = self.df.drop(columns=['time_diff'])
-
-
 
 # Example usage
 if __name__ == "__main__":
