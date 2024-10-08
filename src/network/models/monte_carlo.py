@@ -2,13 +2,12 @@ import lightning as L
 import torch
 import torch.nn as nn
 import numpy as np
-import multiprocessing
 from torch.utils.data import DataLoader
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
 from src.util.error import RMSE
 from src.util.constants import NUM_WORKERS, TARGET_COLUMN
 
-class MCModel(L.LightningModule):
+class MCLit(L.LightningModule):
     def __init__(self, model: nn.Module, learning_rate: float, test_sample_nbr: int, seq_len: int, batch_size: int, train_data, val_data, test_data):
         super().__init__()
         self.model = model
