@@ -2,29 +2,23 @@ import argparse
 import lightning as L
 import matplotlib
 import pandas as pd
-import multiprocessing
 import torch
-import numpy as np
-from torch.utils.data import DataLoader
 from src.util.normalize import normalize
 from src.network.models.mc_dropout_lstm import MCDropoutLSTM
 from src.network.models.mc_dropout_gru import MCDropoutGRU
 from src.network.lit_model import LitModel
-from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
 from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.tuner import Tuner
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 
 matplotlib.use("Agg")
 
 TARGET_COLUMN = 1
-NUM_WORKERS = multiprocessing.cpu_count()
 
 # Hyper parameters
-training_batch_size = 128
-test_batch_size = 64
+batch_size = 128
 hidden_size = 24
 n_epochs = 125
 seq_len = 96
@@ -81,15 +75,6 @@ def main(iterations):
     #    except FileNotFoundError:
     #
     # raise RuntimeError(DATA_PATH + " not found")
-    
-    # TODO: function used to generate sine wave data for testing
-    def generate_sine_wave_data(num_samples, num_features, noise=0):
-        x = np.linspace(0, 360, num_samples)
-        data = np.sin(x) + noise * np.random.randn(num_samples)
-        data = data.reshape(-1, 1) 
-        return np.hstack([data] * num_features)
-
-    #df = generate_sine_wave_data(10000, 4, 0.1)
 
     df = pd.read_csv(DATA_PATH)
     train_len = int(len(df) * 0.8)
@@ -113,17 +98,14 @@ def main(iterations):
     
     for _ in range(iterations):
         model = MCDropoutGRU(hidden_size, num_layers, dropout)
-        lit_model = LitModel(model, learning_rate, test_sample_nbr)
+        lit_model = LitModel(model, learning_rate, test_sample_nbr, seq_len, batch_size, train_data, val_data, test_data)
         trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=0.1)])
-        train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
-        train_loader = DataLoader(train_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
-        val_dataset = TimeSeriesDataset(val_data, seq_len, TARGET_COLUMN)
-        val_loader = DataLoader(val_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
-        test_dataset = TimeSeriesDataset(test_data, seq_len, TARGET_COLUMN)
-        test_loader = DataLoader(test_dataset, batch_size=test_batch_size, num_workers=NUM_WORKERS)
+        tuner = Tuner(trainer)
+        tuner.lr_find(lit_model)
+        tuner.scale_batch_size(lit_model, mode="binsearch")
 
-        trainer.fit(lit_model, train_loader, val_loader)
-        test_results = trainer.test(lit_model, test_loader)
+        trainer.fit(lit_model)
+        test_results = trainer.test(lit_model)
 
         predictions, actuals = lit_model.get_results()
 
@@ -136,7 +118,7 @@ def main(iterations):
             torch.save(model.state_dict(), 'model.pth')
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the LSTM model training and testing.")
+    parser = argparse.ArgumentParser(description="Run the model training and testing.")
     parser.add_argument('--iterations', type=int, required=True, help='Number of iterations to run the training and testing loop.')
     args = parser.parse_args()
     main(args.iterations)
