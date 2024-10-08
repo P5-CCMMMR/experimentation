@@ -24,7 +24,6 @@ TIMESTAMP = "Timestamp"
 USE_UTC = True
 MAX_TEMP_DELTA = 4
 
-
 # DHW
 dhw_df = pd.concat([pd.read_csv(DHW_MIN_PATH_2014), pd.read_csv(DHW_MIN_PATH_2015)])
 dhw_df = dhw_df[[TIMESTAMP, "DHW_HeatPumpWaterHeaterPowerTotal"]]

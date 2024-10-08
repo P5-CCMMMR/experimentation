@@ -22,7 +22,7 @@ hidden_size = 24
 n_epochs = 125
 seq_len = 96
 swa_learning_rate = 0.01
-num_layers = 4
+num_layers = 3
 dropout = 0.50
 test_sample_nbr = 50
 
