@@ -4,8 +4,9 @@ import matplotlib
 import pandas as pd
 import torch
 from src.util.normalize import normalize
-from src.network.models.mc_dropout_lstm import MCDropoutLSTM
-from src.network.models.mc_dropout_gru import MCDropoutGRU
+from src.network.models.monte_carlo.mc_dropout_lstm import MCDropoutLSTM
+from src.network.models.monte_carlo.mc_dropout_gru import MCDropoutGRU
+from src.network.models.monte_carlo.mc_dropout_rnn import MCDropoutRNN
 from src.network.lit_model import LitModel
 from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
@@ -25,10 +26,14 @@ swa_learning_rate = 0.01
 num_layers = 3
 dropout = 0.50
 test_sample_nbr = 50
+gradient_clipping = 0
 
 # Controlled by tuner
 batch_size = 128
 learning_rate = 0.005
+
+# Other
+early_stopping_threshold = 0.1
 
 # Data Parameters
 nist = {
@@ -59,7 +64,7 @@ TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 # Paths
-TRAIN_DATA_PATH = used_dataset[ "train_data_path"]
+TRAIN_DATA_PATH = used_dataset["train_data_path"]
 TEST_DATA_PATH  = used_dataset["test_data_path"]
 ON_DATA_PATH    = used_dataset["on_data_path"]
 OFF_DATA_PATH   = used_dataset["off_data_path"]
@@ -90,9 +95,9 @@ def main(iterations):
     best_loss = None
     
     for _ in range(iterations):
-        model = MCDropoutGRU(hidden_size, num_layers, dropout)
+        model = MCDropoutLSTM(hidden_size, num_layers, dropout)
         lit_model = LitModel(model, learning_rate, test_sample_nbr, seq_len, batch_size, train_data, val_data, test_data)
-        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=0.1)])
+        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping)
         tuner = Tuner(trainer)
         tuner.lr_find(lit_model)
         tuner.scale_batch_size(lit_model, mode="binsearch")
