@@ -96,7 +96,7 @@ def main(iterations):
     
     for _ in range(iterations):
         model = bm.GRU(hidden_size, num_layers, dropout)
-        lit_model = de.DeepEnsemblingModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+        lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
         trainer = L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
         tuner = Tuner(trainer)
         tuner.lr_find(lit_model)
