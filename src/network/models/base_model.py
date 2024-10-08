@@ -1,6 +1,9 @@
 import lightning as L
 import torch
 import torch.nn as nn
+import numpy as np
+import matplotlib.pyplot as plt
+from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
 from src.util.error import RMSE
@@ -66,6 +69,27 @@ class BaseModel(L.LightningModule):
     
     def test_dataloader(self):
         return self.test_loader
+    
+    def plot_results(predictions, actuals, timestamps, min_vals, max_vals, target_column):
+        writer = SummaryWriter()
+
+        predictions = np.array(predictions)
+        actuals = np.array(actuals)
+
+        # Rescale predictions and actuals 
+        predictions = predictions * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
+        actuals = actuals * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
+        timestamps = timestamps[:len(predictions)]
+
+        plt.plot(timestamps, predictions, label="Prediction")
+        plt.plot(timestamps, actuals, label="Actual")
+
+        plt.xlabel("Time")
+        plt.ylabel("Indoor Temperature")
+        plt.title("Predictions vs Actuals")
+        plt.legend()
+        plt.grid()
+        plt.gcf().autofmt_xdate()
 
 class RNN(nn.Module):
     def __init__(self, hidden_size: int, num_layers: int, dropout: float):
