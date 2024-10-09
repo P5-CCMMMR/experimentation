@@ -101,12 +101,32 @@ class DataHandler:
         if self.df is None:
             self.df = self.load_dataset(self.data_path)
 
-        # insert
+        ds = self.data_splitter_class(self.df, self.timestamp_col, self.power_col)
+
+        self.train_df = ds.generate_val_data()
         
         self.save_dataset(self.val_df, self.val_data_path)
 
         return self.val_df
 
+    def get_test_data(self):
+        if self.test_df is not None:
+            return self.test_df
+        
+        self.test_df = self.load_dataset(self.test_data_path)
+        if self.test_df is not None:
+            return self.test_df
+        
+        if self.df is None:
+            self.df = self.load_dataset(self.data_path)
+
+        ds = self.data_splitter_class(self.df, self.timestamp_col, self.power_col)
+
+        self.test_df = ds.generate_test_data()
+        
+        self.save_dataset(self.test_df, self.test_data_path)
+
+        return self.test_df
 
     def split_dataframe_by_continuity(self, df, time_difference: int, sequence_min_len: int):
         sequences = []

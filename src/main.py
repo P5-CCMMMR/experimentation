@@ -9,7 +9,7 @@ from src.util.flex_predict import flexPredict
 from src.util.multi_timestep_forecast import multiTimestepForecasting
 from src.util.normalize import normalize
 from src.data_preprocess.data_handler import DataHandler
-from src.data_preprocess.day_data_splitter import DataSplitter
+from src.data_preprocess.ttt_data_splitter import TttDataSplitter
 from lightning.pytorch.tuner import Tuner
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
@@ -130,7 +130,7 @@ def main(iterations, debug):
     error = 0
 
     
-    mnist = DataHandler(nist, DataSplitter)
+    mnist = DataHandler(nist, TttDataSplitter)
 
     df = pd.read_csv(DATA_PATH)
     train_len = int(len(df) * 0.8)
@@ -153,11 +153,9 @@ def main(iterations, debug):
     getMafe(off_data_arr, model, seq_len, error, temp_boundery)
 
 def modelTrainingAndEval(mnist, iterations):
-
-    
-    train_data = train_data.values
-    val_data = val_data.values
-    test_data = test_data.values
+    train_data = mnist.get_train_value().values
+    val_data   = mnist.get_val_value().values
+    test_data  = mnist.get_test_value().values
 
     test_timestamps = pd.to_datetime(test_data[:,0])
 

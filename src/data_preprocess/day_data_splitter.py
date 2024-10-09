@@ -1,16 +1,11 @@
 import pandas as pd
 from datetime import datetime
+from src.data_preprocess.data_splitter import DataSplitter 
 
-class DayDataSplitter():
+class DayDataSplitter(DataSplitter):
     def __init__(self, df: pd.DataFrame, time_col_name: str, power_col_name: str):
-        self.df = df
-        self.split_days = 0
-        self.time_col_name = time_col_name
-        self.power_col_name = power_col_name
+        super.__init__(df, time_col_name, power_col_name)
         self.__get_average_time_diff()
-        self.train = None
-        self.val = None
-        self.test = None
 
     def __filter_days(self, days_to_include: int, split_days: int, global_day: int, last_day: int, current_date: datetime):
         if current_date.date() != last_day[0]:

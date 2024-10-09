@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime
 
-class DayDataSplitter():
+class DataSplitter():
     def __init__(self, df: pd.DataFrame, time_col_name: str, power_col_name: str):
         self.df = df
         self.split_days = 0
@@ -11,8 +11,6 @@ class DayDataSplitter():
         self.val = None
         self.test = None
 
- 
-    
     def set_data_split(self, train_days, val_days, test_days):
         self.train_days = train_days
         self.val_days = val_days
@@ -25,7 +23,8 @@ class DayDataSplitter():
     def generate_val_data(self):
         raise RuntimeError("Non implemented method")
     
-    def generate_test_data(self):
+    def generate_test_data(self):        
+        raise RuntimeError("Non implemented method")
     
     def get_lt_power(self, power_watt: int, consecutive_points: int = 1):
         temp_df = self.df.copy()
