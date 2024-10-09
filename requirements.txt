@@ -42,6 +42,7 @@ PyYAML==6.0.2
 setuptools==75.1.0
 six==1.16.0
 sympy==1.13.3
+tensorboard==2.14.0
 torch==2.4.1
 torchmetrics==1.4.2
 tqdm==4.66.5
