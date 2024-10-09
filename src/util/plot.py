@@ -100,7 +100,7 @@ def ensemble_probabilistic_predictions(predictions):
             std_row.append(predictions[j][1][i])
     
         mean_mixture = np.mean(mean_row)
-        std_mixture = np.sqrt(np.sum([n**2 for n in std_row] / len(std_row) + [n**2 for n in mean_row]) / len(std_row) - mean_mixture**2)
+        std_mixture = np.sqrt(np.sum([n**2 for n in std_row] + [n**2 for n in mean_row]) / len(std_row) - mean_mixture**2)
         
         mean_predictions.append(mean_mixture)
         std_predictions.append(std_mixture)
