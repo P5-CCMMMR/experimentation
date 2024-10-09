@@ -2,10 +2,9 @@ import argparse
 import lightning as L
 import matplotlib
 import pandas as pd
-import torch
 import src.network.models.base_model as bm
 import src.network.models.mc_model as mc
-from src.util.normalize import normalize
+import src.util.normalize as norm
 from src.data_preprocess.data import split_data_train_and_test
 from lightning.pytorch.tuner import Tuner
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
@@ -26,7 +25,7 @@ swa_learning_rate = 0.01
 num_layers = 2
 dropout = 0.50
 gradient_clipping = 0
-num_ensembles = 1
+num_ensembles = 2
 
 # MC ONLY
 inference_samples = 50
@@ -36,7 +35,7 @@ batch_size = 128
 learning_rate = 0.005
 
 # Other
-early_stopping_threshold = 0.1
+early_stopping_threshold = 0.25
 
 # Data Parameters
 nist = {
@@ -95,9 +94,9 @@ def main(iterations, debug):
 
     test_timestamps = pd.to_datetime(test_data[:,0])
 
-    train_data, _, _ = normalize(train_data[:,1:].astype(float))
-    val_data, _, _ = normalize(val_data[:,1:].astype(float))
-    test_data, test_min_vals, test_max_vals = normalize(test_data[:,1:].astype(float))
+    train_data, _, _ = norm.minmax_scale(train_data[:,1:].astype(float))
+    val_data, _, _ = norm.minmax_scale(val_data[:,1:].astype(float))
+    test_data, test_min_vals, test_max_vals = norm.minmax_scale(test_data[:,1:].astype(float))
 
     #best_loss = None
     

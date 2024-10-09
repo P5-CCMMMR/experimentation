@@ -35,17 +35,17 @@ def plot_probabilistic_results(predictions, actuals, timestamps, min_vals, max_v
     plt.fill_between(timestamps, 
                     mean_predictions - 3 * std_predictions, 
                     mean_predictions + 3 * std_predictions, 
-                    color='gray', alpha=0.2, label='3σ')
+                    color='gray', alpha=0.3, label='99.7% (3σ)')
     
     plt.fill_between(timestamps,
                     mean_predictions - 2 * std_predictions,
                     mean_predictions + 2 * std_predictions,
-                    color='gray', alpha=0.5, label='2σ')
+                    color='gray', alpha=0.5, label='95% (2σ)')
     
     plt.fill_between(timestamps,
                     mean_predictions - std_predictions,
                     mean_predictions + std_predictions,
-                    color='gray', alpha=0.8, label='σ')
+                    color='gray', alpha=0.8, label='68% (σ)')
 
     plt.xlabel("Time")
     plt.ylabel("Indoor Temperature")
@@ -92,20 +92,18 @@ def ensemble_probabilistic_predictions(predictions):
     std_predictions = []
     
     for i in range(len(predictions[0][0])):
-        row = []
-        for j in range(len(predictions)):
-            row.append(predictions[j][0][i])
+        mean_row = []
+        std_row = []
         
-        mean_prediction = np.mean(row)
-        mean_predictions.append(mean_prediction)
+        for j in range(len(predictions)):
+            mean_row.append(predictions[j][0][i])
+            std_row.append(predictions[j][1][i])
     
-    for i in range(len(predictions[0][1])):
-        row = []
-        for j in range(len(predictions)):
-            row.append(predictions[j][1][i])
+        mean_mixture = np.mean(mean_row)
+        std_mixture = np.sqrt(np.sum([n**2 for n in std_row] / len(std_row) + [n**2 for n in mean_row]) / len(std_row) - mean_mixture**2)
         
-        std_prediction = np.mean(row)
-        std_predictions.append(std_prediction)
+        mean_predictions.append(mean_mixture)
+        std_predictions.append(std_mixture)
         
     return mean_predictions, std_predictions
 
