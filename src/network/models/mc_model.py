@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from src.util.error import NRMSE
+from src.util.error import NRMSE, MNLL
 from src.network.models.base_model import ProbabilisticBaseModel
 
 class MCModel(ProbabilisticBaseModel):
@@ -14,6 +14,8 @@ class MCModel(ProbabilisticBaseModel):
         mean_prediction, std_prediction = self.__predict_with_mc_dropout(x)
         loss = NRMSE(torch.tensor(mean_prediction, device=y.device), y)
         self.log('test_loss', loss, on_step=True, logger=True, prog_bar=True)
+        negative_mean_log_likelihood = MNLL(torch.tensor(mean_prediction, device=y.device), torch.tensor(std_prediction, device=y.device), y)
+        self.log('mean_negative_log_likelihood', negative_mean_log_likelihood, on_step=True, logger=True, prog_bar=True)
 
         self.all_predictions[0].extend(mean_prediction.flatten())
         self.all_predictions[1].extend(std_prediction.flatten())

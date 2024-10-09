@@ -18,14 +18,14 @@ matplotlib.use("Agg")
 TARGET_COLUMN = 1
 
 # Hyper parameters
-hidden_size = 24
+hidden_size = 32
 num_epochs = 125
 seq_len = 96
 swa_learning_rate = 0.01
 num_layers = 2
 dropout = 0.50
 gradient_clipping = 0
-num_ensembles = 2
+num_ensembles = 1
 
 # MC ONLY
 inference_samples = 50
