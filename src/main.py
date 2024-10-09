@@ -129,18 +129,9 @@ def main(iterations, debug):
     seq_len = 4
     error = 0
 
-    
     mnist = DataHandler(nist, TttDataSplitter)
 
-    df = pd.read_csv(DATA_PATH)
-    train_len = int(len(df) * 0.8)
-    val_len = int(len(df) * 0.1)
-    
-    train_data = df[:train_len]
-    val_data = df[train_len:train_len+val_len]
-    test_data = df[train_len+val_len:]
-
-    modelTrainingAndEval(, iterations)
+    modelTrainingAndEval(mnist, iterations)
 
     model = None # Insert loading and preperation of model
 
