@@ -14,3 +14,9 @@ def NRMSE(y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         Normalized Root Mean Squared Error
         """
         return RMSE(y_hat, y) / (y.max() - y.min())
+    
+def NLL(y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Negative Log Likelihood
+        """
+        return nn.functional.nll_loss(y_hat, y)

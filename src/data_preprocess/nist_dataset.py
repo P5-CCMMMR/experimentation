@@ -6,8 +6,6 @@ matplotlib.use("Agg")
 
 # Paths
 DATASETFOLDER = "src/data_preprocess/nist/data_root/"
-HVAC_MIN_PATH_2014 = DATASETFOLDER + "HVAC-minute-2014.csv"
-HVAC_MIN_PATH_2015 = DATASETFOLDER + "HVAC-minute-2015.csv"
 
 DHW_MIN_PATH_2014 = DATASETFOLDER + "DHW-minute-2014.csv"
 DHW_MIN_PATH_2015 = DATASETFOLDER + "DHW-minute-2015.csv"
@@ -25,14 +23,6 @@ SAMPLE_TIME = "15min"
 TIMESTAMP = "Timestamp"
 USE_UTC = True
 MAX_TEMP_DELTA = 4
-
-# HVAC
-hvac_df = pd.concat([pd.read_csv(HVAC_MIN_PATH_2014), pd.read_csv(HVAC_MIN_PATH_2015)])
-hvac_df = hvac_df[[TIMESTAMP, "HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"]]
-hvac_df["PowerConsumption"] = hvac_df.HVAC_HeatPumpIndoorUnitPower + hvac_df.HVAC_HeatPumpOutdoorUnitPower
-hvac_df = hvac_df.drop(["HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"], axis="columns")
-hvac_df.Timestamp = pd.to_datetime(hvac_df.Timestamp, utc=USE_UTC)
-hvac_df = hvac_df.resample(SAMPLE_TIME, on=TIMESTAMP).mean().reset_index()
 
 # DHW
 dhw_df = pd.concat([pd.read_csv(DHW_MIN_PATH_2014), pd.read_csv(DHW_MIN_PATH_2015)])

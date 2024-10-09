@@ -2,38 +2,41 @@ import argparse
 import lightning as L
 import matplotlib
 import pandas as pd
-import multiprocessing
 import torch
-import numpy as np
-from torch.utils.data import DataLoader
+import src.network.models.base_model as bm
+import src.network.models.mc_model as mc
 from src.util.normalize import normalize
-from src.network.models.mc_dropout_lstm import MCDropoutLSTM
-from src.network.models.mc_dropout_gru import MCDropoutGRU
-from src.network.lit_model import LitModel
-from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
-from src.util.plot import plot_results
 from src.data_preprocess.data import split_data_train_and_test
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.tuner import Tuner
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
+from src.util.plot import plot_results
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from src.util.constants import NUM_WORKERS
 
 matplotlib.use("Agg")
 
 TARGET_COLUMN = 1
-NUM_WORKERS = multiprocessing.cpu_count()
 
 # Hyper parameters
-training_batch_size = 128
-test_batch_size = 64
 hidden_size = 24
-n_epochs = 125
+num_epochs = 125
 seq_len = 96
-learning_rate = 0.005
 swa_learning_rate = 0.01
-num_layers = 4
+num_layers = 2
 dropout = 0.50
-test_sample_nbr = 50
+gradient_clipping = 0
+num_ensembles = 1
 
+# MC ONLY
+inference_samples = 50
+
+# Controlled by tuner
+batch_size = 128
+learning_rate = 0.005
+
+# Other
+early_stopping_threshold = 0.1
 
 # Data Parameters
 nist = {
@@ -50,7 +53,6 @@ nist = {
     "data_path"           : "src/data_preprocess/dataset/NIST_cleaned.csv"
 }
 
-
 used_dataset       = nist
 training_days      = used_dataset["training_days"]
 test_days          = used_dataset["test_days"]
@@ -64,32 +66,20 @@ TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 # Paths
-TRAIN_DATA_PATH = used_dataset[ "train_data_path"]
+TRAIN_DATA_PATH = used_dataset["train_data_path"]
 TEST_DATA_PATH  = used_dataset["test_data_path"]
 ON_DATA_PATH    = used_dataset["on_data_path"]
 OFF_DATA_PATH   = used_dataset["off_data_path"]
 DATA_PATH       = used_dataset["data_path"]
 
-def main(iterations):
-    #try:
-    #    train_data = pd.read_csv(TRAIN_DATA_PATH)
-    #    test_data = pd.read_csv(TEST_DATA_PATH)
-    #except FileNotFoundError:
-    #    try:
-    #        df = pd.read_csv(DATA_PATH)
-    #        train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
-    #    except FileNotFoundError:
-    #
-    # raise RuntimeError(DATA_PATH + " not found")
-    
-    # TODO: function used to generate sine wave data for testing
-    def generate_sine_wave_data(num_samples, num_features, noise=0):
-        x = np.linspace(0, 360, num_samples)
-        data = np.sin(x) + noise * np.random.randn(num_samples)
-        data = data.reshape(-1, 1) 
-        return np.hstack([data] * num_features)
+def train_and_test_model(trainer, lit_model):
+    trainer.fit(lit_model)
+    trainer.test(lit_model)
+    return lit_model.get_predictions(), lit_model.get_actuals()
 
-    #df = generate_sine_wave_data(10000, 4, 0.1)
+def main(iterations, debug):
+    #df = pd.read_csv(DATA_PATH)
+    #train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
 
     df = pd.read_csv(DATA_PATH)
     train_len = int(len(df) * 0.8)
@@ -109,34 +99,60 @@ def main(iterations):
     val_data, _, _ = normalize(val_data[:,1:].astype(float))
     test_data, test_min_vals, test_max_vals = normalize(test_data[:,1:].astype(float))
 
-    best_loss = None
+    #best_loss = None
     
+    # TODO: change iterations to save folder with best ensembled model
     for _ in range(iterations):
-        model = MCDropoutGRU(hidden_size, num_layers, dropout)
-        lit_model = LitModel(model, learning_rate, test_sample_nbr)
-        trainer = L.Trainer(max_epochs=n_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=0.1)])
-        train_dataset = TimeSeriesDataset(train_data, seq_len, TARGET_COLUMN)
-        train_loader = DataLoader(train_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
-        val_dataset = TimeSeriesDataset(val_data, seq_len, TARGET_COLUMN)
-        val_loader = DataLoader(val_dataset, batch_size=training_batch_size, num_workers=NUM_WORKERS)
-        test_dataset = TimeSeriesDataset(test_data, seq_len, TARGET_COLUMN)
-        test_loader = DataLoader(test_dataset, batch_size=test_batch_size, num_workers=NUM_WORKERS)
+        all_models = []
+        for _ in range(num_ensembles):
+            model = bm.GRU(hidden_size, num_layers, dropout)
+            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+            all_models.append(lit_model)
+        
+        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
+        
+        tuners = [Tuner(trainer) for trainer in trainers]
+        for tuner, lit_model in zip(tuners, all_models):
+            tuner.lr_find(lit_model)
+            tuner.scale_batch_size(lit_model, mode="binsearch")
+            
+        all_predictions = []
+        all_actuals = None
+        
+        # Run ensembles in parallel
+        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
+            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
+            for future in as_completed(futures):
+                predictions, actuals = future.result()
+                all_predictions.append(predictions)
+                if all_actuals is None:
+                    all_actuals = actuals
+            
+        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
-        trainer.fit(lit_model, train_loader, val_loader)
-        test_results = trainer.test(lit_model, test_loader)
+        #model = bm.GRU(hidden_size, num_layers, dropout)
+        #lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, #train_data, val_data, test_data, inference_samples)
+        #trainer = L.Trainer(max_epochs=num_epochs, callbacks=#[StochasticWeightAveraging(swa_lrs=swa_learning_rate), #ConditionalEarlyStopping(threshold=early_stopping_threshold)], #gradient_clip_val=gradient_clipping, fast_dev_run=debug)
+        #tuner = Tuner(trainer)
+        #tuner.lr_find(lit_model)
+        #tuner.scale_batch_size(lit_model, mode="binsearch")
 
-        predictions, actuals = lit_model.get_results()
+        #trainer.fit(lit_model)
+        #test_results = trainer.test(lit_model)
 
-        test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
+        #test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
 
-        if best_loss is None or best_loss > test_loss :
-            print("NEW BEST")
-            plot_results(predictions, actuals, test_timestamps, test_min_vals, test_max_vals, TARGET_COLUMN)
-            best_loss = test_loss 
-            torch.save(model.state_dict(), 'model.pth')
+        #if best_loss is None or best_loss > test_loss :
+         #   print("NEW BEST")
+          #  lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
+           # best_loss = test_loss 
+            #torch.save(model.state_dict(), 'model.pth')
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the LSTM model training and testing.")
+    parser = argparse.ArgumentParser(description="Run the model training and testing.")
     parser.add_argument('--iterations', type=int, required=True, help='Number of iterations to run the training and testing loop.')
+    parser.add_argument('--debug', action='store_true', help='Debug mode')
     args = parser.parse_args()
-    main(args.iterations)
+    if args.debug:
+        print("DEBUG MODE")
+    main(args.iterations, args.debug)
