@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
-from src.util.error import RMSE
+from src.util.error import NRMSE
 from src.util.constants import NUM_WORKERS, TARGET_COLUMN
 
 class BaseModel(L.LightningModule):
@@ -24,22 +24,20 @@ class BaseModel(L.LightningModule):
         test_dataset = TimeSeriesDataset(test_data, self.seq_len, TARGET_COLUMN)
         
         self.train_loader = DataLoader(train_dataset, batch_size=self.batch_size, num_workers=NUM_WORKERS)
-        
         self.val_loader = DataLoader(val_dataset, batch_size=self.batch_size, num_workers=NUM_WORKERS)
-        
         self.test_loader = DataLoader(test_dataset, batch_size=self.batch_size, num_workers=NUM_WORKERS)
         
     def training_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
-        loss = RMSE(y_hat, y)
+        loss = NRMSE(y_hat, y)
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True, prog_bar=True)
         return loss
     
     def validation_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
-        loss = RMSE(y_hat, y)
+        loss = NRMSE(y_hat, y)
         self.log('val_loss', loss, on_epoch=True, logger=True, prog_bar=True)
         return loss
     
@@ -49,7 +47,7 @@ class BaseModel(L.LightningModule):
     def test_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
-        loss = RMSE(y_hat, y)
+        loss = NRMSE(y_hat, y)
         self.log('test_loss', loss, on_step=True, logger=True, prog_bar=True)
         
         self.all_predictions.extend(y_hat.flatten())
@@ -126,3 +124,4 @@ class LSTM(nn.Module):
         out, _ = self.lstm(x, (h0, c0))
         out = out[:, -1, :]
         return self.fc(out).squeeze()
+    
