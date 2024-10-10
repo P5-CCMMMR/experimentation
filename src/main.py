@@ -8,7 +8,7 @@ import src.network.models.base_model as bm
 import src.network.models.mc_model as mc
 from src.util.flex_predict import flexPredict
 from src.util.multi_timestep_forecast import multiTimestepForecasting
-from src.util.normalize import normalize
+import src.util.normalize as norm
 from src.data_preprocess.data_handler import DataHandler
 from src.data_preprocess.tvt_data_splitter import TvtDataSplitter
 from src.data_preprocess.day_data_splitter import DayDataSplitter
@@ -26,7 +26,7 @@ MODEL_ITERATIONS = 10
 TARGET_COLUMN = 1
 
 # Hyper parameters
-hidden_size = 24
+hidden_size = 32
 num_epochs = 125
 seq_len = 96
 swa_learning_rate = 0.01
@@ -41,9 +41,9 @@ inference_samples = 50
 # Controlled by tuner
 batch_size = 128
 learning_rate = 0.005
-num_layers = 1
-dropout = 0
-time_horizon = 4
+
+# Other
+early_stopping_threshold = 0.25
 
 # Data Parameters
 nist = {
@@ -141,9 +141,9 @@ def modelTrainingAndEval(mnist_dh, iterations, debug):
 
     test_timestamps = pd.to_datetime(test_data[:,0])
 
-    train_data, _, _ = normalize(train_data[:,1:].astype(float))
-    val_data, _, _ = normalize(val_data[:,1:].astype(float))
-    test_data, test_min_vals, test_max_vals = normalize(test_data[:,1:].astype(float))
+    train_data, _, _ = norm.minmax_scale(train_data[:,1:].astype(float))
+    val_data, _, _ = norm.minmax_scale(val_data[:,1:].astype(float))
+    test_data, test_min_vals, test_max_vals = norm.minmax_scale(test_data[:,1:].astype(float))
     
     best_loss = None
     # TODO: change iterations to save folder with best ensembled model
