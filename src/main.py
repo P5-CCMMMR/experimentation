@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 import src.network.models.base_model as bm
 import src.network.models.mc_model as mc
-from src.util.flex_predict import flexPredict
+from src.util.flex_predict import flex_predict
 from src.util.multi_timestep_forecast import multiTimestepForecasting
 import src.util.normalize as norm
 from src.data_preprocess.data_handler import DataHandler
@@ -119,7 +119,7 @@ def main(i, d):
 
     mnist_dh = DataHandler(nist, DayDataSplitter)
 
-    modelTrainingAndEval(mnist_dh, i, d)
+    model_training_and_eval(mnist_dh, i, d)
 
     model = bm.GRU(hidden_size, num_layers, dropout)
     model.load_state_dict(torch.load(MODEL_PATH))
@@ -131,10 +131,10 @@ def main(i, d):
     on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
     off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
 
-    getMafe(on_data_arr, model, seq_len, error, temp_boundery)
-    getMafe(off_data_arr, model, seq_len, error, temp_boundery)
+    get_mafe(on_data_arr, model, seq_len, error, temp_boundery)
+    get_mafe(off_data_arr, model, seq_len, error, temp_boundery)
 
-def modelTrainingAndEval(mnist_dh, iterations, debug):
+def model_training_and_eval(mnist_dh, iterations, debug):
     train_data = mnist_dh.get_train_data().values
     val_data   = mnist_dh.get_val_data().values
     test_data  = mnist_dh.get_test_data().values
@@ -195,7 +195,7 @@ def modelTrainingAndEval(mnist_dh, iterations, debug):
 
 
 
-def getMafe(data_arr, model, seq_len, error, boundary):
+def get_mafe(data_arr, model, seq_len, error, boundary):
     flex_predictions = []
     flex_actual_values = []
 
@@ -219,8 +219,8 @@ def getMafe(data_arr, model, seq_len, error, boundary):
             lower_boundery = last_in_temp - boundary
             upper_boundery = last_in_temp + boundary
 
-            actual_flex = flexPredict(result_actual, lower_boundery, upper_boundery, error)
-            predicted_flex = flexPredict(result_predictions, lower_boundery, upper_boundery, error)
+            actual_flex = flex_predict(result_actual, lower_boundery, upper_boundery, error)
+            predicted_flex = flex_predict(result_predictions, lower_boundery, upper_boundery, error)
 
             flex_predictions.append(predicted_flex)
             flex_actual_values.append(actual_flex)

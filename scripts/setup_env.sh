@@ -59,25 +59,19 @@ mkdir -p src
 mkdir -p src/data_preprocess
 mkdir -p src/data_preprocess/nist
 mkdir -p src/data_preprocess/nist/data_root
-<<<<<<< HEAD
-=======
 mkdir -p graph
 mkdir -p src/data_preprocess/dataset
 mkdir -p src/data_preprocess/dataset/off
 mkdir -p src/data_preprocess/dataset/on
 mkdir -p src/data_preprocess/dataset/test
 mkdir -p src/data_preprocess/dataset/train
->>>>>>> origin/main
 
 declare -A datasets
 
 datasets[src/data_preprocess/nist/data_root/HVAC-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/HVAC-minute.csv"
 datasets[src/data_preprocess/nist/data_root/HVAC-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/HVAC-minute.csv"
-<<<<<<< HEAD
 datasets[src/data_preprocess/nist/data_root/DHW-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/DHW-minute.csv"
 datasets[src/data_preprocess/nist/data_root/DHW-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/DHW-minute.csv"
-=======
->>>>>>> origin/main
 datasets[src/data_preprocess/nist/data_root/IndEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/IndEnv-minute.csv"
 datasets[src/data_preprocess/nist/data_root/IndEnv-minute-2015.csv]="https://s3.amazonaws.com/nist-netzero/2015-data-files/IndEnv-minute.csv"
 datasets[src/data_preprocess/nist/data_root/OutEnv-minute-2014.csv]="https://s3.amazonaws.com/nist-netzero/2014-data-files/OutEnv-minute.csv"

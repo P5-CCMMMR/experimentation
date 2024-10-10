@@ -1,4 +1,4 @@
-def flexPredict(forecasts, lower_bound, upper_bound, error):
+def flex_predict(forecasts, lower_bound, upper_bound, error):
     flex_iter = 0
 
     for forecast in forecasts:

@@ -1,5 +1,5 @@
 from src.data_preprocess.usage_timeseries_dataset import UsageTimeSeriesDataset
-from src.util.normalize import normalize, denormalize
+from src.util.normalize import minmax_scale, minmax_descale
 from torch.utils.data import DataLoader
 import numpy as np
 
@@ -10,7 +10,7 @@ def multiTimestepForecasting(model, data, sequence_len):
     last_input_idx = sequence_len - 1
 
     predictions = []
-    seq, min_vals, max_vals = normalize(data[:, 1:].astype(float)) # exclude first column
+    seq, min_vals, max_vals = minmax_scale(data[:, 1:].astype(float)) # exclude first column
 
     last_out_temp = seq[last_input_idx][out_temp_idx] 
     last_power = seq[last_input_idx][power_idx]
@@ -30,5 +30,5 @@ def multiTimestepForecasting(model, data, sequence_len):
         new_row = np.array([[last_power, predictions[len(predictions) - 1], last_out_temp]])
         seq = np.append(seq, new_row, axis=0)
 
-    return denormalize(predictions, min_in_temp , max_in_temp)
+    return minmax_descale(predictions, min_in_temp , max_in_temp)
 
