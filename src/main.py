@@ -148,32 +148,32 @@ def modelTrainingAndEval(mnist_dh, iterations, debug):
     best_loss = None
     # TODO: change iterations to save folder with best ensembled model
     for _ in range(iterations):
-#        all_models = []
-#        for _ in range(num_ensembles):
-#            model = bm.GRU(hidden_size, num_layers, dropout)
-#            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
-#            all_models.append(lit_model)
-#        
-#        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], #gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
-#        
-#        tuners = [Tuner(trainer) for trainer in trainers]
-#        for tuner, lit_model in zip(tuners, all_models):
-#            tuner.lr_find(lit_model)
-#            tuner.scale_batch_size(lit_model, mode="binsearch")
-#            
-#        all_predictions = []
-#        all_actuals = None
-#        
-#        # Run ensembles in parallel
-#        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
-#            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
-#            for future in as_completed(futures):
-#                predictions, actuals = future.result()
-#                all_predictions.append(predictions)
-#                if all_actuals is None:
-#                    all_actuals = actuals
-#            
-#        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
+        all_models = []
+        for _ in range(num_ensembles):
+            model = bm.GRU(hidden_size, num_layers, dropout)
+            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+            all_models.append(lit_model)
+        
+        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
+        
+        tuners = [Tuner(trainer) for trainer in trainers]
+        for tuner, lit_model in zip(tuners, all_models):
+            tuner.lr_find(lit_model)
+            tuner.scale_batch_size(lit_model, mode="binsearch")
+            
+        all_predictions = []
+        all_actuals = None
+        
+        # Run ensembles in parallel
+        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
+            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
+            for future in as_completed(futures):
+                predictions, actuals = future.result()
+                all_predictions.append(predictions)
+                if all_actuals is None:
+                    all_actuals = actuals
+            
+        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
         model = bm.GRU(hidden_size, num_layers, dropout)
         lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
