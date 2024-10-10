@@ -11,13 +11,13 @@ from src.util.multi_timestep_forecast import multiTimestepForecasting
 from src.util.normalize import normalize
 from src.data_preprocess.data_handler import DataHandler
 from src.data_preprocess.tvt_data_splitter import TvtDataSplitter
+from src.data_preprocess.day_data_splitter import DayDataSplitter
 from lightning.pytorch.tuner import Tuner
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.plot import plot_results
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.util.constants import NUM_WORKERS
-from src.network.models.base_model import LSTM
 
 matplotlib.use("Agg")
 
@@ -56,7 +56,7 @@ nist = {
     "consecutive_points"  : 3,
 
     "train_data_path"     : "src/data_preprocess/dataset/train/NIST.csv",
-    "val_data_path"     : "src/data_preprocess/dataset/val/NIST.csv",
+    "val_data_path"       : "src/data_preprocess/dataset/val/NIST.csv",
     "test_data_path"      : "src/data_preprocess/dataset/test/NIST.csv",
     "on_data_path"        : "src/data_preprocess/dataset/on/NIST.csv",
     "off_data_path"       : "src/data_preprocess/dataset/off/NIST.csv",
@@ -117,7 +117,7 @@ def main(i, d):
     seq_len = 4
     error = 0
 
-    mnist_dh = DataHandler(nist, TvtDataSplitter)
+    mnist_dh = DataHandler(nist, DayDataSplitter)
 
     modelTrainingAndEval(mnist_dh, i, d)
 
@@ -154,7 +154,7 @@ def modelTrainingAndEval(mnist_dh, iterations, debug):
 #            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
 #            all_models.append(lit_model)
 #        
-#        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), #ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in #range(num_ensembles)]
+#        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], #gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
 #        
 #        tuners = [Tuner(trainer) for trainer in trainers]
 #        for tuner, lit_model in zip(tuners, all_models):

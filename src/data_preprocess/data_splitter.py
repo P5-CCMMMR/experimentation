@@ -1,5 +1,4 @@
 import pandas as pd
-from datetime import datetime
 
 class DataSplitter():
     def __init__(self, df: pd.DataFrame, time_col_name: str, power_col_name: str):
@@ -10,6 +9,9 @@ class DataSplitter():
         self.train = None
         self.val = None
         self.test = None
+        self.average_time_diff = None
+        self.__get_average_time_diff()
+
 
     def set_data_split(self, train_days, val_days, test_days):
         self.train_days = train_days
@@ -65,3 +67,15 @@ class DataSplitter():
                 consec_rows = []
         
         return new_df
+    
+    def __get_average_time_diff(self):
+        # Convert the 'timestamp' column to datetime
+        self.df[self.time_col_name] = pd.to_datetime(self.df[self.time_col_name])
+
+        # Calculate the difference between consecutive timestamps
+        self.df['time_diff'] = self.df[self.time_col_name].diff()
+
+        # Calculate the average time difference
+        self.average_time_diff  = self.df['time_diff'].mean()  
+
+        self.df = self.df.drop(columns=['time_diff'])
