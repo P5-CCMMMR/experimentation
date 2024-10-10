@@ -1,7 +1,7 @@
 import pandas as pd
 from src.data_preprocess.data_splitter import DataSplitter 
 
-class TttDataSplitter(DataSplitter):
+class TvtDataSplitter(DataSplitter):
     def __init__(self, df: pd.DataFrame, time_col_name: str, power_col_name: str):
         super.__init__(df,time_col_name,power_col_name)
 

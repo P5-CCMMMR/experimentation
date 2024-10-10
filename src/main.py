@@ -1,3 +1,4 @@
+import argparse
 import lightning as L
 import matplotlib
 import numpy as np
@@ -9,16 +10,18 @@ from src.util.flex_predict import flexPredict
 from src.util.multi_timestep_forecast import multiTimestepForecasting
 from src.util.normalize import normalize
 from src.data_preprocess.data_handler import DataHandler
-from src.data_preprocess.ttt_data_splitter import TttDataSplitter
+from src.data_preprocess.tvt_data_splitter import TvtDataSplitter
 from lightning.pytorch.tuner import Tuner
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.plot import plot_results
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.util.constants import NUM_WORKERS
+from src.network.models.base_model import LSTM
 
 matplotlib.use("Agg")
 
+MODEL_PATH = 'model.pth'
 MODEL_ITERATIONS = 10
 TARGET_COLUMN = 1
 
@@ -44,7 +47,8 @@ time_horizon = 4
 
 # Data Parameters
 nist = {
-    "training_days"       : 18, 
+    "training_days"       : 16, 
+    "val_days"            : 2,
     "test_days"           : 2,
     "validation_days"     : 0,
     "off_limit_w"         : 100,
@@ -52,6 +56,7 @@ nist = {
     "consecutive_points"  : 3,
 
     "train_data_path"     : "src/data_preprocess/dataset/train/NIST.csv",
+    "val_data_path"     : "src/data_preprocess/dataset/val/NIST.csv",
     "test_data_path"      : "src/data_preprocess/dataset/test/NIST.csv",
     "on_data_path"        : "src/data_preprocess/dataset/on/NIST.csv",
     "off_data_path"       : "src/data_preprocess/dataset/off/NIST.csv",
@@ -82,20 +87,6 @@ dengiz = {
 # Other
 early_stopping_threshold = 0.1
 
-# Data Parameters
-nist = {
-    "training_days"       : 18, 
-    "test_days"           : 2,
-    "validation_days"     : 0,
-    "off_limit_w"         : 100,
-    "on_limit_w"          : 1500,   
-    "consecutive_points"  : 3,
-    "train_data_path"     : "src/data_preprocess/dataset/train/NIST.csv",
-    "test_data_path"      : "src/data_preprocess/dataset/train/NIST.csv",
-    "on_data_path"        : "src/data_preprocess/dataset/on/NIST.csv",
-    "off_data_path"       : "src/data_preprocess/dataset/off/NIST.csv",
-    "data_path"           : "src/data_preprocess/dataset/NIST_cleaned.csv"
-}
 
 used_dataset       = nist
 training_days      = used_dataset["training_days"]
@@ -121,32 +112,32 @@ def train_and_test_model(trainer, lit_model):
     trainer.test(lit_model)
     return lit_model.get_predictions(), lit_model.get_actuals()
 
-def main(iterations, debug):
-    #df = pd.read_csv(DATA_PATH)
-    #train_data, test_data = split_data_train_and_test(df, training_days, test_days, TIMESTAMP)
-
+def main(i, d):
     temp_boundery = 0.5
     seq_len = 4
     error = 0
 
-    mnist = DataHandler(nist, TttDataSplitter)
+    mnist_dh = DataHandler(nist, TvtDataSplitter)
 
-    modelTrainingAndEval(mnist, iterations)
+    modelTrainingAndEval(mnist_dh, i, d)
 
-    model = None # Insert loading and preperation of model
+    model = bm.GRU(hidden_size, num_layers, dropout)
+    model.load_state_dict(torch.load(MODEL_PATH))
+    model.eval()
 
-    on_df, off_df = mnist.get_on_off_data()
+    on_df = mnist_dh.get_on_data()
+    off_df = mnist_dh.get_off_data()
 
-    on_data_arr = mnist.split_dataframe_by_continuity(on_df, 15, seq_len)
-    off_data_arr = mnist.split_dataframe_by_continuity(off_df, 15, seq_len)
+    on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
+    off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
 
     getMafe(on_data_arr, model, seq_len, error, temp_boundery)
     getMafe(off_data_arr, model, seq_len, error, temp_boundery)
 
-def modelTrainingAndEval(mnist, iterations):
-    train_data = mnist.get_train_value().values
-    val_data   = mnist.get_val_value().values
-    test_data  = mnist.get_test_value().values
+def modelTrainingAndEval(mnist_dh, iterations, debug):
+    train_data = mnist_dh.get_train_data().values
+    val_data   = mnist_dh.get_val_data().values
+    test_data  = mnist_dh.get_test_data().values
 
     test_timestamps = pd.to_datetime(test_data[:,0])
 
@@ -154,53 +145,53 @@ def modelTrainingAndEval(mnist, iterations):
     val_data, _, _ = normalize(val_data[:,1:].astype(float))
     test_data, test_min_vals, test_max_vals = normalize(test_data[:,1:].astype(float))
     
-    #best_loss = None
+    best_loss = None
     # TODO: change iterations to save folder with best ensembled model
     for _ in range(iterations):
-        all_models = []
-        for _ in range(num_ensembles):
-            model = bm.GRU(hidden_size, num_layers, dropout)
-            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
-            all_models.append(lit_model)
-        
-        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
-        
-        tuners = [Tuner(trainer) for trainer in trainers]
-        for tuner, lit_model in zip(tuners, all_models):
-            tuner.lr_find(lit_model)
-            tuner.scale_batch_size(lit_model, mode="binsearch")
-            
-        all_predictions = []
-        all_actuals = None
-        
-        # Run ensembles in parallel
-        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
-            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
-            for future in as_completed(futures):
-                predictions, actuals = future.result()
-                all_predictions.append(predictions)
-                if all_actuals is None:
-                    all_actuals = actuals
-            
-        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
+#        all_models = []
+#        for _ in range(num_ensembles):
+#            model = bm.GRU(hidden_size, num_layers, dropout)
+#            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+#            all_models.append(lit_model)
+#        
+#        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), #ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in #range(num_ensembles)]
+#        
+#        tuners = [Tuner(trainer) for trainer in trainers]
+#        for tuner, lit_model in zip(tuners, all_models):
+#            tuner.lr_find(lit_model)
+#            tuner.scale_batch_size(lit_model, mode="binsearch")
+#            
+#        all_predictions = []
+#        all_actuals = None
+#        
+#        # Run ensembles in parallel
+#        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
+#            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
+#            for future in as_completed(futures):
+#                predictions, actuals = future.result()
+#                all_predictions.append(predictions)
+#                if all_actuals is None:
+#                    all_actuals = actuals
+#            
+#        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
-        #model = bm.GRU(hidden_size, num_layers, dropout)
-        #lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, #train_data, val_data, test_data, inference_samples)
-        #trainer = L.Trainer(max_epochs=num_epochs, callbacks=#[StochasticWeightAveraging(swa_lrs=swa_learning_rate), #ConditionalEarlyStopping(threshold=early_stopping_threshold)], #gradient_clip_val=gradient_clipping, fast_dev_run=debug)
-        #tuner = Tuner(trainer)
-        #tuner.lr_find(lit_model)
-        #tuner.scale_batch_size(lit_model, mode="binsearch")
+        model = bm.GRU(hidden_size, num_layers, dropout)
+        lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
+        trainer = L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
+        tuner = Tuner(trainer)
+        tuner.lr_find(lit_model)
+        tuner.scale_batch_size(lit_model, mode="binsearch")
 
-        #trainer.fit(lit_model)
-        #test_results = trainer.test(lit_model)
+        trainer.fit(lit_model)
+        test_results = trainer.test(lit_model)
 
-        #test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
+        test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
 
-        #if best_loss is None or best_loss > test_loss :
-         #   print("NEW BEST")
-          #  lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
-           # best_loss = test_loss 
-            #torch.save(model.state_dict(), 'model.pth')
+        if best_loss is None or best_loss > test_loss :
+            print("NEW BEST")
+#            lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
+            best_loss = test_loss 
+            torch.save(model.state_dict(), MODEL_PATH)
 
 
 
@@ -241,9 +232,9 @@ def getMafe(data_arr, model, seq_len, error, boundary):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")
-    parser.add_argument('--iterations', type=int, required=True, help='Number of iterations to run the training and testing loop.')
-    parser.add_argument('--debug', action='store_true', help='Debug mode')
+    parser.add_argument('--i', type=int, required=True, help='Number of iterations to run the training and testing loop.')
+    parser.add_argument('--d', action='store_true', help='Debug mode')
     args = parser.parse_args()
-    if args.debug:
+    if args.d:
         print("DEBUG MODE")
-    main(args.iterations, args.debug)
+    main(args.i, args.d)
