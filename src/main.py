@@ -88,25 +88,10 @@ dengiz = {
 # Other
 early_stopping_threshold = 0.1
 
-
-used_dataset       = nist
-training_days      = used_dataset["training_days"]
-test_days          = used_dataset["test_days"]
-validation_days    = used_dataset["validation_days"]
-off_limit          = used_dataset["off_limit_w"]
-on_limit           = used_dataset["on_limit_w"]
-consecutive_points = used_dataset["consecutive_points"]
-
 # General Constant
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
-# Paths
-TRAIN_DATA_PATH = used_dataset["train_data_path"]
-TEST_DATA_PATH  = used_dataset["test_data_path"]
-ON_DATA_PATH    = used_dataset["on_data_path"]
-OFF_DATA_PATH   = used_dataset["off_data_path"]
-DATA_PATH       = used_dataset["data_path"]
 
 def train_and_test_model(trainer, lit_model):
     trainer.fit(lit_model)
