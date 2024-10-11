@@ -18,6 +18,7 @@ from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.plot import plot_results
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.util.constants import NUM_WORKERS
+from src.util.error import RMSE
 
 matplotlib.use("Agg")
 
@@ -27,7 +28,7 @@ TARGET_COLUMN = 1
 
 # Hyper parameters
 hidden_size = 32
-num_epochs = 125
+num_epochs = 12 # was 125
 seq_len = 96
 swa_learning_rate = 0.01
 num_layers = 2
@@ -122,7 +123,7 @@ def main(i, d):
     model_training_and_eval(mnist_dh, i, d)
 
     model = bm.GRU(hidden_size, num_layers, dropout)
-    model.load_state_dict(torch.load(MODEL_PATH))
+    model.load_state_dict(torch.load(MODEL_PATH, weights_only=True))
     model.eval()
 
     on_df = mnist_dh.get_on_data()
@@ -131,8 +132,8 @@ def main(i, d):
     on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
     off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
 
-    get_mafe(on_data_arr, model, seq_len, error, temp_boundery)
-    get_mafe(off_data_arr, model, seq_len, error, temp_boundery)
+    print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery))
+    print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery))
 
 def model_training_and_eval(mnist_dh, iterations, debug):
     train_data = mnist_dh.get_train_data().values
@@ -148,32 +149,32 @@ def model_training_and_eval(mnist_dh, iterations, debug):
     best_loss = None
     # TODO: change iterations to save folder with best ensembled model
     for _ in range(iterations):
-        all_models = []
-        for _ in range(num_ensembles):
-            model = bm.GRU(hidden_size, num_layers, dropout)
-            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
-            all_models.append(lit_model)
-        
-        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
-        
-        tuners = [Tuner(trainer) for trainer in trainers]
-        for tuner, lit_model in zip(tuners, all_models):
-            tuner.lr_find(lit_model)
-            tuner.scale_batch_size(lit_model, mode="binsearch")
-            
-        all_predictions = []
-        all_actuals = None
-        
-        # Run ensembles in parallel
-        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
-            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
-            for future in as_completed(futures):
-                predictions, actuals = future.result()
-                all_predictions.append(predictions)
-                if all_actuals is None:
-                    all_actuals = actuals
-            
-        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
+#        all_models = []
+#        for _ in range(num_ensembles):
+#            model = bm.GRU(hidden_size, num_layers, dropout)
+#            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+#            all_models.append(lit_model)
+#        
+#        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
+#        
+#        tuners = [Tuner(trainer) for trainer in trainers]
+#        for tuner, lit_model in zip(tuners, all_models):
+#            tuner.lr_find(lit_model)
+#            tuner.scale_batch_size(lit_model, mode="binsearch")
+#            
+#        all_predictions = []
+#        all_actuals = None
+#        
+#        # Run ensembles in parallel
+#        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
+#            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
+#            for future in as_completed(futures):
+#                predictions, actuals = future.result()
+#                all_predictions.append(predictions)
+#                if all_actuals is None:
+#                    all_actuals = actuals
+#            
+#        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
         model = bm.GRU(hidden_size, num_layers, dropout)
         lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
@@ -224,10 +225,13 @@ def get_mafe(data_arr, model, seq_len, error, boundary):
 
             flex_predictions.append(predicted_flex)
             flex_actual_values.append(actual_flex)
+        
+    flex_predictions_tensor = torch.tensor(flex_predictions, dtype=torch.float32)
+    flex_actual_values_tensor = torch.tensor(flex_actual_values, dtype=torch.float32)
 
-        # need to check why the prediction allways perfect, and why its either all the data its flexible or no data
-    flex_difference = [a - b for a, b in zip(flex_predictions, flex_actual_values)]
-    print(flex_difference)
+    flex_difference = [RMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
+    return (sum(flex_difference) / len(flex_difference)).item()
+    
 
 
 if __name__ == "__main__":
