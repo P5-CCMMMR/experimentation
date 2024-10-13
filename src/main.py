@@ -106,7 +106,7 @@ def main(i, d):
 
     mnist_dh = DataHandler(nist, DayDataSplitter)
 
-    #model_training_and_eval(mnist_dh, i, d)
+    model_training_and_eval(mnist_dh, i, d)
 
     model = bm.GRU(hidden_size, num_layers, dropout)
     model.load_state_dict(torch.load(MODEL_PATH, weights_only=True))
@@ -208,6 +208,7 @@ def get_mafe(data_arr, model, seq_len, error, boundary):
 
             actual_flex = flex_predict(result_actual, lower_boundery, upper_boundery, error)
             predicted_flex = flex_predict(result_predictions, lower_boundery, upper_boundery, error)
+
 
             flex_predictions.append(predicted_flex)
             flex_actual_values.append(actual_flex)

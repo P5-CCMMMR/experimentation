@@ -72,8 +72,8 @@ class BaseModel(L.LightningModule):
         return self.all_actuals
         
 class ProbabilisticBaseModel(BaseModel):
-    def __init__(self, model: nn.Module, learning_rate: float, batch_size: int, train_data, val_data, test_data):
-        super().__init__(model, learning_rate, batch_size, train_data, val_data, test_data)
+    def __init__(self, model: nn.Module, learning_rate: float, horizon_len: int, batch_size: int, train_data, val_data, test_data):
+        super().__init__(model, learning_rate, horizon_len, batch_size, train_data, val_data, test_data)
         self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
 class RNN(nn.Module):
