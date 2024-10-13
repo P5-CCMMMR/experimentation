@@ -11,7 +11,7 @@ PROPERTY_PATH_0001 = DATASETFOLDER + "Property_ID=EOH0001.csv"
 PROPERTY_PATH_0003 = DATASETFOLDER + "Property_ID=EOH0003.csv"
 PROPERTY_PATH_0005 = DATASETFOLDER + "Property_ID=EOH0005.csv"
 PROPERTY_PATH_0014 = DATASETFOLDER + "Property_ID=EOH0014.csv"
-PROPERTY_PATH_00018 = DATASETFOLDER + "Property_ID=EOH0018.csv"
+PROPERTY_PATH_0018 = DATASETFOLDER + "Property_ID=EOH0018.csv"
 
 CLEAN_UKDATA_PATH = DATASETFOLDER + "UKDATA_cleaned.csv"
 
@@ -21,30 +21,36 @@ TIMESTAMP = "Timestamp"
 USE_UTC = True
 MAX_TEMP_DELTA = 15
 
+# This could be done differently without making a "PowerConsumption" and just using the 
+# "Heat_Pump_Energy_Output" but I will just use the nist setup for now.
 # HVAC
-hvac_df = pd.concat([pd.read_csv(HVAC_MIN_PATH_2014), pd.read_csv(HVAC_MIN_PATH_2015)])
-hvac_df = hvac_df[[TIMESTAMP, "HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"]]
-hvac_df["PowerConsumption"] = hvac_df.HVAC_HeatPumpIndoorUnitPower + hvac_df.HVAC_HeatPumpOutdoorUnitPower
-hvac_df = hvac_df.drop(["HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"], axis="columns")
-hvac_df.Timestamp = pd.to_datetime(hvac_df.Timestamp, utc=USE_UTC)
-hvac_df = hvac_df.resample(SAMPLE_TIME, on=TIMESTAMP).mean().reset_index()
+energy_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), 
+                       pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), 
+                       pd.read_csv(PROPERTY_PATH_0018)])
+energy_df = energy_df[[TIMESTAMP, "Heat_Pump_Energy_Output"]]
+energy_df.Timestamp = pd.to_datetime(energy_df.Timestamp, utc=USE_UTC)
+energy_df = energy_df.resample(SAMPLE_TIME, on=TIMESTAMP).mean().reset_index()
+energy_df = energy_df.rename(columns={"Heat_Pump_Energy_Output": "PowerConsumption"})
 
 # Indoor
-indoor_df = pd.concat([pd.read_csv(INDENV_MIN_PATH_2014), pd.read_csv(INDENV_MIN_PATH_2015)])
-indoor_df = indoor_df[[TIMESTAMP, "IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]]
-indoor_df["IndoorTemp"] = indoor_df[["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]].mean(axis="columns")
-indoor_df = indoor_df.drop(["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"], axis="columns")
+indoor_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), 
+                       pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), 
+                       pd.read_csv(PROPERTY_PATH_0018)])
+indoor_df = indoor_df[[TIMESTAMP, "Internal_Air_Temperature"]]
 indoor_df.Timestamp = pd.to_datetime(indoor_df.Timestamp, utc=USE_UTC)
 indoor_df = indoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
+indoor_df = indoor_df.rename(columns={"Internal_Air_Temprature": "IndoorTemp"})
 
 # Outdoor
-outdoor_df = pd.concat([pd.read_csv(OUTENV_MIN_PATH_2014), pd.read_csv(OUTENV_MIN_PATH_2015)])
-outdoor_df = outdoor_df[[TIMESTAMP, "OutEnv_OutdoorAmbTemp"]]
+outdoor_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), 
+                        pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), 
+                        pd.read_csv(PROPERTY_PATH_0018)])
+outdoor_df = outdoor_df[[TIMESTAMP, "External_Air_Temperature"]]
 outdoor_df.Timestamp = pd.to_datetime(outdoor_df.Timestamp, utc=USE_UTC)
 outdoor_df = outdoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
-outdoor_df = outdoor_df.rename(columns={"OutEnv_OutdoorAmbTemp": "OutdoorTemp"})
+outdoor_df = outdoor_df.rename(columns={"External_Air_Temperature": "OutdoorTemp"})
 
-df = hvac_df
+df = energy_df
 df = df.join(indoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
 df = df.join(outdoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
 
@@ -55,7 +61,7 @@ df = df[df.PowerConsumption > 0]
 
 df = df.dropna()
 
-df.to_csv(CLEAN_NIST_PATH, index=False)
+df.to_csv(CLEAN_UKDATA_PATH, index=False)
 
 # Plotting of the cleaned data
 fig, ax = plt.subplots(3)
