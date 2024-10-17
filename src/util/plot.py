@@ -28,6 +28,13 @@ def plot_probabilistic_results(predictions, actuals, timestamps, min_vals, max_v
     actuals = actuals * (max_vals[TARGET_COLUMN] - min_vals[TARGET_COLUMN]) + min_vals[TARGET_COLUMN]
     timestamps = timestamps[:len(mean_predictions)]
 
+    # this is primitive and should be reomoved
+    mean_predictions = mean_predictions[:len(timestamps)]
+    std_predictions = std_predictions[:len(timestamps)]
+    actuals = actuals[:len(timestamps)]
+
+    print(timestamps)
+    
     plt.plot(timestamps, mean_predictions, label="Prediction")
     plt.plot(timestamps, actuals, label="Actual")
 

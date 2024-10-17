@@ -104,11 +104,11 @@ def main(i, d):
     seq_len = 4
     error = 0
 
-    mnist_dh = DataHandler(nist, DayDataSplitter)
+    mnist_dh = DataHandler(nist, TvtDataSplitter)
 
     model_training_and_eval(mnist_dh, i, d)
 
-    model = bm.GRU(hidden_size, num_layers, dropout)
+    model = bm.GRU(hidden_size, num_layers, time_horizon, dropout)
     model.load_state_dict(torch.load(MODEL_PATH, weights_only=True))
     model.eval()
 
@@ -137,7 +137,7 @@ def model_training_and_eval(mnist_dh, iterations, debug):
     for _ in range(iterations):
         all_models = []
         for _ in range(num_ensembles):
-            model = bm.GRU(hidden_size, num_layers, dropout)
+            model = bm.GRU(hidden_size, num_layers, time_horizon, dropout)
             lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
             all_models.append(lit_model)
         
@@ -159,26 +159,25 @@ def model_training_and_eval(mnist_dh, iterations, debug):
                 all_predictions.append(predictions)
                 if all_actuals is None:
                     all_actuals = actuals
-            
         plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
-        model = bm.GRU(hidden_size, num_layers, dropout)
-        lit_model = bm.BaseModel(model, learning_rate, time_horizon, batch_size, train_data, val_data, test_data)
-        trainer = L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
-        tuner = Tuner(trainer)
-        tuner.lr_find(lit_model)
-        tuner.scale_batch_size(lit_model, mode="binsearch")
-
-        trainer.fit(lit_model)
-        test_results = trainer.test(lit_model)
-
-        test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
-
-        if best_loss is None or best_loss > test_loss :
-            print("NEW BEST")
-#            lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
-            best_loss = test_loss 
-            torch.save(model.state_dict(), MODEL_PATH)
+#        model = bm.GRU(hidden_size, num_layers, time_horizon, dropout)
+#        lit_model = bm.BaseModel(model, learning_rate,  seq_len, batch_size, train_data, val_data, test_data)
+#        trainer = L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
+#        tuner = Tuner(trainer)
+#        tuner.lr_find(lit_model)
+#        tuner.scale_batch_size(lit_model, mode="binsearch")
+#
+#        trainer.fit(lit_model)
+#        test_results = trainer.test(lit_model)
+#
+#        test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
+#
+#        if best_loss is None or best_loss > test_loss :
+#            print("NEW BEST")
+##            lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
+#            best_loss = test_loss 
+#            torch.save(model.state_dict(), MODEL_PATH)
 
 
 
