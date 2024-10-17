@@ -28,7 +28,7 @@ TARGET_COLUMN = 1
 
 # Hyper parameters
 hidden_size = 32
-num_epochs = 1 #125
+num_epochs = 125
 seq_len = 96
 swa_learning_rate = 0.01
 num_layers = 2
