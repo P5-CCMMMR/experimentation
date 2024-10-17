@@ -28,7 +28,7 @@ TARGET_COLUMN = 1
 
 # Hyper parameters
 hidden_size = 32
-num_epochs = 125
+num_epochs = 1 #125
 seq_len = 96
 swa_learning_rate = 0.01
 num_layers = 2
@@ -106,20 +106,24 @@ def main(i, d):
 
     mnist_dh = DataHandler(nist, TvtDataSplitter)
 
-    model_training_and_eval(mnist_dh, i, d)
+    models = model_training_and_eval(mnist_dh, i, d)
 
-    model = bm.GRU(hidden_size, num_layers, time_horizon, dropout)
-    model.load_state_dict(torch.load(MODEL_PATH, weights_only=True))
+    model = models[0]
+
     model.eval()
 
-    on_df = mnist_dh.get_on_data()
-    off_df = mnist_dh.get_off_data()
+# NOT GONNA WORK BEFORE WE 
+# - figure out how to treat probabilistic prediction for 
+# - make forward for the mc networks
 
-    on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
-    off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
-
-    print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery))
-    print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery))
+#    on_df = mnist_dh.get_on_data()
+#    off_df = mnist_dh.get_off_data()
+#
+#    on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
+#    off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
+#
+#    print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery))
+#    print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery))
 
 def model_training_and_eval(mnist_dh, iterations, debug):
     train_data = mnist_dh.get_train_data().values
@@ -161,24 +165,7 @@ def model_training_and_eval(mnist_dh, iterations, debug):
                     all_actuals = actuals
         plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
-#        model = bm.GRU(hidden_size, num_layers, time_horizon, dropout)
-#        lit_model = bm.BaseModel(model, learning_rate,  seq_len, batch_size, train_data, val_data, test_data)
-#        trainer = L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
-#        tuner = Tuner(trainer)
-#        tuner.lr_find(lit_model)
-#        tuner.scale_batch_size(lit_model, mode="binsearch")
-#
-#        trainer.fit(lit_model)
-#        test_results = trainer.test(lit_model)
-#
-#        test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
-#
-#        if best_loss is None or best_loss > test_loss :
-#            print("NEW BEST")
-##            lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
-#            best_loss = test_loss 
-#            torch.save(model.state_dict(), MODEL_PATH)
-
+    return all_models
 
 
 def get_mafe(data_arr, model, seq_len, error, boundary):
