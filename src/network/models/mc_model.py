@@ -36,3 +36,7 @@ class MCModel(ProbabilisticBaseModel):
 
         return mean_prediction, std_prediction
     
+    def forward(self, batch):
+        x = batch
+        return self.__predict_with_mc_dropout(x)
+

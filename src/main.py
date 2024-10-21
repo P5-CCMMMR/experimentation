@@ -1,13 +1,9 @@
 import argparse
 import lightning as L
 import matplotlib
-import numpy as np
 import pandas as pd
-import torch
 import src.network.models.base_model as bm
 import src.network.models.mc_model as mc
-from src.util.flex_predict import flex_predict
-from src.util.multi_timestep_forecast import multiTimestepForecasting
 import src.util.normalize as norm
 from src.data_preprocess.data_handler import DataHandler
 from src.data_preprocess.tvt_data_splitter import TvtDataSplitter
@@ -18,7 +14,7 @@ from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.plot import plot_results
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.util.constants import NUM_WORKERS
-from src.util.error import RMSE
+from src.util.flex_error import get_prob_mafe
 
 matplotlib.use("Agg")
 
@@ -101,7 +97,6 @@ def train_and_test_model(trainer, lit_model):
 
 def main(i, d):
     temp_boundery = 0.5
-    seq_len = 4
     error = 0
 
     mnist_dh = DataHandler(nist, TvtDataSplitter)
@@ -112,18 +107,14 @@ def main(i, d):
 
     model.eval()
 
-# NOT GONNA WORK BEFORE WE 
-# - figure out how to treat probabilistic prediction for 
-# - make forward for the mc networks
+    on_df = mnist_dh.get_on_data()
+    off_df = mnist_dh.get_off_data()
 
-#    on_df = mnist_dh.get_on_data()
-#    off_df = mnist_dh.get_off_data()
-#
-#    on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
-#    off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
-#
-#    print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery))
-#    print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery))
+    on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
+    off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
+
+    print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon))
+    print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon))
 
 def model_training_and_eval(mnist_dh, iterations, debug):
     train_data = mnist_dh.get_train_data().values
@@ -166,45 +157,6 @@ def model_training_and_eval(mnist_dh, iterations, debug):
         plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
     return all_models
-
-
-def get_mafe(data_arr, model, seq_len, error, boundary):
-    flex_predictions = []
-    flex_actual_values = []
-
-    for data in data_arr:
-        for i in range(0, len(data), seq_len):
-            if len(data) < i + seq_len * 2:
-                break
-
-            in_temp_idx = 2
-
-            input_data = data[i: i + seq_len]
-
-            # get the actual result data by first gettin the next *seq* data steps forward, 
-            # and taking only the in_temp_id column to get the actual result indoor temperatures
-            result_actual = data[i + seq_len : i + (seq_len * 2), in_temp_idx:in_temp_idx + 1] 
-
-            result_predictions = multiTimestepForecasting(model, input_data, seq_len)
-
-            last_in_temp = input_data[len(input_data) - 1][2]
-
-            lower_boundery = last_in_temp - boundary
-            upper_boundery = last_in_temp + boundary
-
-            actual_flex = flex_predict(result_actual, lower_boundery, upper_boundery, error)
-            predicted_flex = flex_predict(result_predictions, lower_boundery, upper_boundery, error)
-
-
-            flex_predictions.append(predicted_flex)
-            flex_actual_values.append(actual_flex)
-        
-    flex_predictions_tensor = torch.tensor(flex_predictions, dtype=torch.float32)
-    flex_actual_values_tensor = torch.tensor(flex_actual_values, dtype=torch.float32)
-
-    flex_difference = [RMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
-    return (sum(flex_difference) / len(flex_difference)).item()
-    
 
 
 if __name__ == "__main__":
