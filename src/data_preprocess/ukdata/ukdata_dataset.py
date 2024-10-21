@@ -31,8 +31,9 @@ energy_df.Timestamp = pd.to_datetime(energy_df.Timestamp, utc=USE_UTC)
 energy_df = energy_df.resample(SAMPLE_TIME, on=TIMESTAMP).mean().reset_index()
 energy_df = energy_df.rename(columns={"Heat_Pump_Energy_Output": "TotalPowerConsumption"})
 
-# Convert to consumption instead of total consumto
-energy_df['PowerConsumption'] = energy_df['TotalPowerConsumption'].diff().fillna(0)
+# Convert to consumption instead of total consumtion
+# also converts from kWh to W. The kWh are in intervals of 2 minutes
+energy_df['PowerConsumption'] = energy_df['TotalPowerConsumption'].diff().fillna(0) * 30 * 1000 
 
 # Indoor
 # indoor_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), pd.read_csv(PROPERTY_PATH_0018)])
@@ -61,7 +62,10 @@ df = df.join(outdoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
 df = df[(df.IndoorTemp >= 10) & (df.IndoorTemp <= 30)]
 df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]
 series = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
-df = df[(df.PowerConsumption >= 0) & (df.PowerConsumption <= 1)]
+df = df[(df.PowerConsumption >= 0)]
+
+# Convert from kWh to watt
+
 
 # Consumption
 
@@ -77,9 +81,9 @@ fig, ax = plt.subplots(4)
 values = df.values
 
 total_power_consumption = [i[1] for i in values]
-indoor_temp = [i[2] for i in values]
-outdoor_temp = [i[3] for i in values]
-power_consumption = [i[4] for i in values]
+power_consumption = [i[2] for i in values]
+indoor_temp = [i[3] for i in values]
+outdoor_temp = [i[4] for i in values]
 
 timestamps = df[TIMESTAMP]
 
