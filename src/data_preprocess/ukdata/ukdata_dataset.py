@@ -24,31 +24,35 @@ MAX_TEMP_DELTA = 15
 # This could be done differently without making a "PowerConsumption" and just using the 
 # "Heat_Pump_Energy_Output" but I will just use the nist setup for now.
 # HVAC
-energy_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), 
-                       pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), 
-                       pd.read_csv(PROPERTY_PATH_0018)])
+# energy_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), pd.read_csv(PROPERTY_PATH_0018)])
+energy_df = pd.read_csv(PROPERTY_PATH_0003)
 energy_df = energy_df[[TIMESTAMP, "Heat_Pump_Energy_Output"]]
 energy_df.Timestamp = pd.to_datetime(energy_df.Timestamp, utc=USE_UTC)
 energy_df = energy_df.resample(SAMPLE_TIME, on=TIMESTAMP).mean().reset_index()
-energy_df = energy_df.rename(columns={"Heat_Pump_Energy_Output": "PowerConsumption"})
+energy_df = energy_df.rename(columns={"Heat_Pump_Energy_Output": "TotalPowerConsumption"})
+
+# Convert to consumption instead of total consumto
+energy_df['PowerConsumption'] = energy_df['TotalPowerConsumption'].diff().fillna(0)
 
 # Indoor
-indoor_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), 
-                       pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), 
-                       pd.read_csv(PROPERTY_PATH_0018)])
+# indoor_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), pd.read_csv(PROPERTY_PATH_0018)])
+indoor_df = pd.read_csv(PROPERTY_PATH_0003)
 indoor_df = indoor_df[[TIMESTAMP, "Internal_Air_Temperature"]]
 indoor_df.Timestamp = pd.to_datetime(indoor_df.Timestamp, utc=USE_UTC)
 indoor_df = indoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
-indoor_df = indoor_df.rename(columns={"Internal_Air_Temprature": "IndoorTemp"})
+indoor_df = indoor_df.rename(columns={"Internal_Air_Temperature": "IndoorTemp"})
+
+
 
 # Outdoor
-outdoor_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), 
-                        pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), 
-                        pd.read_csv(PROPERTY_PATH_0018)])
+# outdoor_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), pd.read_csv(PROPERTY_PATH_0018)])
+outdoor_df = pd.read_csv(PROPERTY_PATH_0003)
 outdoor_df = outdoor_df[[TIMESTAMP, "External_Air_Temperature"]]
 outdoor_df.Timestamp = pd.to_datetime(outdoor_df.Timestamp, utc=USE_UTC)
 outdoor_df = outdoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
 outdoor_df = outdoor_df.rename(columns={"External_Air_Temperature": "OutdoorTemp"})
+
+
 
 df = energy_df
 df = df.join(indoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
@@ -57,25 +61,30 @@ df = df.join(outdoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
 df = df[(df.IndoorTemp >= 10) & (df.IndoorTemp <= 30)]
 df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]
 series = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
-df = df[df.PowerConsumption > 0]
+df = df[(df.PowerConsumption >= 0) & (df.PowerConsumption <= 1)]
+
+# Consumption
+
+
 
 df = df.dropna()
 
 df.to_csv(CLEAN_UKDATA_PATH, index=False)
 
 # Plotting of the cleaned data
-fig, ax = plt.subplots(3)
+fig, ax = plt.subplots(4)
 
 values = df.values
 
-power_consumption = [i[1] for i in values]
+total_power_consumption = [i[1] for i in values]
 indoor_temp = [i[2] for i in values]
 outdoor_temp = [i[3] for i in values]
+power_consumption = [i[4] for i in values]
 
 timestamps = df[TIMESTAMP]
 
-ax[0].plot(timestamps, power_consumption)
-ax[0].set_title("Power Consumption")
+ax[0].plot(timestamps, total_power_consumption)
+ax[0].set_title("Power Consumption of Heat Pump")
 ax[0].grid()
 
 ax[1].plot(timestamps, indoor_temp, color="r")
@@ -86,6 +95,11 @@ ax[2].plot(timestamps, outdoor_temp, color="g")
 ax[2].set_title("Outdoor Temperature")
 ax[2].grid()
 
+ax[3].plot(timestamps, power_consumption)
+ax[3].set_title("Power Consumption of Heat Pump")
+ax[3].grid()
+
+
 plt.subplots_adjust(hspace=1)
 plt.gcf().autofmt_xdate()
-plt.savefig("graph/NIST_cleaned_graph.png")
+plt.savefig("graph/UKDATA_cleaned_graph.png")
