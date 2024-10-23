@@ -94,10 +94,12 @@ ax[0].grid()
 
 ax[1].plot(timestamps, indoor_temp, color="r")
 ax[1].set_title("Indoor Temperature")
+ax[1].set_ylim(min(outdoor_temp), max(outdoor_temp))
 ax[1].grid()
 
 ax[2].plot(timestamps, outdoor_temp, color="g")
 ax[2].set_title("Outdoor Temperature")
+ax[2].set_ylim(min(outdoor_temp), max(outdoor_temp))
 ax[2].grid()
 
 ax[3].plot(timestamps, power_consumption)
