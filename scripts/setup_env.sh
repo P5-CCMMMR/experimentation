@@ -64,6 +64,7 @@ mkdir -p src/data_preprocess/dataset
 mkdir -p src/data_preprocess/dataset/off
 mkdir -p src/data_preprocess/dataset/on
 mkdir -p src/data_preprocess/dataset/test
+mkdir -p src/data_preprocess/dataset/val
 mkdir -p src/data_preprocess/dataset/train
 
 declare -A datasets

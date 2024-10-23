@@ -19,12 +19,11 @@ from src.util.flex_error import get_prob_mafe
 matplotlib.use("Agg")
 
 MODEL_PATH = 'model.pth'
-MODEL_ITERATIONS = 10
 TARGET_COLUMN = 1
 
 # Hyper parameters
 hidden_size = 32
-num_epochs = 125
+num_epochs = 25 #125
 seq_len = 96
 swa_learning_rate = 0.01
 num_layers = 2
@@ -101,7 +100,7 @@ def main(i, d):
 
     mnist_dh = DataHandler(nist, TvtDataSplitter)
 
-    models = model_training_and_eval(mnist_dh, i, d)
+    models = model_training_and_eval(mnist_dh, bm.GRU, i, d)
 
     model = models[0]
 
@@ -113,10 +112,10 @@ def main(i, d):
     on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
     off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
 
-    print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon))
-    print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon))
+    print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon))
+    print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon))
 
-def model_training_and_eval(mnist_dh, iterations, debug):
+def model_training_and_eval(mnist_dh, model_constructor, iterations, debug):
     train_data = mnist_dh.get_train_data().values
     val_data   = mnist_dh.get_val_data().values
     test_data  = mnist_dh.get_test_data().values
@@ -127,34 +126,32 @@ def model_training_and_eval(mnist_dh, iterations, debug):
     val_data, _, _ = norm.minmax_scale(val_data[:,1:].astype(float))
     test_data, test_min_vals, test_max_vals = norm.minmax_scale(test_data[:,1:].astype(float))
     
-    best_loss = None
-    # TODO: change iterations to save folder with best ensembled model
-    for _ in range(iterations):
-        all_models = []
-        for _ in range(num_ensembles):
-            model = bm.GRU(hidden_size, num_layers, time_horizon, dropout)
-            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
-            all_models.append(lit_model)
+    all_models = []
+    for _ in range(num_ensembles):
+        model = model_constructor(hidden_size, num_layers, time_horizon, dropout)
+        lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
+#        lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+        all_models.append(lit_model)
+    
+    trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
+    
+    tuners = [Tuner(trainer) for trainer in trainers]
+    for tuner, lit_model in zip(tuners, all_models):
+        tuner.lr_find(lit_model)
+        tuner.scale_batch_size(lit_model, mode="binsearch")
         
-        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
-        
-        tuners = [Tuner(trainer) for trainer in trainers]
-        for tuner, lit_model in zip(tuners, all_models):
-            tuner.lr_find(lit_model)
-            tuner.scale_batch_size(lit_model, mode="binsearch")
-            
-        all_predictions = []
-        all_actuals = None
-        
-        # Run ensembles in parallel
-        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
-            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
-            for future in as_completed(futures):
-                predictions, actuals = future.result()
-                all_predictions.append(predictions)
-                if all_actuals is None:
-                    all_actuals = actuals
-        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
+    all_predictions = []
+    all_actuals = None
+    
+    # Run ensembles in parallel
+    with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
+        futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
+        for future in as_completed(futures):
+            predictions, actuals = future.result()
+            all_predictions.append(predictions)
+            if all_actuals is None:
+                all_actuals = actuals
+    plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
     return all_models
 
