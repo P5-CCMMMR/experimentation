@@ -1,6 +1,7 @@
 import argparse
 import lightning as L
 import matplotlib
+import numpy as np
 import pandas as pd
 import src.network.models.base_model as bm
 import src.network.models.mc_model as mc
@@ -14,7 +15,7 @@ from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.plot import plot_results
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.util.constants import NUM_WORKERS
-from src.util.flex_error import get_prob_mafe
+from src.util.flex_error import get_mafe, get_prob_mafe
 
 matplotlib.use("Agg")
 
@@ -100,7 +101,7 @@ def main(i, d):
 
     mnist_dh = DataHandler(nist, TvtDataSplitter)
 
-    models = model_training_and_eval(mnist_dh, bm.GRU, i, d)
+    models = model_training_and_eval(mnist_dh, bm.LSTM, False, i, d)
 
     model = models[0]
 
@@ -115,7 +116,7 @@ def main(i, d):
     print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon))
     print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon))
 
-def model_training_and_eval(mnist_dh, model_constructor, iterations, debug):
+def model_training_and_eval(mnist_dh, model_constructor, is_prob, iterations, debug):
     train_data = mnist_dh.get_train_data().values
     val_data   = mnist_dh.get_val_data().values
     test_data  = mnist_dh.get_test_data().values
@@ -129,8 +130,12 @@ def model_training_and_eval(mnist_dh, model_constructor, iterations, debug):
     all_models = []
     for _ in range(num_ensembles):
         model = model_constructor(hidden_size, num_layers, time_horizon, dropout)
-        lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
-#        lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+
+        if (is_prob):
+            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
+        else: 
+            lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
+
         all_models.append(lit_model)
     
     trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
@@ -151,10 +156,10 @@ def model_training_and_eval(mnist_dh, model_constructor, iterations, debug):
             all_predictions.append(predictions)
             if all_actuals is None:
                 all_actuals = actuals
-    plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
+
+    plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals, is_prob)
 
     return all_models
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")
