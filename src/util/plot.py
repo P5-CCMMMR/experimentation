@@ -3,16 +3,13 @@ import matplotlib.pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
 from src.util.constants import TARGET_COLUMN
 
-
-
-
-def plot_results(predictions, actuals, timestamps, min_vals, max_vals, is_prob):
+def plot_results(predictions, actuals, timestamps, min_vals, max_vals):
     if (len(predictions) > 1):
         predictions = ensemble_predictions(predictions)
     else:
         predictions = predictions[0]
     
-    if (is_prob):
+    if (isinstance(predictions, tuple)):
         plot_probabilistic_results(predictions, actuals, timestamps, min_vals, max_vals)
     else:
         plot_deterministic_results(predictions, actuals, timestamps, min_vals, max_vals)
@@ -21,8 +18,8 @@ def plot_probabilistic_results(predictions, actuals, timestamps, min_vals, max_v
     writer = SummaryWriter()
         
     mean_predictions, std_predictions = predictions
-    mean_predictions = np.array(mean_predictions.cpu())
-    std_predictions = np.array(std_predictions.cpu())
+    mean_predictions = np.array(mean_predictions)
+    std_predictions = np.array(std_predictions)
     actuals = np.array(actuals)
 
     # Rescale predictions and actuals

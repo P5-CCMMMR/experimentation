@@ -1,7 +1,6 @@
 import argparse
 import lightning as L
 import matplotlib
-import numpy as np
 import pandas as pd
 import src.network.models.base_model as bm
 import src.network.models.mc_model as mc
@@ -16,18 +15,23 @@ from src.util.plot import plot_results
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.util.constants import NUM_WORKERS
 from src.util.flex_error import get_mafe, get_prob_mafe
+from src.pipeline.models.lstm import LSTM
 
 matplotlib.use("Agg")
 
 MODEL_PATH = 'model.pth'
 TARGET_COLUMN = 1
 
+# Other
+early_stopping_threshold = 0.1  
+time_horizon = 4
+
 # Hyper parameters
-hidden_size = 32
-num_epochs = 25 #125
+hidden_size = 32 * time_horizon
+num_epochs = 250 * time_horizon
 seq_len = 96
 swa_learning_rate = 0.01
-num_layers = 2
+num_layers = 2 
 dropout = 0.50
 gradient_clipping = 0
 num_ensembles = 1
@@ -38,9 +42,6 @@ inference_samples = 50
 # Controlled by tuner
 batch_size = 128
 learning_rate = 0.005
-
-# Other
-early_stopping_threshold = 0.25
 
 # Data Parameters
 nist = {
@@ -81,15 +82,6 @@ dengiz = {
     "timestamp_col"       : "Timestamp"
 }
 
-# Other
-early_stopping_threshold = 0.1  
-time_horizon = 4
-
-# General Constant
-TIMESTAMP = "Timestamp"
-POWER     = "PowerConsumption"
-
-
 def train_and_test_model(trainer, lit_model):
     trainer.fit(lit_model)
     trainer.test(lit_model)
@@ -98,10 +90,11 @@ def train_and_test_model(trainer, lit_model):
 def main(i, d):
     temp_boundery = 0.5
     error = 0
+    probalistic = True
 
     mnist_dh = DataHandler(nist, TvtDataSplitter)
 
-    models = model_training_and_eval(mnist_dh, bm.LSTM, False, i, d)
+    models = model_training_and_eval(mnist_dh, LSTM, probalistic, i, d)
 
     model = models[0]
 
@@ -113,8 +106,12 @@ def main(i, d):
     on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
     off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
 
-    print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon))
-    print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon))
+    if (probalistic):
+        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon))
+        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon))
+    else:
+        print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon))
+        print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon))
 
 def model_training_and_eval(mnist_dh, model_constructor, is_prob, iterations, debug):
     train_data = mnist_dh.get_train_data().values
@@ -127,9 +124,11 @@ def model_training_and_eval(mnist_dh, model_constructor, is_prob, iterations, de
     val_data, _, _ = norm.minmax_scale(val_data[:,1:].astype(float))
     test_data, test_min_vals, test_max_vals = norm.minmax_scale(test_data[:,1:].astype(float))
     
+    num_columns = train_data.shape[1]
+
     all_models = []
     for _ in range(num_ensembles):
-        model = model_constructor(hidden_size, num_layers, time_horizon, dropout)
+        model = model_constructor(hidden_size, num_layers, num_columns, time_horizon, dropout)
 
         if (is_prob):
             lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
@@ -157,7 +156,7 @@ def model_training_and_eval(mnist_dh, model_constructor, is_prob, iterations, de
             if all_actuals is None:
                 all_actuals = actuals
 
-    plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals, is_prob)
+    plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
 
     return all_models
 

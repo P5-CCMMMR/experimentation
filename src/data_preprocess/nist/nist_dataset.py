@@ -52,7 +52,7 @@ df = df.join(outdoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
 
 df = df[(df.IndoorTemp >= 10) & (df.IndoorTemp <= 30)]
 df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]
-series = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
+df = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
 df = df[df.PowerConsumption > 0]
 
 df = df.dropna()
