@@ -1,13 +1,7 @@
 import torch
-from torch.utils.data import Dataset
+from .sequencer import Sequencer
 
-class TimeSeriesDataset(Dataset):
-    def __init__(self, data, seq_len: int, horizon_len: int, target_column: int):
-        self.data = data
-        self.seq_len = seq_len
-        self.horizon_len = horizon_len
-        self.target_column = target_column
-
+class TimeSequencer(Sequencer):
     def __len__(self):
         return (len(self.data) - (self.seq_len + self.horizon_len)) // self.horizon_len
 

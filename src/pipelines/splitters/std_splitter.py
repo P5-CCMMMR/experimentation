@@ -1,4 +1,4 @@
-from splitter import Splitter
+from .splitter import Splitter
 import pandas as pd
 
 class StdSplitter(Splitter):

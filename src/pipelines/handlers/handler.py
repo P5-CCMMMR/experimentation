@@ -1,17 +1,20 @@
 import lightning as L
+import torch
 import torch.nn as nn
 from abc import ABC, abstractmethod
 
 class Handler(L.LightningModule, ABC):
     def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int,
-                 optimizer_list: list, train_loader, val_loader, test_loader,
+                 optimizer: torch.optim.Optimizer,
+                 train_loader, val_loader, test_loader,
                  train_error_func, val_error_func, test_error_func):
         super().__init__()
         self.model = model
-        self.learning_rate = learning_rate
         self.seq_len = seq_len
         self.horizon_len = model.get_horizon_len()
         self.batch_size = batch_size
+
+        self.learning_rate = learning_rate
 
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -24,7 +27,7 @@ class Handler(L.LightningModule, ABC):
         self.all_predictions = []
         self.all_actuals = []
 
-        self.optimizer_list = optimizer_list
+        self.optimizer = optimizer
 
     @abstractmethod
     def training_step(self, batch):
@@ -38,13 +41,33 @@ class Handler(L.LightningModule, ABC):
     def test_step(self, batch):
         pass
 
+    def configure_optimizers(self):
+        return self.optimizer
+
+    def train_dataloader(self):
+        return self.train_loader
+    
+    def val_dataloader(self):
+        return self.val_loader
+    
+    def test_dataloader(self):
+        return self.test_loader
+
+    def get_predictions(self):
+        return self.all_predictions
+    
+    def get_actuals(self):
+        return self.all_actuals
+
     class Builder:
         def __init__(self):
+            self.learning_rate = 0.001
+
+            self.optimizer = None
+            self.constructor = None
             self.model = None
-            self.learning_rate = None
             self.seq_len = None
             self.batch_size = None
-            self.optimizer_list = []
             self.train_loader = None
             self.val_loader = None
             self.test_loader = None
@@ -68,8 +91,8 @@ class Handler(L.LightningModule, ABC):
             self.batch_size = batch_size
             return self
 
-        def add_optimizer(self, optimizer):
-            self.optimizer_list.append(optimizer)
+        def set_optimizer(self, optimizer: torch.optim.Optimizer):
+            self.optimizer = optimizer
             return self
 
         def set_train_dataloader(self, train_loader):
@@ -110,7 +133,6 @@ class Handler(L.LightningModule, ABC):
         def build(self):
             self._check_none(
                 model=self.model,
-                learning_rate=self.learning_rate,
                 seq_len=self.seq_len,
                 batch_size=self.batch_size,
                 train_loader=self.train_loader,
@@ -121,16 +143,16 @@ class Handler(L.LightningModule, ABC):
                 test_error_func=self.test_error_func
             )
 
-            return Handler(
-                model=self.model,
-                learning_rate=self.learning_rate,
-                seq_len=self.seq_len,
-                batch_size=self.batch_size,
-                optimizer_list=self.optimizer_list,
-                train_loader=self.train_loader,
-                val_loader=self.val_loader,
-                test_loader=self.test_loader,
-                train_error_func=self.train_error_func,
-                val_error_func=self.val_error_func,
-                test_error_func=self.test_error_func
+            return self.constructor(
+                self.model,
+                self.learning_rate,
+                self.seq_len,
+                self.batch_size,
+                self.optimizer,
+                self.train_loader,
+                self.val_loader,
+                self.test_loader,
+                self.train_error_func,
+                self.val_error_func,
+                self.test_error_func
             )

@@ -1,33 +1,13 @@
 import pandas as pd
 
-class DataSplitter():
+class PowerSplitter():
     def __init__(self, df: pd.DataFrame, time_col_name: str, power_col_name: str):
         self.df = df
-        self.split_days = 0
         self.time_col_name = time_col_name
         self.power_col_name = power_col_name
-        self.train = None
-        self.val = None
-        self.test = None
         self.average_time_diff = None
         self.__get_average_time_diff()
 
-
-    def set_data_split(self, train_days, val_days, test_days):
-        self.train_days = train_days
-        self.val_days = val_days
-        self.test_days = test_days
-        self.split_days = self.train_days + self.val_days + self.test_days
-    
-    def generate_train_data(self):
-        raise RuntimeError("Non implemented method")
-    
-    def generate_val_data(self):
-        raise RuntimeError("Non implemented method")
-    
-    def generate_test_data(self):        
-        raise RuntimeError("Non implemented method")
-    
     def get_lt_power(self, power_watt: int, consecutive_points: int = 1):
         temp_df = self.df.copy()
         consec_rows = []

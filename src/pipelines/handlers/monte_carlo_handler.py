@@ -59,7 +59,7 @@ class MonteCarloHandler(ProbabilisticHandler):
 
         def build(self):
             self._check_none(
-                model=self.model,
+                handler=self.model,
                 learning_rate=self.learning_rate,
                 seq_len=self.seq_len,
                 batch_size=self.batch_size,
@@ -73,7 +73,7 @@ class MonteCarloHandler(ProbabilisticHandler):
             )
 
             return MonteCarloHandler(
-                self.model,
+                self.handler,
                 self.learning_rate,
                 self.seq_len,
                 self.batch_size,

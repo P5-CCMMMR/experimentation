@@ -1,4 +1,4 @@
-from normalizer import Normalizer
+from .normalizer import Normalizer
 import pandas as pd
 
 class MinMaxNormalizer(Normalizer):
@@ -19,3 +19,9 @@ class MinMaxNormalizer(Normalizer):
         data = df
         denormalized_data = data * (self.max_vals - self.min_vals) + self.min_vals
         return denormalized_data
+    
+    def get_min_vals(self):
+        return self.min_vals
+    
+    def get_max_vals(self):
+        return self.max_vals

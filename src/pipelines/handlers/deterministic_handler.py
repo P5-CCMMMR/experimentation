@@ -28,3 +28,8 @@ class DeterministicHandler(Handler):
     def forward(self, batch):
         x = batch
         return self.model(x)
+    
+    class Builder(Handler.Builder):
+        def __init__(self):
+            super().__init__()
+            self.constructor = DeterministicHandler

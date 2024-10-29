@@ -1,7 +1,7 @@
 import torch
-from src.data_preprocess.timeseries_dataset import TimeSeriesDataset
+from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from torch.utils.data import DataLoader
-from src.util.normalize import minmax_scale
+from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.util.error import RMSE
 from src.util.constants import TARGET_COLUMN
 from src.util.flex_predict import flex_predict, prob_flex_predict
@@ -14,9 +14,11 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon):
         if len(data) < seq_len:
             continue
 
-        data, _, _ = minmax_scale(data[:, 1:].astype(float))
+        normalizer = MinMaxNormalizer(data[:,1:].astype(float)) 
 
-        dataset = TimeSeriesDataset(data, seq_len, time_horizon, TARGET_COLUMN)
+        data = normalizer.normalize()
+
+        dataset = TimeSequencer(data, seq_len, time_horizon, TARGET_COLUMN)
         dataloader = DataLoader(dataset, 1)
 
         for batch in dataloader:
@@ -50,9 +52,11 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon):
         if len(data) < seq_len:
             continue
 
-        data, _, _ = minmax_scale(data[:, 1:].astype(float))
+        normalizer = MinMaxNormalizer(data[:,1:].astype(float)) 
 
-        dataset = TimeSeriesDataset(data, seq_len, time_horizon, TARGET_COLUMN)
+        data = normalizer.normalize()
+
+        dataset = TimeSequencer(data, seq_len, time_horizon, TARGET_COLUMN)
         dataloader = DataLoader(dataset, 1)
 
         for batch in dataloader:

@@ -1,4 +1,4 @@
-from splitter import Splitter
+from src.pipelines.splitters.splitter import Splitter
 import pandas as pd
 
 class DaySplitter(Splitter):

@@ -1,4 +1,4 @@
-import cleaner as Cleaner
+from .cleaner import Cleaner
 
 class TempCleaner(Cleaner):
     def __init__(self, pow_low_lim, in_low_lim, in_upper_lim, out_low_lim, out_upper_lim, delta_temp):
