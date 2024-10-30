@@ -43,7 +43,7 @@ class Pipeline: # AKA Handler Builder
         self.df_arr.append(df)
         return self
 
-    def set_clean(self, cleaner):
+    def set_cleaner(self, cleaner):
         if not isinstance(cleaner, Cleaner):
             raise ValueError("Cleaner given not extended from Cleaner class")
         self.cleaner = cleaner
@@ -149,10 +149,6 @@ class Pipeline: # AKA Handler Builder
             test_df = self.splitter.get_test(df)
 
             test_timestamps = pd.to_datetime(test_df.values[:,0])
-
-            train_df = self.splitter.get_train(df)
-            val_df = self.splitter.get_val(df)
-            test_df = self.splitter.get_test(df)
 
             train_normalizer = self.normalizer_class(train_df.values[:,1:].astype(float)) 
             val_normalizer = self.normalizer_class(val_df.values[:,1:].astype(float)) 

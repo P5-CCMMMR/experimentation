@@ -76,8 +76,11 @@ clean_delta_temp = 15
 # TODO
 # [x] 1. Get flexpredict working
 # [ ] 2. Change handlers to be the pipelines
+#           - Ensemble having to be implemented for every pipeline
+#           -      
 # [ ] 2. Make flexpredict modules and get_mafe a module holding flexpredict
 # [ ] 3. Modulize plotter
+# [ ] 4. Figure out how to correctly train on multiple dataset
 
 def main(d):
     temp_boundery = 0.5
