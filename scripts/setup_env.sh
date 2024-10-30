@@ -14,7 +14,7 @@ package_installed() {
 if ! command_exists python3; then
     echo "Python is not installed. Installing the latest version of Python..."
     sudo apt update
-    sudo apt install -y python3 python3-venv python3-pip
+    sudo apt install -y python3 python3-venv python3-pip unzip
 else
     echo "Python is already installed."
     sudo apt update
@@ -86,5 +86,13 @@ do
         echo "$key already exists."
     fi
 done
+
+# Download datasets from UKDATA
+
+echo "Downloading datasets from UKDATA..."
+mkdir -p src/data_preprocess/ukdata
+mkdir -p src/data_preprocess/ukdata/data_root
+gdown 1Fv2xtlxWNabYTLpPyBVL__GR6mQ2T0MO -O src/data_preprocess/ukdata/data_root/
+unzip src/data_preprocess/ukdata/data_root/UKDATA_CLEANED.zip -d src/data_preprocess/ukdata/
 
 echo "Setup complete."
