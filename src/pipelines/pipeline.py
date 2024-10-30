@@ -197,7 +197,7 @@ class Pipeline: # AKA Handler Builder
                 handler = builder.build()
                 ensemble_handler_arr.append(handler)
 
-                trainer = copy.deepcopy(self.trainer)
+                trainer = copy.deepcopy(self.trainer) #! This might make the random values the same defeating the purpose /:  
                 trainer_arr.append(trainer)
                 
                 tuner = self.tuner_class(trainer, handler)
