@@ -21,6 +21,11 @@ from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
 from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
 
+
+#! TESTING
+from src.pipelines.wip_deterministic_pipeline import DeterministicPipeline
+from src.pipelines.wip_monte_carlo_pipeline import MonteCarloPipeline
+
 matplotlib.use("Agg")
 
 MODEL_PATH = 'model.pth'
@@ -36,7 +41,7 @@ POWER     = "PowerConsumption"
 input_size = 3
 time_horizon = 4
 hidden_size = 32 * time_horizon
-num_epochs = 250 * time_horizon
+num_epochs = 2 #250 * time_horizon
 seq_len = 96
 num_layers = 2 
         # MC ONLY
@@ -98,46 +103,88 @@ def main(d):
                         fast_dev_run=d)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    models = Pipeline() \
+    model = MonteCarloPipeline.Builder() \
         .add_data(df) \
-        .set_clean(cleaner) \
+        .set_cleaner(cleaner) \
         .set_normalizer_class(MinMaxNormalizer) \
         .set_splitter(splitter) \
         .set_sequencer_class(TimeSequencer) \
         .set_target_column(TARGET_COLUMN) \
         .set_model(model) \
         .set_optimizer(optimizer) \
-        .set_handler_class(MonteCarloHandler) \
-        .set_inference_samples(inference_samples) \
         .set_batch_size(batch_size) \
         .set_seq_len(seq_len) \
         .set_worker_num(NUM_WORKERS) \
-        .set_error(NRMSE) \
-        .set_test_error(NLL) \
+        .set_inference_samples(inference_samples) \
+        .set_error(NLL) \
         .set_trainer(trainer) \
-        .set_num_ensembles(1) \
         .set_tuner(StdTunerWrapper) \
-        .run()
+        .Build()
+    
+    
+    model.fit()
+    model.test()
 
-
-    model = models[0][0]
-
-    model.eval()
-
-    ps = PowerSplitter(df, TIMESTAMP, POWER)
-
-    on_df = ps.get_mt_power(on_limit_w, consecutive_points)
-    off_df = ps.get_lt_power(off_limit_w, consecutive_points)
-
-    on_data_arr = split_dataframe_by_continuity(on_df, 15, seq_len, TIMESTAMP)
-    off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
-
-    if (probalistic):
-        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-    else:
-        print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-        print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+#    model = DeterministicPipeline.Builder() \
+#        .add_data(df) \
+#        .set_cleaner(cleaner) \
+#        .set_normalizer_class(MinMaxNormalizer) \
+#        .set_splitter(splitter) \
+#        .set_sequencer_class(TimeSequencer) \
+#        .set_target_column(TARGET_COLUMN) \
+#        .set_model(model) \
+#        .set_optimizer(optimizer) \
+#        .set_batch_size(batch_size) \
+#        .set_seq_len(seq_len) \
+#        .set_worker_num(NUM_WORKERS) \
+#        .set_error(NRMSE) \
+#        .set_trainer(trainer) \
+#        .set_tuner(StdTunerWrapper) \
+#        .Build()
+#
+#
+#    model.fit()
+#    model.test()
+#    models = Pipeline() \
+#        .add_data(df) \
+#        .set_clean(cleaner) \
+#        .set_normalizer_class(MinMaxNormalizer) \
+#        .set_splitter(splitter) \
+#        .set_sequencer_class(TimeSequencer) \
+#        .set_target_column(TARGET_COLUMN) \
+#        .set_model(model) \
+#        .set_optimizer(optimizer) \
+#        .set_handler_class(MonteCarloHandler) \
+#        .set_inference_samples(inference_samples) \
+#        .set_batch_size(batch_size) \
+#        .set_seq_len(seq_len) \
+#        .set_worker_num(NUM_WORKERS) \
+#        .set_error(NRMSE) \
+#        .set_test_error(NLL) \
+#        .set_trainer(trainer) \
+#        .set_num_ensembles(1) \
+#        .set_tuner(StdTunerWrapper) \
+#        .run()
+#
+#
+#    model = models[0][0]
+#
+#    model.eval()
+#
+#    ps = PowerSplitter(df, TIMESTAMP, POWER)
+#
+#    on_df = ps.get_mt_power(on_limit_w, consecutive_points)
+#    off_df = ps.get_lt_power(off_limit_w, consecutive_points)
+#
+#    on_data_arr = split_dataframe_by_continuity(on_df, 15, seq_len, TIMESTAMP)
+#    off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
+#
+#    if (probalistic):
+#        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+#        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+#    else:
+#        print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+#        print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
 
 
 if __name__ == "__main__":

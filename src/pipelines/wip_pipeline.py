@@ -1,5 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import copy
 import lightning as L
 import pandas as pd
 import torch
@@ -16,9 +14,10 @@ from src.pipelines.tuners.tuner_wrapper import TunerWrapper
 
 class Pipeline(L.LightningModule, ABC):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
-                 optimizer: torch.optim.Optimizer, model: nn.Module, trainer,
-                 train_loader, val_loader, test_loader,
-                 test_timesteps, normalizer,
+                 optimizer: torch.optim.Optimizer, model: nn.Module, trainer: L.Trainer,
+                 tuner_class: TunerWrapper,
+                 train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
+                 test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                  train_error_func, val_error_func, test_error_func):
         super().__init__()
         self.seq_len = seq_len
@@ -42,6 +41,9 @@ class Pipeline(L.LightningModule, ABC):
         self.model = model
         self.trainer = trainer
 
+        self.tuner_class = tuner_class
+        self.tuner = None
+
         self.df_arr = []
 
         self.all_predictions = []
@@ -59,17 +61,18 @@ class Pipeline(L.LightningModule, ABC):
     def test_step(self, batch):
         pass
 
-    @abstractmethod
-    def train(self):
-        pass
+    def fit(self): #Cancer train keyword taken by L.module
+        self.tuner = self.tuner_class(self.trainer, self)
+        self.tuner.tune()
+        self.trainer.fit(self)
 
-    @abstractmethod
-    def test(self, plotter):
-        pass
-
-    @abstractmethod
+    def test(self):
+        if self.tuner is None:
+            raise RuntimeError("Need to train before testing")
+        self.trainer.test(self)
+    
     def forward(self, x):
-        pass
+        return self.model(x)
 
     def configure_optimizers(self):
         return self.optimizer
@@ -130,8 +133,7 @@ class Pipeline(L.LightningModule, ABC):
                 raise ValueError("Normalizer sub class given not extended from Normalizer class")
             self.normalizer_class = normalizer_class
             return self
-        
-        
+           
         def set_splitter(self, splitter):
             if not isinstance(splitter, Splitter):
                 raise ValueError("Splitter given not extended from Splitter class")
@@ -143,7 +145,6 @@ class Pipeline(L.LightningModule, ABC):
                 raise ValueError("Sequencer sub class given not extended from Sequencer class")
             self.sequencer_class = sequencer_class
             return self
-    
 
         def set_model(self, model):
             if not isinstance(model, Model):
@@ -171,10 +172,6 @@ class Pipeline(L.LightningModule, ABC):
             self.tuner_class = tuner_class
             return self
 
-        def set_inference_samples(self, inference_samples):
-            self.inference_samples = inference_samples
-            return self
-        
         def set_learning_rate(self, learning_rate: float):
             self.learning_rate = learning_rate
             return self
@@ -182,9 +179,17 @@ class Pipeline(L.LightningModule, ABC):
         def set_seq_len(self, seq_len: int):
             self.seq_len = seq_len
             return self
+        
+        def set_target_column(self, target_column):
+            self.target_column = target_column
+            return self
 
         def set_batch_size(self, batch_size: int):
             self.batch_size = batch_size
+            return self
+        
+        def set_worker_num(self, worker_num):
+            self.worker_num = worker_num
             return self
 
         def set_optimizer(self, optimizer: torch.optim.Optimizer):
@@ -217,7 +222,7 @@ class Pipeline(L.LightningModule, ABC):
         def Build(self):
             # implement 
             #for df in self.df_arr:
-            df = self.cleaner.clean(df[0])
+            df = self.cleaner.clean(self.df_arr[0]) #! needs to be changed to a solution concatting the dataset
 
             train_df = self.splitter.get_train(df)
             val_df = self.splitter.get_val(df)
@@ -249,6 +254,7 @@ class Pipeline(L.LightningModule, ABC):
                                           self.optimizer,
                                           self.model,
                                           self.trainer,
+                                          self.tuner_class,
                                           train_loader,
                                           val_loader,
                                           test_loader,
