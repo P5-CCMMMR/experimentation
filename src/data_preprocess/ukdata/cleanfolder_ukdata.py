@@ -35,7 +35,7 @@ def clean_csv(file_path, output_dir):
 
         # Convert to consumption instead of total consumption
         # also converts from kWh to W. The kWh are in intervals of 2 minutes
-        energy_df['PowerConsumption'] = (energy_df['TotalPowerConsumption'].diff() - circulation_df['CirculationPowerConsumption'].diff()) * 30 * 1000 
+        energy_df['PowerConsumption'] = (energy_df['TotalPowerConsumption'].diff() - circulation_df['CirculationPowerConsumption'].diff()) * 4 * 1000 
 
         # Indoor
         # indoor_df = pd.concat([pd.read_csv(PROPERTY_PATH_0001), pd.read_csv(PROPERTY_PATH_0003), pd.read_csv(PROPERTY_PATH_0005), pd.read_csv(PROPERTY_PATH_0014), pd.read_csv(PROPERTY_PATH_0018)])
