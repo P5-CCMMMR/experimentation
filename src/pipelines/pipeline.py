@@ -1,7 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import lightning as L
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
+import copy
 
 from src.pipelines.cleaners.cleaner import Cleaner
 from src.pipelines.normalizers.normalizer import Normalizer
@@ -12,24 +14,16 @@ from src.pipelines.handlers.handler import Handler
 from src.util.plot import plot_results
 from src.pipelines.tuners.tuner_wrapper import TunerWrapper
 
-from src.util.error import RMSE
-
-# TODO 
-# [x] 1. Get the basic thing running
-# [x] 2. Use proper builder pattern
-# [x] 3. Stop using constants
-# [x] 4. Find a solution for modulating optimizers
-# [ ] 5. Make train, test & val steps into modules
-# [ ] 6. Make ensemble work
-# [ ] 7. Make it so normalization is done after split so that there is no connection between the different parts
-# [ ] 8. figure out better method for plotting
-
 class Pipeline: # AKA Handler Builder
     def __init__(self):
-        self.model_arr = []
+        self.handler_arr = []
         self.df_arr = []
 
         self.worker_num = 1
+        self.num_ensembles = 1
+        self.inference_samples = 1
+        self.batch_size = 1
+        self.seq_len = 4
 
         self.optimizer = None
         self.cleaner = None
@@ -39,8 +33,10 @@ class Pipeline: # AKA Handler Builder
         self.handler_class = None
         self.trainer = None
         self.tuner_class = None
-        self.batch_size = None
-        self.seq_len = None
+
+        self.train_error_func = None
+        self.val_error_func = None
+        self.test_error_func = None
         
 
     def add_data(self, df):
@@ -102,6 +98,14 @@ class Pipeline: # AKA Handler Builder
         self.worker_num = worker_num
         return self
     
+    def set_inference_samples(self, inference_samples):
+        self.inference_samples = inference_samples
+        return self
+    
+    def set_num_ensembles(self, num_ensembles):
+        self.num_ensembles = num_ensembles
+        return self
+    
     def set_target_column(self, target_column):
         self.target_column = target_column
         return self
@@ -116,6 +120,24 @@ class Pipeline: # AKA Handler Builder
         if not issubclass(tuner_class, TunerWrapper):
             raise ValueError("TunerWrapper sub class given not extended from TunerWrapper class")
         self.tuner_class = tuner_class
+        return self
+    
+    def set_error(self, error_func):
+            self.train_error_func = error_func
+            self.val_error_func = error_func
+            self.test_error_func = error_func
+            return self
+
+    def set_train_error(self, error_func):
+        self.train_error_func = error_func
+        return self
+
+    def set_val_error(self, error_func):
+        self.val_error_func = error_func
+        return self
+    
+    def set_test_error(self, error_func):
+        self.test_error_func = error_func
         return self
 
     def run(self):
@@ -141,40 +163,67 @@ class Pipeline: # AKA Handler Builder
             test_df = test_normalizer.normalize()
 
             horizon_len = self.model.get_horizon_len()
-            train_segmenter = self.sequencer_class(train_df[0], self.seq_len, horizon_len, self.target_column)
-            val_segmenter = self.sequencer_class(val_df[0], self.seq_len, horizon_len, self.target_column)
-            test_segmenter = self.sequencer_class(test_df[0], self.seq_len, horizon_len, self.target_column)
-
-            train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
-            val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
-            test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
-
-            builder = self.handler_class.Builder() \
-                .set_model(self.model.deep_copy()) \
-                .set_seq_len(self.seq_len) \
-                .set_batch_size(self.batch_size) \
-                .set_train_dataloader(train_loader) \
-                .set_val_dataloader(val_loader) \
-                .set_test_dataloader(test_loader) \
-                .set_error(RMSE) \
-                
-            if (self.optimizer is not None): 
-                builder.set_optimizer(self.optimizer)
-
-            handler = builder.build()
             
-            tuner = self.tuner_class(self.trainer, handler)
-            tuner.tune()
+            tuner_arr = []
+            trainer_arr = []
+            ensemble_handler_arr = []
 
-            self.trainer.fit(handler)
-            self.trainer.test(handler)
+            for _ in range(self.num_ensembles):
+                train_segmenter = self.sequencer_class(train_df[0], self.seq_len, horizon_len, self.target_column)
+                val_segmenter = self.sequencer_class(val_df[0], self.seq_len, horizon_len, self.target_column)
+                test_segmenter = self.sequencer_class(test_df[0], self.seq_len, horizon_len, self.target_column)
 
-            plot_results([handler.get_predictions()], 
-                         handler.get_actuals(), 
+                train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+                val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+                test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+
+                builder = self.handler_class.Builder() \
+                    .set_model(self.model.deep_copy()) \
+                    .set_seq_len(self.seq_len) \
+                    .set_batch_size(self.batch_size) \
+                    .set_train_dataloader(train_loader) \
+                    .set_val_dataloader(val_loader) \
+                    .set_test_dataloader(test_loader) \
+                    .set_train_error(self.train_error_func) \
+                    .set_val_error(self.val_error_func) \
+                    .set_test_error(self.test_error_func) \
+                
+                if (self.inference_samples is not None):
+                    builder.set_inference_samples(self.inference_samples)
+
+                if (self.optimizer is not None): 
+                    builder.set_optimizer(self.optimizer)
+
+                handler = builder.build()
+                ensemble_handler_arr.append(handler)
+
+                trainer = copy.deepcopy(self.trainer)
+                trainer_arr.append(trainer)
+                
+                tuner = self.tuner_class(trainer, handler)
+                tuner.tune()
+                tuner_arr.append(tuner)
+
+            with ThreadPoolExecutor(max_workers=min(self.num_ensembles, self.worker_num)) as executor:
+                futures = [executor.submit(lambda trainer, lit_model: (trainer.fit(lit_model), trainer.test(lit_model)), trainer, lit_model) for trainer, lit_model in zip(trainer_arr, ensemble_handler_arr)]
+                for future in as_completed(futures):
+                    future.result()
+
+            all_predictions = []     
+            for handler in ensemble_handler_arr:
+                all_predictions.append(handler.get_predictions()) 
+
+            all_actuals = ensemble_handler_arr[0].get_actuals()
+
+            self.handler_arr.append(ensemble_handler_arr)
+
+            plot_results(all_predictions, 
+                         all_actuals, 
                          test_timestamps, 
                          test_normalizer.get_min_vals(),  
-                         test_normalizer.get_max_vals())
+                         test_normalizer.get_max_vals(),
+                         self.target_column)
             
-            self.handler_arr.append(handler)
 
         return self.handler_arr
+    

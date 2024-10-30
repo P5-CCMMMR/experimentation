@@ -1,9 +1,16 @@
 import torch
-from numpy import np
+import torch.nn as nn
+import numpy as np
 
 from .probabilistic_handler import ProbabilisticHandler
 
 class MonteCarloHandler(ProbabilisticHandler):
+    def __init__(self, model: nn.Module, learning_rate: float, seq_len: int, batch_size: int,
+                 optimizer: torch.optim.Optimizer,
+                 train_loader, val_loader, test_loader,
+                 train_error_func, val_error_func, test_error_func, inference_samples):
+        super().__init__(model, learning_rate, seq_len, batch_size, optimizer, train_loader, val_loader, test_loader, train_error_func, val_error_func, test_error_func)
+        self.inference_samples = inference_samples
 
     def training_step(self, batch):
         x, y = batch
@@ -34,7 +41,7 @@ class MonteCarloHandler(ProbabilisticHandler):
         predictions = []
 
         with torch.no_grad():
-            for _ in range(self.test_sample_nbr):
+            for _ in range(self.inference_samples):
                 y_hat = self.model(x)
                 predictions.append(y_hat.cpu().numpy())
 
@@ -52,6 +59,7 @@ class MonteCarloHandler(ProbabilisticHandler):
         def __init__(self):
             super().__init__()
             self.inference_samples = None
+            self.constructor = MonteCarloHandler
 
         def set_inference_samples(self, inference_samples: int):
             self.inference_samples = inference_samples
@@ -59,8 +67,7 @@ class MonteCarloHandler(ProbabilisticHandler):
 
         def build(self):
             self._check_none(
-                handler=self.model,
-                learning_rate=self.learning_rate,
+                model=self.model,
                 seq_len=self.seq_len,
                 batch_size=self.batch_size,
                 train_loader=self.train_loader,
@@ -72,12 +79,12 @@ class MonteCarloHandler(ProbabilisticHandler):
                 inference_samples=self.inference_samples
             )
 
-            return MonteCarloHandler(
-                self.handler,
+            return self.constructor(
+                self.model,
                 self.learning_rate,
                 self.seq_len,
                 self.batch_size,
-                self.optimizer_list,
+                self.optimizer,
                 self.train_loader,
                 self.val_loader,
                 self.test_loader,
@@ -86,4 +93,5 @@ class MonteCarloHandler(ProbabilisticHandler):
                 self.test_error_func,
                 self.inference_samples
             )
+        
 

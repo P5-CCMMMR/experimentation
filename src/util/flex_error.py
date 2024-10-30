@@ -3,10 +3,9 @@ from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from torch.utils.data import DataLoader
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.util.error import RMSE
-from src.util.constants import TARGET_COLUMN
 from src.util.flex_predict import flex_predict, prob_flex_predict
 
-def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon):
+def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_column):
     flex_predictions = []
     flex_actual_values = []
 
@@ -18,7 +17,7 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon):
 
         data = normalizer.normalize()
 
-        dataset = TimeSequencer(data, seq_len, time_horizon, TARGET_COLUMN)
+        dataset = TimeSequencer(data[0], seq_len, time_horizon, target_column)
         dataloader = DataLoader(dataset, 1)
 
         for batch in dataloader:
@@ -44,7 +43,7 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon):
     return (sum(flex_difference) / len(flex_difference)).item()
     
 
-def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon):
+def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_column):
     flex_predictions = []
     flex_actual_values = []
 
@@ -56,7 +55,7 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon):
 
         data = normalizer.normalize()
 
-        dataset = TimeSequencer(data, seq_len, time_horizon, TARGET_COLUMN)
+        dataset = TimeSequencer(data[0], seq_len, time_horizon, target_column)
         dataloader = DataLoader(dataset, 1)
 
         for batch in dataloader:
