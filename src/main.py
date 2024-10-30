@@ -36,7 +36,7 @@ POWER     = "PowerConsumption"
 input_size = 3
 time_horizon = 4
 hidden_size = 32 * time_horizon
-num_epochs = 20 #250 * time_horizon
+num_epochs = 250 * time_horizon
 seq_len = 96
 num_layers = 2 
         # MC ONLY
