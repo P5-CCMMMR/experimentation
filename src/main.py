@@ -24,8 +24,7 @@ from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
 #! TESTING
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
-#from src.pipelines.ensemble_pipeline import EnsemblePipeline
-from src.pipelines.wip_ensemble_pipeline import EnsemblePipeline
+from src.pipelines.ensemble_pipeline import EnsemblePipeline
 
 matplotlib.use("Agg")
 
@@ -124,7 +123,7 @@ def main(d):
 
     model = EnsemblePipeline.Builder() \
         .set_pipeline(model) \
-        .set_num_ensembles(1) \
+        .set_num_ensembles(2) \
         .Build()
     
     model.fit()

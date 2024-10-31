@@ -1,3 +1,4 @@
+import copy
 import lightning as L
 import numpy as np
 import pandas as pd
@@ -23,8 +24,10 @@ class Pipeline(L.LightningModule, ABC):
                  target_column):
         super().__init__()
         self.seq_len = seq_len
-        self.horizon_len = model.get_horizon_len()
+
         self.batch_size = batch_size
+        if model is not None:
+            self.horizen_len = model.get_horizon_len()
 
         self.learning_rate = learning_rate
 
@@ -66,6 +69,8 @@ class Pipeline(L.LightningModule, ABC):
         pass
 
     def fit(self): #Cancer train keyword taken by L.module
+        
+        print(f"trainer: {self.trainer}")
         self.tuner = self.tuner_class(self.trainer, self)
         self.tuner.tune()
         self.trainer.fit(self)
@@ -101,7 +106,11 @@ class Pipeline(L.LightningModule, ABC):
     
     def get_timestamps(self):
         return self.timesteps
-
+    
+    @abstractmethod
+    def copy(self):
+        pass
+        
     class Builder:
         def __init__(self):
             self.learning_rate = 0.001
@@ -162,7 +171,6 @@ class Pipeline(L.LightningModule, ABC):
             self.model = model
             return self
 
-        
         def set_optimizer(self, optimizer):
             if not isinstance(optimizer, torch.optim.Optimizer):
                 raise ValueError("Optimizer instance given not extended from torch.optim class")

@@ -1,3 +1,4 @@
+import copy
 import lightning as L
 import numpy as np
 import pandas as pd
@@ -40,7 +41,28 @@ class MonteCarloPipeline(ProbabilisticPipeline):
         std_prediction = np.std(predictions, axis=0)
 
         return mean_prediction, std_prediction
-        
+    
+    def copy(self):
+        new_instance = MonteCarloPipeline(
+            learning_rate=self.learning_rate,
+            seq_len=self.seq_len,
+            batch_size=self.batch_size,
+            optimizer=copy.deepcopy(self.optimizer),
+            model=copy.deepcopy(self.model),
+            trainer=copy.deepcopy(self.trainer),
+            tuner_class=self.tuner_class,
+            train_loader=self.train_loader,
+            val_loader=self.val_loader,
+            test_loader=self.test_loader,
+            test_timesteps=self.timesteps,
+            normalizer=self.normalizer,
+            train_error_func=self.train_error_func,
+            val_error_func=self.val_error_func,
+            test_error_func=self.test_error_func,
+            target_column=self.target_column,
+            inference_samples=self.inference_samples
+        )
+        return new_instance
 
     class Builder(ProbabilisticPipeline.Builder):
         def __init__(self):
