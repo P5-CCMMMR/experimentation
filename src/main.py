@@ -116,7 +116,8 @@ def main(d):
         .set_seq_len(seq_len) \
         .set_worker_num(NUM_WORKERS) \
         .set_inference_samples(inference_samples) \
-        .set_error(NLL) \
+        .set_error(NRMSE) \
+        .set_test_error(NLL) \
         .set_trainer(trainer) \
         .set_tuner(StdTunerWrapper) \
         .Build()
