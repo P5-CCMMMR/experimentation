@@ -11,7 +11,6 @@ from src.util.power_splitter import PowerSplitter
 from src.util.continuity_splitter import split_dataframe_by_continuity
 from src.util.error import NRMSE, NLL
 
-from src.pipelines.pipeline import Pipeline
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
 from src.pipelines.models.gru import GRU
@@ -20,8 +19,6 @@ from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
 from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
 
-
-#! TESTING
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
@@ -41,7 +38,7 @@ POWER     = "PowerConsumption"
 input_size = 3
 time_horizon = 4
 hidden_size = 32 * time_horizon
-num_epochs = 2 #250 * time_horizon
+num_epochs = 250 * time_horizon
 seq_len = 96
 num_layers = 2 
         # MC ONLY
@@ -99,8 +96,6 @@ def main(d):
                         gradient_clip_val=gradient_clipping, 
                         fast_dev_run=d)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-    #TODO: Test both ensemble methods and ensemble number higher than 2 and check tensorboard
 
     model = MonteCarloPipeline.Builder() \
         .add_data(df) \
