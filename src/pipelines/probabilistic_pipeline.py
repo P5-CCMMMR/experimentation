@@ -1,5 +1,6 @@
+import numpy as np
 import torch
-from src.pipelines.wip_pipeline import Pipeline
+from src.pipelines.pipeline import Pipeline
 import lightning as L
 import pandas as pd
 import torch
@@ -16,13 +17,15 @@ class ProbabilisticPipeline(Pipeline):
                  tuner_class: TunerWrapper,
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
-                 train_error_func, val_error_func, test_error_func):
+                 train_error_func, val_error_func, test_error_func,
+                 target_column: int):
         super().__init__(learning_rate, seq_len, batch_size,
                  optimizer, model, trainer,
                  tuner_class,
                  train_loader, val_loader, test_loader,
                  test_timesteps, normalizer,
-                 train_error_func, val_error_func, test_error_func)
+                 train_error_func, val_error_func, test_error_func,
+                 target_column)
         self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
     def training_step(self, batch):
@@ -48,6 +51,17 @@ class ProbabilisticPipeline(Pipeline):
         self.all_predictions[0].extend(mean_prediction.flatten())
         self.all_predictions[1].extend(std_prediction.flatten())
         self.all_actuals.extend(y.detach().cpu().numpy().flatten())
+
+    def test(self):
+        if self.tuner is None:
+            raise RuntimeError("Need to train before testing")
+        self.trainer.test(self)
+
+        mean, std_div = self.all_predictions
+        self.all_predictions = (self.normalizer.denormalize(np.array(mean), self.target_column),
+                                self.normalizer.denormalize(np.array(std_div), self.target_column))
+        
+        self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
     
     class Builder(Pipeline.Builder):
         def __init__(self):

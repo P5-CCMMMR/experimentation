@@ -2,18 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
 
-def plot_results(predictions, actuals, timestamps, min_vals, max_vals, target_column):
-    if (len(predictions) > 1):
-        predictions = ensemble_predictions(predictions)
-    else:
-        predictions = predictions[0]
-    
+def plot_results(predictions, actuals, timestamps):
     if (isinstance(predictions, tuple)):
-        plot_probabilistic_results(predictions, actuals, timestamps, min_vals, max_vals, target_column)
+        plot_probabilistic_results(predictions, actuals, timestamps)
     else:
-        plot_deterministic_results(predictions, actuals, timestamps, min_vals, max_vals, target_column)
+        plot_deterministic_results(predictions, actuals, timestamps)
 
-def plot_probabilistic_results(predictions, actuals, timestamps, min_vals, max_vals, target_column):
+def plot_probabilistic_results(predictions, actuals, timestamps):
     writer = SummaryWriter()
         
     mean_predictions, std_predictions = predictions
@@ -21,10 +16,6 @@ def plot_probabilistic_results(predictions, actuals, timestamps, min_vals, max_v
     std_predictions = np.array(std_predictions)
     actuals = np.array(actuals)
 
-    # Rescale predictions and actuals
-    mean_predictions = mean_predictions * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
-    std_predictions = std_predictions * (max_vals[target_column] - min_vals[target_column])
-    actuals = actuals * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
     timestamps = timestamps[:len(mean_predictions)]
     
     plt.plot(timestamps, mean_predictions, label="Prediction")
@@ -57,15 +48,12 @@ def plot_probabilistic_results(predictions, actuals, timestamps, min_vals, max_v
     writer.add_figure("predictions", plt.gcf())
     writer.close()
 
-def plot_deterministic_results(predictions, actuals, timestamps, min_vals, max_vals, target_column):
+def plot_deterministic_results(predictions, actuals, timestamps):
     writer = SummaryWriter()
 
     predictions = np.array(predictions)    
     actuals = np.array(actuals)
 
-    # Rescale predictions and actuals 
-    predictions = predictions * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
-    actuals = actuals * (max_vals[target_column] - min_vals[target_column]) + min_vals[target_column]
     timestamps = timestamps[:len(predictions)]
 
     plt.plot(timestamps, predictions, label="Prediction")

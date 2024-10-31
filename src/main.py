@@ -6,14 +6,13 @@ from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAv
 import torch
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.flex_error import get_mafe, get_prob_mafe
+from src.util.plot import plot_results
 from src.util.power_splitter import PowerSplitter
 from src.util.continuity_splitter import split_dataframe_by_continuity
 from src.util.error import NRMSE, NLL
 
 from src.pipelines.pipeline import Pipeline
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
-from src.pipelines.handlers.deterministic_handler import DeterministicHandler
-from src.pipelines.handlers.monte_carlo_handler import MonteCarloHandler
 from src.pipelines.models.lstm import LSTM
 from src.pipelines.models.gru import GRU
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
@@ -23,8 +22,10 @@ from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
 
 
 #! TESTING
-from src.pipelines.wip_deterministic_pipeline import DeterministicPipeline
-from src.pipelines.wip_monte_carlo_pipeline import MonteCarloPipeline
+from src.pipelines.deterministic_pipeline import DeterministicPipeline
+from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
+#from src.pipelines.ensemble_pipeline import EnsemblePipeline
+from src.pipelines.wip_ensemble_pipeline import EnsemblePipeline
 
 matplotlib.use("Agg")
 
@@ -80,11 +81,8 @@ clean_delta_temp = 15
 
 # TODO
 # [x] 1. Get flexpredict working
-# [ ] 2. Change handlers to be the pipelines
-#           - Ensemble having to be implemented for every pipeline
-#           -      
-# [ ] 2. Make flexpredict modules and get_mafe a module holding flexpredict
-# [ ] 3. Modulize plotter
+# [x] 2. Change handlers to be the pipelines  
+# [ ] 3. Make flexpredict modules and get_mafe a module holding flexpredict
 # [ ] 4. Figure out how to correctly train on multiple dataset
 
 def main(d):
@@ -103,6 +101,8 @@ def main(d):
                         fast_dev_run=d)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
+    #TODO: Test both ensemble methods and ensemble number higher than 2 and check tensorboard
+
     model = MonteCarloPipeline.Builder() \
         .add_data(df) \
         .set_cleaner(cleaner) \
@@ -115,77 +115,39 @@ def main(d):
         .set_batch_size(batch_size) \
         .set_seq_len(seq_len) \
         .set_worker_num(NUM_WORKERS) \
-        .set_inference_samples(inference_samples) \
         .set_error(NRMSE) \
-        .set_test_error(NLL) \
         .set_trainer(trainer) \
         .set_tuner(StdTunerWrapper) \
+        .set_inference_samples(inference_samples) \
+        .set_test_error(NLL) \
         .Build()
-    
+
+    model = EnsemblePipeline.Builder() \
+        .set_pipeline(model) \
+        .set_num_ensembles(1) \
+        .Build()
     
     model.fit()
     model.test()
 
-#    model = DeterministicPipeline.Builder() \
-#        .add_data(df) \
-#        .set_cleaner(cleaner) \
-#        .set_normalizer_class(MinMaxNormalizer) \
-#        .set_splitter(splitter) \
-#        .set_sequencer_class(TimeSequencer) \
-#        .set_target_column(TARGET_COLUMN) \
-#        .set_model(model) \
-#        .set_optimizer(optimizer) \
-#        .set_batch_size(batch_size) \
-#        .set_seq_len(seq_len) \
-#        .set_worker_num(NUM_WORKERS) \
-#        .set_error(NRMSE) \
-#        .set_trainer(trainer) \
-#        .set_tuner(StdTunerWrapper) \
-#        .Build()
-#
-#
-#    model.fit()
-#    model.test()
-#    models = Pipeline() \
-#        .add_data(df) \
-#        .set_clean(cleaner) \
-#        .set_normalizer_class(MinMaxNormalizer) \
-#        .set_splitter(splitter) \
-#        .set_sequencer_class(TimeSequencer) \
-#        .set_target_column(TARGET_COLUMN) \
-#        .set_model(model) \
-#        .set_optimizer(optimizer) \
-#        .set_handler_class(MonteCarloHandler) \
-#        .set_inference_samples(inference_samples) \
-#        .set_batch_size(batch_size) \
-#        .set_seq_len(seq_len) \
-#        .set_worker_num(NUM_WORKERS) \
-#        .set_error(NRMSE) \
-#        .set_test_error(NLL) \
-#        .set_trainer(trainer) \
-#        .set_num_ensembles(1) \
-#        .set_tuner(StdTunerWrapper) \
-#        .run()
-#
-#
-#    model = models[0][0]
-#
-#    model.eval()
-#
-#    ps = PowerSplitter(df, TIMESTAMP, POWER)
-#
-#    on_df = ps.get_mt_power(on_limit_w, consecutive_points)
-#    off_df = ps.get_lt_power(off_limit_w, consecutive_points)
-#
-#    on_data_arr = split_dataframe_by_continuity(on_df, 15, seq_len, TIMESTAMP)
-#    off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
-#
-#    if (probalistic):
-#        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-#        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-#    else:
-#        print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-#        print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+    plot_results(model.get_predictions(), model.get_actuals(), model.get_timestamps())
+
+    model.eval()
+
+    ps = PowerSplitter(df, TIMESTAMP, POWER)
+
+    on_df = ps.get_mt_power(on_limit_w, consecutive_points)
+    off_df = ps.get_lt_power(off_limit_w, consecutive_points)
+
+    on_data_arr = split_dataframe_by_continuity(on_df, 15, seq_len, TIMESTAMP)
+    off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
+
+    if (probalistic):
+        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+    else:
+        print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+        print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
 
 
 if __name__ == "__main__":
