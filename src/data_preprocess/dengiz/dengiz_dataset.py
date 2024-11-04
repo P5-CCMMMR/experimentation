@@ -1,6 +1,5 @@
 import pandas as pd
 import matplotlib
-import matplotlib.pyplot as plt
 
 matplotlib.use("Agg")
 
@@ -19,7 +18,6 @@ MAX_TEMP_DELTA = 15
 WEEKS = 52
 HOUSE_AMOUNT = 20
 KWH_AMOUNT = 3
-
 
 # Paths
 PREPROSS_PATH = "src/data_preprocess/"
@@ -65,7 +63,6 @@ for kWh in range(0, KWH_AMOUNT):
                   index=False)
         
         df_array.append(df)
-
 
 df = df[(df.IndoorTemp >= 10) & (df.IndoorTemp <= 30)]
 df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]

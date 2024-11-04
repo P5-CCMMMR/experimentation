@@ -3,11 +3,11 @@ import torch.nn as nn
 import copy
 
 class Model(nn.Module, ABC):
-    def __init__(self, hidden_size: int, num_layers: int, input_len: int, horison_len: int, dropout: float):
+    def __init__(self, hidden_size: int, num_layers: int, input_len: int, horizon_len: int, dropout: float):
         super(Model, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
-        self.output_size = horison_len
+        self.output_size = horizon_len
         self.input_len = input_len
         self.dropout = dropout
 

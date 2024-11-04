@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch
 
 class RNN(Model):
-    def __init__(self, hidden_size: int, num_layers: int, input_len: int, horison_len: int, dropout: float):
-        super(RNN, self).__init__(hidden_size, num_layers, input_len, horison_len, dropout)
+    def __init__(self, hidden_size: int, num_layers: int, input_len: int, horizon_len: int, dropout: float):
+        super(RNN, self).__init__(hidden_size, num_layers, input_len, horizon_len, dropout)
         self.rnn = nn.RNN(self.input_len, self.hidden_size, self.num_layers, batch_first=True, dropout=dropout)
         self.fc = nn.Linear(self.hidden_size, self.output_size)
 
@@ -13,4 +13,5 @@ class RNN(Model):
         h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
         out, _ = self.rnn(x, h0)
         out = out[:, -1, :]
-        return self.fc(out).squeeze()
+        return self.fc(out)
+    

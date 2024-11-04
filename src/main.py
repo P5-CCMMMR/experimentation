@@ -2,8 +2,9 @@ import argparse
 import lightning as L
 import matplotlib
 import pandas as pd
-from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+import multiprocessing
 import torch
+from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.flex_error import get_mafe, get_prob_mafe
 from src.util.plot import plot_results
@@ -26,25 +27,24 @@ from src.pipelines.ensemble_pipeline import EnsemblePipeline
 matplotlib.use("Agg")
 
 MODEL_PATH = 'model.pth'
-NUM_WORKERS = 1 #multiprocessing.cpu_count()
+NUM_WORKERS = multiprocessing.cpu_count()
 TARGET_COLUMN = 1
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
-
 # Hyper parameters
-
-    # Model
+# Model
 input_size = 3
-time_horizon = 4
-hidden_size = 32 * time_horizon
-num_epochs = 250 * time_horizon
+time_horizon = 1
+hidden_size = 32
+num_epochs = 250
 seq_len = 96
-num_layers = 2 
-        # MC ONLY
+num_layers = 2
+ 
+# MC ONLY
 inference_samples = 50
 
-    # Training
+# Training
 swa_learning_rate = 0.01
 dropout = 0.50
 gradient_clipping = 0
@@ -75,13 +75,9 @@ clean_out_high = 50
 clean_pow_low = 0
 clean_delta_temp = 15
 
-# TODO
-# [x] 1. Get flexpredict working
-# [x] 2. Change handlers to be the pipelines  
-# [ ] 3. Make flexpredict modules and get_mafe a module holding flexpredict
-# [ ] 4. Figure out how to correctly train on multiple dataset
-
 def main(d):
+    assert time_horizon > 0, "time horizon must be a positive integer"
+    
     temp_boundery = 0.5
     error = 0
     probalistic = True
@@ -89,6 +85,7 @@ def main(d):
 
     cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
     splitter = StdSplitter(train_days, val_days, test_days)
+    
     model = GRU(hidden_size, num_layers, input_size, time_horizon, dropout)
     trainer = L.Trainer(max_epochs=num_epochs, 
                         callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), 
@@ -118,7 +115,7 @@ def main(d):
 
     model = EnsemblePipeline.Builder() \
         .set_pipeline(model) \
-        .set_num_ensembles(2) \
+        .set_num_ensembles(num_ensembles) \
         .Build()
     
     model.fit()
@@ -142,7 +139,6 @@ def main(d):
     else:
         print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
         print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")

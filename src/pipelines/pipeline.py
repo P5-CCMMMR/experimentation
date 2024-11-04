@@ -68,8 +68,7 @@ class Pipeline(L.LightningModule, ABC):
     def test_step(self, batch):
         pass
 
-    def fit(self): #Cancer train keyword taken by L.module
-        
+    def fit(self): # Cancer train keyword taken by L.module
         print(f"trainer: {self.trainer}")
         self.tuner = self.tuner_class(self.trainer, self)
         self.tuner.tune()
