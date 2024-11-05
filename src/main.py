@@ -3,7 +3,6 @@ import lightning as L
 import matplotlib
 import pandas as pd
 import multiprocessing
-import torch
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.flex_error import get_mafe, get_prob_mafe
@@ -19,10 +18,13 @@ from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
 from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
+from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
+
+import torch.optim as optim
 
 matplotlib.use("Agg")
 
@@ -49,7 +51,7 @@ swa_learning_rate = 0.01
 dropout = 0.50
 gradient_clipping = 0
 early_stopping_threshold = 0.1  
-num_ensembles = 1
+num_ensembles = 2
 
 # Controlled by tuner
 batch_size = 128
@@ -75,6 +77,9 @@ clean_out_high = 50
 clean_pow_low = 0
 clean_delta_temp = 15
 
+# TODO 
+# [ ] 1. Fix copy of pipelines
+
 def main(d):
     assert time_horizon > 0, "time horizon must be a positive integer"
     
@@ -92,7 +97,7 @@ def main(d):
                                    ConditionalEarlyStopping(threshold=early_stopping_threshold)], 
                         gradient_clip_val=gradient_clipping, 
                         fast_dev_run=d)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
     model = MonteCarloPipeline.Builder() \
         .add_data(df) \
@@ -108,15 +113,15 @@ def main(d):
         .set_worker_num(NUM_WORKERS) \
         .set_error(NRMSE) \
         .set_trainer(trainer) \
-        .set_tuner(StdTunerWrapper) \
+        .set_tuner_class(StdTunerWrapper) \
         .set_inference_samples(inference_samples) \
         .set_test_error(NLL) \
-        .Build()
+        .build()
 
     model = EnsemblePipeline.Builder() \
         .set_pipeline(model) \
         .set_num_ensembles(num_ensembles) \
-        .Build()
+        .build()
     
     model.fit()
     model.test()

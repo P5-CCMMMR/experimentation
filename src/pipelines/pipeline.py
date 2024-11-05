@@ -7,6 +7,7 @@ import torch.nn as nn
 from abc import ABC, abstractmethod
 from torch.utils.data import DataLoader
 
+from src.pipelines.optimizers.optimizer import OptimizerWrapper
 from src.pipelines.cleaners.cleaner import Cleaner
 from src.pipelines.normalizers.normalizer import Normalizer
 from src.pipelines.splitters.splitter import Splitter
@@ -51,8 +52,6 @@ class Pipeline(L.LightningModule, ABC):
 
         self.target_column = target_column
 
-        self.df_arr = []
-
         self.all_predictions = []
         self.all_actuals = []
 
@@ -86,7 +85,7 @@ class Pipeline(L.LightningModule, ABC):
         return self.model(x)
 
     def configure_optimizers(self):
-        return self.optimizer
+        return self.optimizer.get_optimizer()
 
     def train_dataloader(self):
         return self.train_loader
@@ -105,10 +104,6 @@ class Pipeline(L.LightningModule, ABC):
     
     def get_timestamps(self):
         return self.timesteps
-    
-    @abstractmethod
-    def copy(self):
-        pass
         
     class Builder:
         def __init__(self):
@@ -138,6 +133,11 @@ class Pipeline(L.LightningModule, ABC):
 
         def add_data(self, df):
             self.df_arr.append(df)
+            return self
+        
+        def add_data_arr(self, df_arr):
+            for df in df_arr:
+                self.df_arr.append(df)
             return self
         
         def set_cleaner(self, cleaner):
@@ -171,7 +171,7 @@ class Pipeline(L.LightningModule, ABC):
             return self
 
         def set_optimizer(self, optimizer):
-            if not isinstance(optimizer, torch.optim.Optimizer):
+            if not isinstance(optimizer, OptimizerWrapper):
                 raise ValueError("Optimizer instance given not extended from torch.optim class")
 
             self.optimizer = optimizer
@@ -183,7 +183,7 @@ class Pipeline(L.LightningModule, ABC):
             self.trainer = trainer
             return self
 
-        def set_tuner(self, tuner_class):
+        def set_tuner_class(self, tuner_class):
             if not issubclass(tuner_class, TunerWrapper):
                 raise ValueError("TunerWrapper sub class given not extended from TunerWrapper class")
             self.tuner_class = tuner_class
@@ -267,7 +267,7 @@ class Pipeline(L.LightningModule, ABC):
             
             return train_loader, val_loader, test_loader, test_timestamps, test_normalizer
 
-        def Build(self):
+        def build(self):
             train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()
 
             pipeline = self.pipeline_class(self.learning_rate,

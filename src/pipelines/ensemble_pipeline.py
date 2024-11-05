@@ -117,7 +117,7 @@ class EnsemblePipeline(Pipeline):
             self.sub_pipeline = sub_pipeline
             return self
         
-        def Build(self):
+        def build(self):
             for _ in range(0, self.num_ensembles):
                 self.pipeline_arr.append(self.sub_pipeline.copy())
                          

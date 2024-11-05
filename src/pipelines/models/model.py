@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import torch.nn as nn
-import copy
 
 class Model(nn.Module, ABC):
     def __init__(self, hidden_size: int, num_layers: int, input_len: int, horizon_len: int, dropout: float):
@@ -18,5 +17,12 @@ class Model(nn.Module, ABC):
     def get_horizon_len(self):
         return self.output_size
     
-    def deep_copy(self):
-        return copy.deepcopy(self)
+    def copy(self):
+        return type(self)(
+            self.hidden_size, 
+            self.num_layers, 
+            self.input_len,
+            self.output_size, 
+            self.dropout
+        )
+        

@@ -43,12 +43,15 @@ class MonteCarloPipeline(ProbabilisticPipeline):
         return mean_prediction, std_prediction
     
     def copy(self):
+        new_model = self.model.copy()
+        new_optimizer = self.optimizer.copy(new_model)
+
         new_instance = MonteCarloPipeline(
             learning_rate=self.learning_rate,
             seq_len=self.seq_len,
             batch_size=self.batch_size,
-            optimizer=copy.deepcopy(self.optimizer),
-            model=copy.deepcopy(self.model),
+            optimizer=new_optimizer,
+            model=new_model,
             trainer=copy.deepcopy(self.trainer),
             tuner_class=self.tuner_class,
             train_loader=self.train_loader,
@@ -74,7 +77,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             self.inference_samples = inference_samples
             return self
         
-        def Build(self):
+        def build(self):
             train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()
 
             pipeline = self.pipeline_class(self.learning_rate,
