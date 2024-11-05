@@ -237,13 +237,19 @@ class Pipeline(L.LightningModule, ABC):
                     raise ValueError(f"{key} cannot be None")
                 
         def _get_loaders(self):
-            # implement 
-            #for df in self.df_arr:
-            df = self.cleaner.clean(self.df_arr[0]) #! needs to be changed to a solution concatting the dataset
+            train_dfs = []
+            val_dfs = []
+            test_dfs = []
 
-            train_df = self.splitter.get_train(df)
-            val_df = self.splitter.get_val(df)
-            test_df = self.splitter.get_test(df)
+            for df in self.df_arr:
+                cleaned_df = self.cleaner.clean(df)
+                train_dfs.append(self.splitter.get_train(cleaned_df))
+                val_dfs.append(self.splitter.get_val(cleaned_df))
+                test_dfs.append(self.splitter.get_test(cleaned_df))
+                
+            train_df = pd.concat(train_dfs, ignore_index=True)
+            val_df = pd.concat(val_dfs, ignore_index=True)
+            test_df = pd.concat(test_dfs, ignore_index=True)
 
             test_timestamps = pd.to_datetime(test_df.values[:,0])
 
