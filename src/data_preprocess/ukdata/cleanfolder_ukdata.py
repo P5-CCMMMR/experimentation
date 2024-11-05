@@ -1,5 +1,8 @@
 import pandas as pd
 import os
+
+# This was used to clean the whole dataset, and as such is not in use anymore, since this cleaned folder has been stored elsewhere.
+
 def clean_csv(file_path, output_dir):
     
     # Check for empty and/or too small sets

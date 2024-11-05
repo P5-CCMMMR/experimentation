@@ -91,8 +91,9 @@ done
 
 echo "Downloading datasets from UKDATA..."
 mkdir -p src/data_preprocess/ukdata
-mkdir -p src/data_preprocess/ukdata/data_root
-gdown 1Fv2xtlxWNabYTLpPyBVL__GR6mQ2T0MO -O src/data_preprocess/ukdata/data_root/
-unzip src/data_preprocess/ukdata/data_root/UKDATA_CLEANED.zip -d src/data_preprocess/ukdata/
+gdown 1Fv2xtlxWNabYTLpPyBVL__GR6mQ2T0MO -O src/data_preprocess/ukdata/
+unzip src/data_preprocess/ukdata/UKDATA_CLEANED.zip -d src/data_preprocess/ukdata/
+mv src/data_preprocess/ukdata/UKDATA_CLEANED src/data_preprocess/ukdata/data_root
+rm src/data_preprocess/ukdata/UKDATA_CLEANED.zip
 
 echo "Setup complete."
