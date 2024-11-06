@@ -15,17 +15,15 @@ def flex_predict(forecasts, lower_bound, upper_bound, error):
 
 def prob_flex_predict(forecasts, lower_bound, upper_bound, error, confidence=0.95):
     flex_iter = 0
-    for i in range(0, len(forecasts[0])):
-        mean = forecasts[0][i]
-        stddev = forecasts[1][i]
-        
+    
+    for mean, stddev in zip(forecasts[0], forecasts[1]):
         prob_within_lower = norm.cdf(lower_bound + error, mean, stddev)
         prob_within_upper = norm.cdf(upper_bound - error, mean, stddev)
-        prob_within = prob_within_upper - prob_within_lower
         
-        if prob_within >= confidence:
-            flex_iter += 1
-        else:
-            break   
+        prob_within = prob_within_upper - prob_within_lower        
+        if prob_within < confidence:
+            break
+        
+        flex_iter += 1   
      
     return flex_iter
