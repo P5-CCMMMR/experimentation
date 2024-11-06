@@ -24,7 +24,7 @@ def prob_flex_predict(forecasts, lower_bound, upper_bound, error, confidence=0.9
         prob_within = prob_within_upper - prob_within_lower
         
         if prob_within >= confidence:
-            flex_iter = flex_iter + 1
+            flex_iter += 1
         else:
             break   
      
