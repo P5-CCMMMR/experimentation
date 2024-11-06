@@ -21,7 +21,7 @@ def prob_flex_predict(forecasts, lower_bound, upper_bound, error, confidence=0.9
         
         prob_within_lower = norm.cdf(lower_bound + error, mean, stddev)
         prob_within_upper = norm.cdf(upper_bound - error, mean, stddev)
-        prob_within = min(prob_within_upper, prob_within_lower)
+        prob_within = prob_within_upper - prob_within_lower
         
         if prob_within >= confidence:
             flex_iter = flex_iter + 1
