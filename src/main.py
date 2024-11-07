@@ -37,9 +37,9 @@ POWER     = "PowerConsumption"
 # Hyper parameters
 # Model
 input_size = 3
-time_horizon = 1
+time_horizon = 4
 hidden_size = 32
-num_epochs = 250
+num_epochs = 1
 seq_len = 96
 num_layers = 2
  
@@ -50,8 +50,8 @@ inference_samples = 50
 swa_learning_rate = 0.01
 dropout = 0.50
 gradient_clipping = 0
-early_stopping_threshold = 0.1  
-num_ensembles = 2
+early_stopping_threshold = 0.15 
+num_ensembles = 1
 
 # Controlled by tuner
 batch_size = 128
@@ -118,10 +118,10 @@ def main(d):
         .set_test_error(NLL) \
         .build()
 
-    model = EnsemblePipeline.Builder() \
-        .set_pipeline(model) \
-        .set_num_ensembles(num_ensembles) \
-        .build()
+    #model = EnsemblePipeline.Builder() \
+    #    .set_pipeline(model) \
+    #    .set_num_ensembles(num_ensembles) \
+    #    .build()
     
     model.fit()
     model.test()
@@ -147,7 +147,7 @@ def main(d):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")
-    parser.add_argument('--d', action='store_true', help='Debug mode')
+    parser.add_argument('-d', action='store_true', help='Debug mode')
     args = parser.parse_args()
     if args.d:
         print("DEBUG MODE")

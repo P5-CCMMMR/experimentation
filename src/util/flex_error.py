@@ -61,7 +61,7 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
         for batch in dataloader:
             input_data, result_actual = batch  # Assuming the dataset returns a tuple (input_data, target_data)
 
-            last_in_temp  = input_data[:, -1, 2:]
+            last_in_temp = input_data[:, -1, 2:]
 
             lower_boundery = last_in_temp - boundary
             upper_boundery = last_in_temp + boundary
@@ -78,6 +78,8 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
     flex_actual_values_tensor = torch.tensor(flex_actual_values, dtype=torch.float32)
 
     flex_difference = [RMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
-    return (sum(flex_difference) / len(flex_difference)).item()
     
+    assert len(flex_difference) > 0, "No data to calculate MAFE"
+    
+    return (sum(flex_difference) / len(flex_difference)).item()
     
