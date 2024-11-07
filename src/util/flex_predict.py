@@ -16,14 +16,17 @@ def prob_flex_predict(forecasts, lower_bound, upper_bound, error=0, confidence=0
     
     flexibility = 0
     probabilities = []
+    been_out = False
     for mean, stddev in zip(forecasts[0], forecasts[1]):
         within_lower = norm.cdf(lower_bound + error, mean, stddev)
         within_upper = norm.cdf(upper_bound - error, mean, stddev)
         within_bounds = within_upper - within_lower 
         probabilities.append(within_bounds)      
         
-        if within_bounds >= confidence:
-            flexibility += 1   
+        if within_bounds >= confidence and not been_out:
+            flexibility += 1
+        else:
+            been_out = True   
      
     print(probabilities)
     plot_probabilities(probabilities, confidence)

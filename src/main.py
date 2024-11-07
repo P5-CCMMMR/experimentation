@@ -9,7 +9,7 @@ from src.util.flex_error import get_mafe, get_prob_mafe
 from src.util.plot import plot_results
 from src.util.power_splitter import PowerSplitter
 from src.util.continuity_splitter import split_dataframe_by_continuity
-from src.util.error import NRMSE, NLL
+from src.util.error import NRMSE, MNLL
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
@@ -115,7 +115,7 @@ def main(d):
         .set_trainer(trainer) \
         .set_tuner_class(StdTunerWrapper) \
         .set_inference_samples(inference_samples) \
-        .set_test_error(NLL) \
+        .set_test_error(MNLL) \
         .build()
 
     #model = EnsemblePipeline.Builder() \
