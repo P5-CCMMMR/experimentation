@@ -23,6 +23,7 @@ from src.pipelines.optimizers.optimizer import OptimizerWrapper
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
+from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
 import torch.optim as optim
 
@@ -39,7 +40,7 @@ POWER     = "PowerConsumption"
 input_size = 3
 time_horizon = 4
 hidden_size = 32
-num_epochs = 250
+num_epochs = 1 #250
 seq_len = 96
 num_layers = 2
  
@@ -71,7 +72,7 @@ on_limit_w = 1500
 
 consecutive_points = 3
 
-nist_path = "src/data_preprocess/nist/data_root/NIST_cleaned.csv"
+nist_path = "src/data_preprocess/dataset/NIST_cleaned.csv"
 
 clean_in_low = 10
 clean_in_high = 30
@@ -85,7 +86,6 @@ def main(d):
     
     temp_boundery = 0.5
     error = 0
-    probalistic = True
     df = pd.read_csv(nist_path)
 
     cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
@@ -113,9 +113,9 @@ def main(d):
         .set_worker_num(NUM_WORKERS) \
         .set_error(NRMSE) \
         .set_trainer(trainer) \
-        .set_tuner_class(StdTunerWrapper) \
         .set_inference_samples(inference_samples) \
         .set_test_error(MNLL) \
+        .set_tuner_class(StdTunerWrapper) \
         .build()
 
     #model = EnsemblePipeline.Builder() \
@@ -138,9 +138,9 @@ def main(d):
     on_data_arr = split_dataframe_by_continuity(on_df, 15, seq_len, TIMESTAMP)
     off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
 
-    if (probalistic):
-        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN, flex_confidence))
-        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN, flex_confidence))
+    if (isinstance(model, ProbabilisticPipeline)):
+        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
     else:
         print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
         print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))

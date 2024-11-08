@@ -71,7 +71,7 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
             lower_boundery = last_in_temp - boundary
             upper_boundery = last_in_temp + boundary
 
-            result_predictions = model(input_data)
+            result_predictions = model(input_data) 
 
             actual_flex = flex_predict(result_actual[0], lower_boundery, upper_boundery, error)
             predicted_flex = flex_predict(result_predictions, lower_boundery, upper_boundery, error)

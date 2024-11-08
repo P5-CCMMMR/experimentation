@@ -81,7 +81,7 @@ class Pipeline(L.LightningModule, ABC):
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
     
     def forward(self, x):
-        return self.model(x)
+        return self.model(x).squeeze()
 
     def configure_optimizers(self):
         return self.optimizer.get_optimizer()
