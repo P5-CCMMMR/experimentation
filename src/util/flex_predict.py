@@ -1,5 +1,4 @@
 from scipy.stats import norm
-import matplotlib.pyplot as plt
 
 def flex_predict(forecasts, lower_bound, upper_bound, error=0):
     flexibility = 0

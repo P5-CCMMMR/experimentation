@@ -27,13 +27,13 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, targe
 
             last_in_temp  = input_data[:, -1, 2:]
 
-            lower_boundery = last_in_temp - boundary
-            upper_boundery = last_in_temp + boundary
+            lower_boundary = last_in_temp - boundary
+            upper_boundary = last_in_temp + boundary
 
             result_predictions = model(input_data)
 
-            actual_flex = flex_predict(result_actual[0], lower_boundery, upper_boundery, error)
-            predicted_flex, probabilities = prob_flex_predict(result_predictions, lower_boundery, upper_boundery, error, confidence=confidence)
+            actual_flex = flex_predict(result_actual[0], lower_boundary, upper_boundary, error)
+            predicted_flex, probabilities = prob_flex_predict(result_predictions, lower_boundary, upper_boundary, error, confidence=confidence)
             
             flex_actual_values.append(actual_flex)
             flex_predictions.append(predicted_flex)
@@ -68,13 +68,13 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
 
             last_in_temp = input_data[:, -1, 2:]
 
-            lower_boundery = normalizer.normalize(normalizer.denormalize(last_in_temp) - boundary)
-            upper_boundery = normalizer.normalize(normalizer.denormalize(last_in_temp) + boundary)
+            lower_boundary = normalizer.normalize(normalizer.denormalize(last_in_temp) - boundary)
+            upper_boundary = normalizer.normalize(normalizer.denormalize(last_in_temp) + boundary)
 
             result_predictions = model(input_data) 
 
-            actual_flex = flex_predict(result_actual[0], lower_boundery, upper_boundery, error)
-            predicted_flex = flex_predict(result_predictions, lower_boundery, upper_boundery, error)
+            actual_flex = flex_predict(result_actual[0], lower_boundary, upper_boundary, error)
+            predicted_flex = flex_predict(result_predictions, lower_boundary, upper_boundary, error)
 
             flex_predictions.append(predicted_flex)
             flex_actual_values.append(actual_flex)
@@ -82,7 +82,7 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
     flex_predictions_tensor = torch.tensor(flex_predictions, dtype=torch.float32)
     flex_actual_values_tensor = torch.tensor(flex_actual_values, dtype=torch.float32)
 
-    flex_difference = [RMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
+    flex_difference = [NRMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
     
     return (sum(flex_difference) / len(flex_difference)).item()
     

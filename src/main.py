@@ -40,10 +40,10 @@ POWER     = "PowerConsumption"
 # Model
 input_size = 3
 time_horizon = 4
-hidden_size = 32
-num_epochs = 1 #250
+hidden_size = 96
+num_epochs = 250
 seq_len = 96
-num_layers = 2
+num_layers = 16
  
 # MC ONLY
 inference_samples = 50
@@ -73,7 +73,7 @@ on_limit_w = 1500
 
 consecutive_points = 3
 
-nist_path = "src/data_preprocess/dataset/NIST_cleaned.csv"
+nist_path = "src/data_preprocess/nist/data_root/NIST_cleaned.csv"
 
 clean_in_low = 10
 clean_in_high = 30
@@ -85,7 +85,7 @@ clean_delta_temp = 15
 def main(d):
     assert time_horizon > 0, "Time horizon must be a positive integer"
     
-    temp_boundery = 0.5
+    temp_boundary = 0.5
     error = 0
     df = pd.read_csv(nist_path)
 
@@ -141,11 +141,11 @@ def main(d):
     off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
 
     if (isinstance(model, ProbabilisticPipeline)):
-        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
     else:
-        print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-        print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+        print(get_mafe(on_data_arr, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print(get_mafe(off_data_arr, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")
