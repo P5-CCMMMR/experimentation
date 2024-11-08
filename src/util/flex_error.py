@@ -81,7 +81,5 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
 
     flex_difference = [RMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
     
-    assert len(flex_difference) > 0, "No data to calculate MAFE"
-    
     return (sum(flex_difference) / len(flex_difference)).item()
     
