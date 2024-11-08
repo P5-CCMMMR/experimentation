@@ -4,6 +4,7 @@ import matplotlib
 import pandas as pd
 import multiprocessing
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.flex_error import get_mafe, get_prob_mafe
 from src.util.plot import plot_results
@@ -92,11 +93,12 @@ def main(d):
     splitter = StdSplitter(train_days, val_days, test_days)
     
     model = GRU(hidden_size, num_layers, input_size, time_horizon, dropout)
-    trainer = L.Trainer(max_epochs=num_epochs, 
-                        callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), 
+    trainer = TrainerWrapper(L.Trainer, 
+                             max_epochs=num_epochs, 
+                             callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), 
                                    ConditionalEarlyStopping(threshold=early_stopping_threshold)], 
-                        gradient_clip_val=gradient_clipping, 
-                        fast_dev_run=d)
+                             gradient_clip_val=gradient_clipping, 
+                             fast_dev_run=d)
     optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
     model = MonteCarloPipeline.Builder() \
@@ -118,10 +120,10 @@ def main(d):
         .set_tuner_class(StdTunerWrapper) \
         .build()
 
-    #model = EnsemblePipeline.Builder() \
-    #    .set_pipeline(model) \
-    #    .set_num_ensembles(num_ensembles) \
-    #    .build()
+    model = EnsemblePipeline.Builder() \
+        .set_pipeline(model) \
+        .set_num_ensembles(num_ensembles) \
+        .build()
     
     model.fit()
     model.test()

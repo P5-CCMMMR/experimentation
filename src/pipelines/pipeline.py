@@ -13,6 +13,7 @@ from src.pipelines.normalizers.normalizer import Normalizer
 from src.pipelines.splitters.splitter import Splitter
 from src.pipelines.sequencers.sequencer import Sequencer
 from src.pipelines.models.model import Model
+from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.pipelines.tuners.tuner_wrapper import TunerWrapper
 
 class Pipeline(L.LightningModule, ABC):
@@ -68,7 +69,7 @@ class Pipeline(L.LightningModule, ABC):
         pass
 
     def fit(self): # Cancer train keyword taken by L.module
-        self.tuner = self.tuner_class(self.trainer, self)
+        self.tuner = self.tuner_class(self.trainer.get_trainer(), self)
         self.tuner.tune()
         self.trainer.fit(self)
 
@@ -177,7 +178,7 @@ class Pipeline(L.LightningModule, ABC):
             return self
         
         def set_trainer(self, trainer):
-            if not isinstance(trainer, L.Trainer):
+            if not isinstance(trainer, TrainerWrapper):
                 raise ValueError("Trainer instance given not extended from Trainer class")
             self.trainer = trainer
             return self

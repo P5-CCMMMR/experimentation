@@ -2,8 +2,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import copy
 import numpy as np
 from src.pipelines.pipeline import Pipeline
+from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
-class EnsemblePipeline(Pipeline):
+class EnsemblePipeline(ProbabilisticPipeline):
     def __init__(self, pipeline_arr, num_ensembles):
         super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
         self.pipeline_arr = pipeline_arr
