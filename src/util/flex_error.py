@@ -68,8 +68,8 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
 
             last_in_temp = input_data[:, -1, 2:]
 
-            lower_boundery = last_in_temp - boundary
-            upper_boundery = last_in_temp + boundary
+            lower_boundery = normalizer.normalize(normalizer.denormalize(last_in_temp) - boundary)
+            upper_boundery = normalizer.normalize(normalizer.denormalize(last_in_temp) + boundary)
 
             result_predictions = model(input_data) 
 
