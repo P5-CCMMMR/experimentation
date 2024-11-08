@@ -39,7 +39,7 @@ POWER     = "PowerConsumption"
 input_size = 3
 time_horizon = 4
 hidden_size = 32
-num_epochs = 1
+num_epochs = 250
 seq_len = 96
 num_layers = 2
  
@@ -52,6 +52,9 @@ dropout = 0.50
 gradient_clipping = 0
 early_stopping_threshold = 0.15 
 num_ensembles = 1
+
+# Flexibility
+flex_confidence = 0.90
 
 # Controlled by tuner
 batch_size = 128
@@ -68,7 +71,7 @@ on_limit_w = 1500
 
 consecutive_points = 3
 
-nist_path = "src/data_preprocess/dataset/NIST_cleaned.csv"
+nist_path = "src/data_preprocess/nist/data_root/NIST_cleaned.csv"
 
 clean_in_low = 10
 clean_in_high = 30
@@ -77,11 +80,8 @@ clean_out_high = 50
 clean_pow_low = 0
 clean_delta_temp = 15
 
-# TODO 
-# [ ] 1. Fix copy of pipelines
-
 def main(d):
-    assert time_horizon > 0, "time horizon must be a positive integer"
+    assert time_horizon > 0, "Time horizon must be a positive integer"
     
     temp_boundery = 0.5
     error = 0
@@ -130,7 +130,7 @@ def main(d):
 
     model.eval()
 
-    ps = PowerSplitter(df, TIMESTAMP, POWER)
+    ps = PowerSplitter(splitter.get_test(cleaner.clean(df)), TIMESTAMP, POWER)
 
     on_df = ps.get_mt_power(on_limit_w, consecutive_points)
     off_df = ps.get_lt_power(off_limit_w, consecutive_points)
@@ -139,8 +139,8 @@ def main(d):
     off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
 
     if (probalistic):
-        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
-        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
+        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN, flex_confidence))
+        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN, flex_confidence))
     else:
         print(get_mafe(on_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))
         print(get_mafe(off_data_arr, model, seq_len, error, temp_boundery, time_horizon, TARGET_COLUMN))

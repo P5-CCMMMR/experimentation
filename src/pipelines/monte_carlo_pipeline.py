@@ -36,7 +36,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                 y_hat = self.model(x)
                 predictions.append(y_hat.cpu().numpy())
 
-        predictions = np.array(predictions)
+        predictions = np.array(predictions).squeeze()
         mean_prediction = np.mean(predictions, axis=0)
         std_prediction = np.std(predictions, axis=0)
 

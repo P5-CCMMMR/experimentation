@@ -110,3 +110,18 @@ def ensemble_deterministic_predictions(predictions):
         std_predictions.append(std_prediction)
         
     return mean_predictions, std_predictions
+
+def plot_flex_probabilities(probabilities, confidence):
+    writer = SummaryWriter()
+    
+    plt.plot(probabilities, color="b", linestyle="-", marker="o", label="Probability within bounds")
+    plt.axhline(y=confidence, color="r", linestyle="--", label=f"Confidence Level ({confidence})")
+    plt.xlabel("Time Step")
+    plt.xticks(ticks=range(len(probabilities)), labels=range(1, len(probabilities) + 1))
+    plt.ylabel("Probability")
+    plt.title("Probability of Forecast Falling Within Bounds")
+    plt.legend()
+    plt.grid(True)
+    
+    writer.add_figure("flex probabilities", plt.gcf())
+    writer.close()
