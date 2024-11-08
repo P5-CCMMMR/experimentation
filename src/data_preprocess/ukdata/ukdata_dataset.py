@@ -50,18 +50,16 @@ outdoor_df = outdoor_df[[TIMESTAMP, "OutdoorTemp"]]
 outdoor_df.Timestamp = pd.to_datetime(outdoor_df.Timestamp, utc=USE_UTC)
 outdoor_df = outdoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
 
-
-
-
 df = energy_df
+df = df.join(watt_energy_df.set_index(TIMESTAMP), on=TIMESTAMP)
 df = df.join(indoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
 df = df.join(outdoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
-df = df.join(watt_energy_df.set_index(TIMESTAMP), on=TIMESTAMP)
 
 df = df[(df.IndoorTemp >= 10) & (df.IndoorTemp <= 30)]
 df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]
 series = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
 df = df[(df.PowerConsumption <= 5000)]
+df = df.drop(columns=["TotalPowerConsumption"])
 
 df = df.dropna()
 
@@ -75,7 +73,7 @@ values = df.values
 total_power_consumption = [i[1] for i in values]
 indoor_temp = [i[2] for i in values]
 outdoor_temp = [i[3] for i in values]
-power_consumption = [i[4] for i in values]
+#power_consumption = [i[4] for i in values]
 
 timestamps = df[TIMESTAMP]
 
@@ -93,9 +91,9 @@ ax[2].set_title("Outdoor Temperature")
 ax[2].set_ylim(min(outdoor_temp), max(outdoor_temp))
 ax[2].grid()
 
-ax[3].plot(timestamps, power_consumption)
-ax[3].set_title("Power Consumption of Heat Pump")
-ax[3].grid()
+#ax[3].plot(timestamps, power_consumption)
+#ax[3].set_title("Power Consumption of Heat Pump")
+#ax[3].grid()
 
 
 plt.subplots_adjust(hspace=1)

@@ -15,4 +15,4 @@ class TempCleaner(Cleaner):
         df = df[(df.IndoorTemp.diff().abs().astype(float) <= self.delta_temp) & (df.OutdoorTemp.diff().abs().astype(float) <= self.delta_temp)]
         df = df[df.PowerConsumption > self.pow_low_lim]
 
-        return df.dropna()
+        return df

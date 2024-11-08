@@ -41,9 +41,9 @@ POWER     = "PowerConsumption"
 input_size = 3
 time_horizon = 4
 hidden_size = 96
-num_epochs = 250
+num_epochs = 1000
 seq_len = 96
-num_layers = 16
+num_layers = 2
  
 # MC ONLY
 inference_samples = 50
@@ -52,7 +52,8 @@ inference_samples = 50
 swa_learning_rate = 0.01
 dropout = 0.50
 gradient_clipping = 0
-early_stopping_threshold = 0.15 
+early_stopping_threshold = 0.15
+
 num_ensembles = 1
 
 # Flexibility
@@ -69,11 +70,12 @@ test_days = 2
 
 # ON / OFF Power Limits
 off_limit_w = 100
-on_limit_w = 1500
+on_limit_w = 700
 
 consecutive_points = 3
 
-nist_path = "src/data_preprocess/nist/data_root/NIST_cleaned.csv"
+nist_path = "src/data_preprocess/dataset/NIST_cleaned.csv"
+ukdata_path = "src/data_preprocess/ukdata/data_root/UKDATA_cleaned.csv"
 
 clean_in_low = 10
 clean_in_high = 30
@@ -87,7 +89,7 @@ def main(d):
     
     temp_boundary = 0.5
     error = 0
-    df = pd.read_csv(nist_path)
+    df = pd.read_csv(ukdata_path)
 
     cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
     splitter = StdSplitter(train_days, val_days, test_days)
@@ -136,7 +138,6 @@ def main(d):
 
     on_df = ps.get_mt_power(on_limit_w, consecutive_points)
     off_df = ps.get_lt_power(off_limit_w, consecutive_points)
-
     on_data_arr = split_dataframe_by_continuity(on_df, 15, seq_len, TIMESTAMP)
     off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
 
