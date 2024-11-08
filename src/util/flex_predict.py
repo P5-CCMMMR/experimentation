@@ -22,21 +22,20 @@ def prob_flex_predict(forecasts, lower_bound, upper_bound, error=0, confidence=0
         within_upper = norm.cdf(upper_bound - error, mean, stddev)
         within_bounds = within_upper - within_lower 
         probabilities.append(within_bounds)      
-        
-        if within_bounds >= confidence and not been_out:
+        if within_bounds > confidence and not been_out:
             flexibility += 1
         else:
             been_out = True   
      
-    print(probabilities)
     plot_probabilities(probabilities, confidence)
     
-    return flexibility
+    return flexibility, probabilities
 
 def plot_probabilities(probabilities, confidence):
     plt.plot(probabilities, color="b", linestyle="-", marker="o", label="Probability within bounds")
     plt.axhline(y=confidence, color="r", linestyle="--", label=f"Confidence Level ({confidence})")
     plt.xlabel("Time Step")
+    plt.xticks(ticks=range(len(probabilities)), labels=range(1, len(probabilities) + 1))
     plt.ylabel("Probability")
     plt.title("Probability of Forecast Falling Within Bounds")
     plt.legend()

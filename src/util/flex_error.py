@@ -10,6 +10,8 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, targe
     flex_actual_values = []
 
     for data in data_arr:
+        print("data", data)
+        print("data len", len(data))
         if len(data) < seq_len:
             continue
 
@@ -31,7 +33,7 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, targe
             result_predictions = model(input_data)
 
             actual_flex = flex_predict(result_actual[0], lower_boundery, upper_boundery, error)
-            predicted_flex = prob_flex_predict(result_predictions, lower_boundery, upper_boundery, error)
+            predicted_flex, _ = prob_flex_predict(result_predictions, lower_boundery, upper_boundery, error)
 
             flex_predictions.append(predicted_flex)
             flex_actual_values.append(actual_flex)
