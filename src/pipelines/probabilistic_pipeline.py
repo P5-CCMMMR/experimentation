@@ -57,9 +57,10 @@ class ProbabilisticPipeline(Pipeline):
             raise RuntimeError("Need to train before testing")
         self.trainer.test(self)
 
-        mean, std_div = self.all_predictions
+        mean, stddev = self.all_predictions
+        
         self.all_predictions = (self.normalizer.denormalize(np.array(mean), self.target_column),
-                                self.normalizer.denormalize(np.array(std_div), self.target_column))
+                                np.array(stddev) * (self.normalizer.max_vals[self.target_column] - self.normalizer.min_vals[self.target_column]))
         
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
     

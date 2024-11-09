@@ -4,13 +4,11 @@ import matplotlib
 import numpy as np
 import pandas as pd
 import multiprocessing
-from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.flex_error import get_mafe, get_prob_mafe
 from src.util.plot import plot_results
 from src.util.power_splitter import PowerSplitter
-from src.util.continuity_splitter import split_dataframe_by_continuity
 from src.util.error import NRMSE, MNLL
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
@@ -41,16 +39,15 @@ POWER     = "PowerConsumption"
 # Model
 input_size = 4
 time_horizon = 4
-hidden_size = 96
+hidden_size = 16
 num_epochs = 1000
-seq_len = 96
-num_layers = 2
+seq_len = 16
+num_layers = 16
  
 # MC ONLY
-inference_samples = 50
+inference_samples = 250
 
 # Training
-swa_learning_rate = 0.01
 dropout = 0.50
 gradient_clipping = 0
 early_stopping_threshold = 0.15
@@ -59,6 +56,8 @@ num_ensembles = 1
 
 # Flexibility
 flex_confidence = 0.90
+temp_boundary = 0.1
+error = 0
 
 # Controlled by tuner
 batch_size = 128
@@ -71,7 +70,7 @@ test_days = 2
 
 # ON / OFF Power Limits
 off_limit_w = 100
-on_limit_w = 700
+on_limit_w = 1500
 
 consecutive_points = 3
 
@@ -90,22 +89,17 @@ clean_delta_temp = 15
 def main(d):
     assert time_horizon > 0, "Time horizon must be a positive integer"
     
-    temp_boundary = 0.5
-    error = 0
     df = pd.read_csv(nist_path)
 
     cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
     splitter = StdSplitter(train_days, val_days, test_days)
     
     model = GRU(hidden_size, num_layers, input_size, time_horizon, dropout)
-    trainer = TrainerWrapper(
-        L.Trainer, 
-        max_epochs=num_epochs, 
-        callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), 
-                   ConditionalEarlyStopping(threshold=early_stopping_threshold)], 
-        gradient_clip_val=gradient_clipping, 
-        fast_dev_run=d
-    )
+    trainer = TrainerWrapper(L.Trainer, 
+                             max_epochs=num_epochs, 
+                             callbacks=[ConditionalEarlyStopping(threshold=early_stopping_threshold)], 
+                             gradient_clip_val=gradient_clipping, 
+                             fast_dev_run=d)
     optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
     model = MonteCarloPipeline.Builder() \
@@ -147,12 +141,13 @@ def main(d):
     on_data = np.array(on_df)
     off_data = np.array(off_df)
 
+    print("Calculating mafe...")
     if (isinstance(model, ProbabilisticPipeline)):
-        print(get_prob_mafe(on_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
-        print(get_prob_mafe(off_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print("PROB MAFE ON:", get_prob_mafe(on_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN, flex_confidence))
+        print("PROB MAFE OFF:", get_prob_mafe(off_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN, flex_confidence))
     else:
-        print(get_mafe(on_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
-        print(get_mafe(off_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print("MAFE ON:", get_mafe(on_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print("MAFE OFF:", get_mafe(off_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")
