@@ -31,7 +31,6 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, targe
             upper_boundary = last_in_temp + boundary
 
             result_predictions = model(input_data)
-
             actual_flex = flex_predict(result_actual[0], lower_boundary, upper_boundary, error)
             predicted_flex, probabilities = prob_flex_predict(result_predictions, lower_boundary, upper_boundary, error, confidence=confidence)
             
@@ -44,7 +43,6 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, targe
 
     # Plot last flex probabilities
     plot_flex_probabilities(flex_probabilities[-1], confidence)
-
     flex_difference = [RMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
     return (sum(flex_difference) / len(flex_difference)).item()
     
@@ -82,7 +80,7 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
     flex_predictions_tensor = torch.tensor(flex_predictions, dtype=torch.float32)
     flex_actual_values_tensor = torch.tensor(flex_actual_values, dtype=torch.float32)
 
-    flex_difference = [NRMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
+    flex_difference = [RMSE(a, b) for a, b in zip(flex_predictions_tensor, flex_actual_values_tensor)]
     
     return (sum(flex_difference) / len(flex_difference)).item()
     
