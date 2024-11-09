@@ -1,6 +1,7 @@
 import argparse
 import lightning as L
 import matplotlib
+import numpy as np
 import pandas as pd
 import multiprocessing
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
@@ -142,15 +143,16 @@ def main(d):
 
     on_df = ps.get_mt_power(on_limit_w, consecutive_points)
     off_df = ps.get_lt_power(off_limit_w, consecutive_points)
-    on_data_arr = split_dataframe_by_continuity(on_df, 15, seq_len, TIMESTAMP)
-    off_data_arr = split_dataframe_by_continuity(off_df, 15, seq_len, TIMESTAMP)
+
+    on_data = np.array(on_df)
+    off_data = np.array(off_df)
 
     if (isinstance(model, ProbabilisticPipeline)):
-        print(get_prob_mafe(on_data_arr, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
-        print(get_prob_mafe(off_data_arr, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print(get_prob_mafe(on_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print(get_prob_mafe(off_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
     else:
-        print(get_mafe(on_data_arr, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
-        print(get_mafe(off_data_arr, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print(get_mafe(on_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        print(get_mafe(off_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")

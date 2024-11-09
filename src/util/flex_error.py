@@ -7,39 +7,35 @@ from src.util.error import RMSE
 from src.util.flex_predict import flex_predict, prob_flex_predict
 from src.util.plot import plot_flex_probabilities
 
-def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_column, confidence=0.95):
+def get_prob_mafe(data, model, seq_len, error, boundary, time_horizon, target_column, confidence=0.95):
     flex_actual_values = []
     flex_predictions = []
     flex_probabilities = []
 
-    for data in data_arr:
-        if len(data) < seq_len:
-            continue
-         
-        data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
-        normalizer = MinMaxNormalizer(data.astype(float)) 
+    data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
+    normalizer = MinMaxNormalizer(data.astype(float)) 
 
-        data = normalizer.normalize()
+    data = normalizer.normalize()
 
-        dataset = TimeSequencer(data[0], seq_len, time_horizon, target_column)
-        dataloader = DataLoader(dataset, 1)
+    dataset = TimeSequencer(data[0], seq_len, time_horizon, target_column)
+    dataloader = DataLoader(dataset, 1)
 
-        for batch in dataloader:
-            input_data, result_actual = batch  
+    for batch in dataloader:
+        input_data, result_actual = batch  
 
-            last_in_temp  = input_data[:, -1, target_column + 1:] # >:-( Don't do magick numbers pls
+        last_in_temp  = input_data[:, -1, target_column + 1:] # >:-( Don't do magick numbers pls
 
-            lower_boundary = last_in_temp - boundary
-            upper_boundary = last_in_temp + boundary
+        lower_boundary = last_in_temp - boundary
+        upper_boundary = last_in_temp + boundary
 
-            result_predictions = model(input_data)
+        result_predictions = model(input_data)
 
-            actual_flex = flex_predict(result_actual[0], lower_boundary, upper_boundary, error)
-            predicted_flex, probabilities = prob_flex_predict(result_predictions, lower_boundary, upper_boundary, error, confidence=confidence)
-            
-            flex_actual_values.append(actual_flex)
-            flex_predictions.append(predicted_flex)
-            flex_probabilities.append(probabilities)
+        actual_flex = flex_predict(result_actual[0], lower_boundary, upper_boundary, error)
+        predicted_flex, probabilities = prob_flex_predict(result_predictions, lower_boundary, upper_boundary, error, confidence=confidence)
+        
+        flex_actual_values.append(actual_flex)
+        flex_predictions.append(predicted_flex)
+        flex_probabilities.append(probabilities)
         
     flex_predictions_tensor = torch.tensor(flex_predictions, dtype=torch.float32)
     flex_actual_values_tensor = torch.tensor(flex_actual_values, dtype=torch.float32)
@@ -54,33 +50,30 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
     flex_predictions = []
     flex_actual_values = []
 
-    for data in data_arr:
-        if len(data) < seq_len:
-            continue
-        
-        data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
-        normalizer = MinMaxNormalizer(data.astype(float)) 
 
-        data = normalizer.normalize()
+    data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
+    normalizer = MinMaxNormalizer(data.astype(float)) 
 
-        dataset = TimeSequencer(data[0], seq_len, time_horizon, target_column)
-        dataloader = DataLoader(dataset, 1)
+    data = normalizer.normalize()
 
-        for batch in dataloader:
-            input_data, result_actual = batch  # Assuming the dataset returns a tuple (input_data, target_data)
+    dataset = TimeSequencer(data[0], seq_len, time_horizon, target_column)
+    dataloader = DataLoader(dataset, 1)
 
-            last_in_temp = input_data[:, -1, target_column + 1:]
+    for batch in dataloader:
+        input_data, result_actual = batch  # Assuming the dataset returns a tuple (input_data, target_data)
 
-            lower_boundary = normalizer.normalize(normalizer.denormalize(last_in_temp) - boundary)
-            upper_boundary = normalizer.normalize(normalizer.denormalize(last_in_temp) + boundary)
+        last_in_temp = input_data[:, -1, target_column + 1:]
 
-            result_predictions = model(input_data) 
+        lower_boundary = normalizer.normalize(normalizer.denormalize(last_in_temp) - boundary)
+        upper_boundary = normalizer.normalize(normalizer.denormalize(last_in_temp) + boundary)
 
-            actual_flex = flex_predict(result_actual[0], lower_boundary, upper_boundary, error)
-            predicted_flex = flex_predict(result_predictions, lower_boundary, upper_boundary, error)
+        result_predictions = model(input_data) 
 
-            flex_predictions.append(predicted_flex)
-            flex_actual_values.append(actual_flex)
+        actual_flex = flex_predict(result_actual[0], lower_boundary, upper_boundary, error)
+        predicted_flex = flex_predict(result_predictions, lower_boundary, upper_boundary, error)
+
+        flex_predictions.append(predicted_flex)
+        flex_actual_values.append(actual_flex)
         
     flex_predictions_tensor = torch.tensor(flex_predictions, dtype=torch.float32)
     flex_actual_values_tensor = torch.tensor(flex_actual_values, dtype=torch.float32)
