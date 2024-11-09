@@ -14,16 +14,10 @@ class MinMaxNormalizer(Normalizer):
         normalized_data = (data - self.min_vals) / (self.max_vals - self.min_vals)
         return normalized_data, self.min_vals, self.max_vals
     
-    
-    def denormalize(self, df: pd.DataFrame) -> pd.DataFrame:
-        data = df
-        denormalized_data = data * (self.max_vals - self.min_vals) + self.min_vals
-        return denormalized_data
-    
-    def denormalize(self, df: pd.DataFrame, target_column: int) -> pd.DataFrame:
-        data = df
-        denormalized_data = data * (self.max_vals[target_column] - self.min_vals[target_column]) + self.min_vals[target_column]
-        return denormalized_data
+    def denormalize(self, df: pd.DataFrame, target_column = None) -> pd.DataFrame:
+        if target_column is None:
+            return df * (self.max_vals - self.min_vals) + self.min_vals
+        return df * (self.max_vals[target_column] - self.min_vals[target_column]) + self.min_vals[target_column]
     
     def get_min_vals(self):
         return self.min_vals

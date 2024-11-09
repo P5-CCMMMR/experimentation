@@ -67,4 +67,3 @@ class ProbabilisticPipeline(Pipeline):
         def __init__(self):
             super().__init__()
             self.pipeline_class = ProbabilisticPipeline
-    

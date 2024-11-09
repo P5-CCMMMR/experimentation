@@ -36,7 +36,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                 y_hat = self.model(x)
                 predictions.append(y_hat.cpu().numpy())
 
-        predictions = np.array(predictions)
+        predictions = np.array(predictions).squeeze()
         mean_prediction = np.mean(predictions, axis=0)
         std_prediction = np.std(predictions, axis=0)
 
@@ -45,6 +45,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
     def copy(self):
         new_model = self.model.copy()
         new_optimizer = self.optimizer.copy(new_model)
+        new_trainer = self.trainer.copy()
 
         new_instance = MonteCarloPipeline(
             learning_rate=self.learning_rate,
@@ -52,7 +53,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             batch_size=self.batch_size,
             optimizer=new_optimizer,
             model=new_model,
-            trainer=copy.deepcopy(self.trainer),
+            trainer=new_trainer,
             tuner_class=self.tuner_class,
             train_loader=self.train_loader,
             val_loader=self.val_loader,
