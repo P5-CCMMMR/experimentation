@@ -32,13 +32,13 @@ matplotlib.use("Agg")
 
 MODEL_PATH = 'model.pth'
 NUM_WORKERS = multiprocessing.cpu_count()
-TARGET_COLUMN = 1
+TARGET_COLUMN = 2
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 # Hyper parameters
 # Model
-input_size = 3
+input_size = 4
 time_horizon = 4
 hidden_size = 96
 num_epochs = 1000
@@ -84,23 +84,27 @@ clean_out_high = 50
 clean_pow_low = 0
 clean_delta_temp = 15
 
+# find way to also use timestamps in predictions
+
 def main(d):
     assert time_horizon > 0, "Time horizon must be a positive integer"
     
     temp_boundary = 0.5
     error = 0
-    df = pd.read_csv(ukdata_path)
+    df = pd.read_csv(nist_path)
 
     cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
     splitter = StdSplitter(train_days, val_days, test_days)
     
     model = GRU(hidden_size, num_layers, input_size, time_horizon, dropout)
-    trainer = TrainerWrapper(L.Trainer, 
-                             max_epochs=num_epochs, 
-                             callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), 
-                                   ConditionalEarlyStopping(threshold=early_stopping_threshold)], 
-                             gradient_clip_val=gradient_clipping, 
-                             fast_dev_run=d)
+    trainer = TrainerWrapper(
+        L.Trainer, 
+        max_epochs=num_epochs, 
+        callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), 
+                   ConditionalEarlyStopping(threshold=early_stopping_threshold)], 
+        gradient_clip_val=gradient_clipping, 
+        fast_dev_run=d
+    )
     optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
     model = MonteCarloPipeline.Builder() \

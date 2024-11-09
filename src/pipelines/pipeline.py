@@ -253,9 +253,14 @@ class Pipeline(L.LightningModule, ABC):
 
             test_timestamps = pd.to_datetime(test_df.values[:,0])
 
-            train_normalizer = self.normalizer_class(train_df.values[:,1:].astype(float)) 
-            val_normalizer = self.normalizer_class(val_df.values[:,1:].astype(float)) 
-            test_normalizer = self.normalizer_class(test_df.values[:,1:].astype(float)) 
+            # Idk its **a** solution
+            train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
+            val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
+            test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
+
+            train_normalizer = self.normalizer_class(train_df.values.astype(float)) 
+            val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
+            test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
 
             train_df = train_normalizer.normalize()
             val_df = val_normalizer.normalize()

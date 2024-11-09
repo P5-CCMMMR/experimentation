@@ -1,3 +1,4 @@
+import pandas as pd
 import torch
 from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from torch.utils.data import DataLoader
@@ -14,8 +15,9 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, targe
     for data in data_arr:
         if len(data) < seq_len:
             continue
-
-        normalizer = MinMaxNormalizer(data[:,1:].astype(float)) 
+         
+        data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
+        normalizer = MinMaxNormalizer(data.astype(float)) 
 
         data = normalizer.normalize()
 
@@ -25,7 +27,7 @@ def get_prob_mafe(data_arr, model, seq_len, error, boundary, time_horizon, targe
         for batch in dataloader:
             input_data, result_actual = batch  
 
-            last_in_temp  = input_data[:, -1, 2:]
+            last_in_temp  = input_data[:, -1, target_column + 1:] # >:-( Don't do magick numbers pls
 
             lower_boundary = last_in_temp - boundary
             upper_boundary = last_in_temp + boundary
@@ -55,8 +57,9 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
     for data in data_arr:
         if len(data) < seq_len:
             continue
-
-        normalizer = MinMaxNormalizer(data[:,1:].astype(float)) 
+        
+        data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
+        normalizer = MinMaxNormalizer(data.astype(float)) 
 
         data = normalizer.normalize()
 
@@ -66,7 +69,7 @@ def get_mafe(data_arr, model, seq_len, error, boundary, time_horizon, target_col
         for batch in dataloader:
             input_data, result_actual = batch  # Assuming the dataset returns a tuple (input_data, target_data)
 
-            last_in_temp = input_data[:, -1, 2:]
+            last_in_temp = input_data[:, -1, target_column + 1:]
 
             lower_boundary = normalizer.normalize(normalizer.denormalize(last_in_temp) - boundary)
             upper_boundary = normalizer.normalize(normalizer.denormalize(last_in_temp) + boundary)
