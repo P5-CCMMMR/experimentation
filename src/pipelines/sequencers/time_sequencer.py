@@ -3,7 +3,7 @@ from .sequencer import Sequencer
 
 class TimeSequencer(Sequencer):
     def __len__(self):
-        return (len(self.data) - (self.seq_len + self.horizon_len)) // self.horizon_len
+        return max(0, len(self.data) - (self.seq_len + self.horizon_len)) // self.horizon_len
 
     def __getitem__(self, idx):
         idx *= self.horizon_len

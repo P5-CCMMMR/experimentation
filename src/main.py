@@ -39,20 +39,20 @@ POWER     = "PowerConsumption"
 # Model
 input_size = 4
 time_horizon = 4
-hidden_size = 16
+hidden_size = 32
 num_epochs = 1000
-seq_len = 16
-num_layers = 16
+seq_len = 96
+num_layers = 2
  
 # MC ONLY
-inference_samples = 250
+inference_samples = 50
 
 # Training
 dropout = 0.50
 gradient_clipping = 0
 early_stopping_threshold = 0.15
 
-num_ensembles = 1
+num_ensembles = 5
 
 # Flexibility
 flex_confidence = 0.90
@@ -86,6 +86,7 @@ clean_delta_temp = 15
 
 # find way to also use timestamps in predictions
 
+
 def main(d):
     assert time_horizon > 0, "Time horizon must be a positive integer"
     
@@ -94,7 +95,7 @@ def main(d):
     cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
     splitter = StdSplitter(train_days, val_days, test_days)
     
-    model = GRU(hidden_size, num_layers, input_size, time_horizon, dropout)
+    model = LSTM(hidden_size, num_layers, input_size, time_horizon, dropout)
     trainer = TrainerWrapper(L.Trainer, 
                              max_epochs=num_epochs, 
                              callbacks=[ConditionalEarlyStopping(threshold=early_stopping_threshold)], 
@@ -102,7 +103,7 @@ def main(d):
                              fast_dev_run=d)
     optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
-    model = MonteCarloPipeline.Builder() \
+    model = DeterministicPipeline.Builder() \
         .add_data(df) \
         .set_cleaner(cleaner) \
         .set_normalizer_class(MinMaxNormalizer) \
@@ -116,15 +117,15 @@ def main(d):
         .set_worker_num(NUM_WORKERS) \
         .set_error(NRMSE) \
         .set_trainer(trainer) \
-        .set_inference_samples(inference_samples) \
-        .set_test_error(MNLL) \
         .set_tuner_class(StdTunerWrapper) \
         .build()
 
-    model = EnsemblePipeline.Builder() \
-        .set_pipeline(model) \
-        .set_num_ensembles(num_ensembles) \
-        .build()
+        #.set_inference_samples(inference_samples) \
+        #.set_test_error(MNLL) \
+#    model = EnsemblePipeline.Builder() \
+#        .set_pipeline(model) \
+#        .set_num_ensembles(num_ensembles) \
+#        .build()
     
     model.fit()
     model.test()
