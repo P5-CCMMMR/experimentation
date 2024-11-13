@@ -78,7 +78,7 @@ def clean_csv(file_path, output_dir):
         print(f"Error processing file {file_path}: {str(e)}")
 
 input_dir = 'src/data_preprocess/ukdata/9050csv_cleansed_data_set1_b693745c14a63a7ed1c6299c5abe1a19'
-output_dir = 'src/data_preprocess/ukdata/UKDATA_CLEANED'
+output_dir = 'src/data_preprocess/dataset/UKDATA_CLEANED'
 
 for file in os.listdir(input_dir):
     if file.endswith(".csv"):

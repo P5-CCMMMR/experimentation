@@ -75,7 +75,7 @@ on_limit_w = 1500
 consecutive_points = 3
 
 nist_path = "src/data_preprocess/dataset/NIST_cleaned.csv"
-ukdata_path = "src/data_preprocess/ukdata/data_root/UKDATA_cleaned.csv"
+ukdata_path = "src/data_preprocess/dataset/UKDATA_cleaned.csv"
 
 clean_in_low = 10
 clean_in_high = 30
@@ -85,7 +85,8 @@ clean_pow_low = 0
 clean_delta_temp = 15
 
 # find way to also use timestamps in predictions
-
+# TODO 
+# - 
 
 def main(d):
     assert time_horizon > 0, "Time horizon must be a positive integer"
