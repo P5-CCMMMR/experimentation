@@ -16,9 +16,10 @@ def prob_flex_predict(forecasts, lower_bound, upper_bound, error=0, confidence=0
     assert lower_bound + error < upper_bound - error, "Lower bound must be less than upper bound"
     
     flexibility = 0
+    cumulative_probability = 1
     probabilities = []
     been_out = False
-    epsilon = 1e-16
+    rounding_correction = 1e-16
     
     for mean, stddev in zip(forecasts[0], forecasts[1], strict=True):
         within_lower = norm.cdf(lower_bound + error, mean, stddev).item()
@@ -27,13 +28,14 @@ def prob_flex_predict(forecasts, lower_bound, upper_bound, error=0, confidence=0
         
         # Probability can never be 1 unless the bounds are infinite, and can never be 0
         if (within_bounds == 1 and upper_bound != float("inf") and lower_bound != float("-inf")):
-            within_bounds = 1 - epsilon
+            within_bounds = 1 - rounding_correction
         elif (within_bounds == 0):
-            within_bounds = epsilon
+            within_bounds = rounding_correction
+        
+        cumulative_probability *= within_bounds
+        probabilities.append(cumulative_probability)  
             
-        probabilities.append(within_bounds)  
-            
-        if within_bounds >= confidence and not been_out:
+        if cumulative_probability > confidence and not been_out:
             flexibility += 1
         else:
             been_out = True   
