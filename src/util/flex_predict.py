@@ -35,7 +35,7 @@ def prob_flex_predict(forecasts, lower_bound, upper_bound, error=0, confidence=0
         cumulative_probability *= within_bounds
         probabilities.append(cumulative_probability)  
             
-        if cumulative_probability >= confidence and not been_out:
+        if cumulative_probability > confidence and not been_out:
             flexibility += 1
         else:
             been_out = True   
