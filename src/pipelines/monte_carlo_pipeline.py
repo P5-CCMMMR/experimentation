@@ -6,12 +6,13 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from src.pipelines.normalizers.normalizer import Normalizer
+from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.pipelines.tuners.tuner_wrapper import TunerWrapper
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
 class MonteCarloPipeline(ProbabilisticPipeline):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
-                    optimizer: torch.optim.Optimizer, model: nn.Module, trainer: L.Trainer,
+                    optimizer: torch.optim.Optimizer, model: nn.Module, trainer_wrapper: TrainerWrapper,
                     tuner_class: TunerWrapper,
                     train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                     test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
@@ -19,7 +20,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                     target_column: int,
                     inference_samples: int):
         super().__init__(learning_rate, seq_len, batch_size,
-                            optimizer, model, trainer,
+                            optimizer, model, trainer_wrapper,
                             tuner_class,
                             train_loader, val_loader, test_loader,
                             test_timesteps, normalizer,
@@ -45,7 +46,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
     def copy(self):
         new_model = self.model.copy()
         new_optimizer = self.optimizer.copy(new_model)
-        new_trainer = self.trainer.copy()
+        new_trainer_wrapper = self.trainer_wrapper.copy()
 
         new_instance = MonteCarloPipeline(
             learning_rate=self.learning_rate,
@@ -53,7 +54,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             batch_size=self.batch_size,
             optimizer=new_optimizer,
             model=new_model,
-            trainer=new_trainer,
+            trainer_wrapper=new_trainer_wrapper,
             tuner_class=self.tuner_class,
             train_loader=self.train_loader,
             val_loader=self.val_loader,
@@ -67,6 +68,8 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             inference_samples=self.inference_samples
         )
         return new_instance
+    
+    
 
     class Builder(ProbabilisticPipeline.Builder):
         def __init__(self):
@@ -86,7 +89,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                                           self.batch_size,
                                           self.optimizer,
                                           self.model,
-                                          self.trainer,
+                                          self.trainer_wrapper,
                                           self.tuner_class,
                                           train_loader,
                                           val_loader,

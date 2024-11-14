@@ -13,7 +13,7 @@ PROPERTY_PATH_0005 = DATASETFOLDER + "Property_ID=EOH0005.csv"
 PROPERTY_PATH_0014 = DATASETFOLDER + "Property_ID=EOH0014.csv"
 PROPERTY_PATH_0018 = DATASETFOLDER + "Property_ID=EOH0018.csv"
 
-CLEAN_UKDATA_PATH = DATASETFOLDER + "UKDATA_cleaned.csv"
+CLEAN_UKDATA_PATH = "src/data_preprocess/dataset/UKDATA_cleaned.csv"
 
 # Data parameters
 SAMPLE_TIME = "15min"

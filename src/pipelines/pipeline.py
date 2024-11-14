@@ -18,7 +18,7 @@ from src.pipelines.tuners.tuner_wrapper import TunerWrapper
 
 class Pipeline(L.LightningModule, ABC):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
-                 optimizer: torch.optim.Optimizer, model: nn.Module, trainer: L.Trainer,
+                 optimizer: torch.optim.Optimizer, model: nn.Module, trainer_wrapper: TrainerWrapper,
                  tuner_class: TunerWrapper,
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
@@ -46,7 +46,9 @@ class Pipeline(L.LightningModule, ABC):
         self.optimizer = optimizer
         self.normalizer = normalizer
         self.model = model
-        self.trainer = trainer
+        self.trainer_wrapper = trainer_wrapper
+        if trainer_wrapper is not None:
+            self.trainer = trainer_wrapper.get_trainer()
 
         self.tuner_class = tuner_class
         self.tuner = None
@@ -69,13 +71,11 @@ class Pipeline(L.LightningModule, ABC):
         pass
 
     def fit(self): # Cancer train keyword taken by L.module
-        self.tuner = self.tuner_class(self.trainer.get_trainer(), self)
+        self.tuner = self.tuner_class(self.trainer, self)
         self.tuner.tune()
         self.trainer.fit(self)
 
     def test(self):
-        if self.tuner is None:
-            raise RuntimeError("Need to train before testing")
         self.trainer.test(self)
 
         self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
@@ -177,10 +177,10 @@ class Pipeline(L.LightningModule, ABC):
             self.optimizer = optimizer
             return self
         
-        def set_trainer(self, trainer):
-            if not isinstance(trainer, TrainerWrapper):
-                raise ValueError("Trainer instance given not extended from Trainer class")
-            self.trainer = trainer
+        def set_trainer(self, trainer_wrapper):
+            if not isinstance(trainer_wrapper, TrainerWrapper):
+                raise ValueError("TrainerWrapper instance given not extended from TrainerWrapper class")
+            self.trainer_wrapper = trainer_wrapper
             return self
 
         def set_tuner_class(self, tuner_class):
@@ -279,6 +279,8 @@ class Pipeline(L.LightningModule, ABC):
             return train_loader, val_loader, test_loader, test_timestamps, test_normalizer
 
         def build(self):
+            self._check_none(trainer_wrapper=self.trainer_wrapper, model=self.model, optimizer=self.optimizer)
+        
             train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()
 
             pipeline = self.pipeline_class(self.learning_rate,
@@ -286,7 +288,7 @@ class Pipeline(L.LightningModule, ABC):
                                           self.batch_size,
                                           self.optimizer,
                                           self.model,
-                                          self.trainer,
+                                          self.trainer_wrapper,
                                           self.tuner_class,
                                           train_loader,
                                           val_loader,

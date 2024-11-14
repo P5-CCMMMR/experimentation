@@ -84,10 +84,6 @@ clean_out_high = 50
 clean_pow_low = 0
 clean_delta_temp = 15
 
-# find way to also use timestamps in predictions
-# TODO 
-# - 
-
 def main(d):
     assert time_horizon > 0, "Time horizon must be a positive integer"
     
@@ -104,7 +100,7 @@ def main(d):
                              fast_dev_run=d)
     optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
-    model = DeterministicPipeline.Builder() \
+    model = MonteCarloPipeline.Builder() \
         .add_data(df) \
         .set_cleaner(cleaner) \
         .set_normalizer_class(MinMaxNormalizer) \
@@ -119,10 +115,10 @@ def main(d):
         .set_error(NRMSE) \
         .set_trainer(trainer) \
         .set_tuner_class(StdTunerWrapper) \
+        .set_inference_samples(inference_samples) \
+        .set_test_error(MNLL) \
         .build()
 
-        #.set_inference_samples(inference_samples) \
-        #.set_test_error(MNLL) \
 #    model = EnsemblePipeline.Builder() \
 #        .set_pipeline(model) \
 #        .set_num_ensembles(num_ensembles) \

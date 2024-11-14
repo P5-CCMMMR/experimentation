@@ -28,7 +28,7 @@ class DeterministicPipeline(Pipeline):
     def copy(self):
         new_model = self.model.copy()
         new_optimizer = self.optimizer.copy(new_model)
-        new_trainer = self.trainer.copy()
+        new_trainer_wrapper = self.trainer_wrapper.copy()
 
         new_instance = DeterministicPipeline(
             learning_rate=self.learning_rate,
@@ -36,7 +36,7 @@ class DeterministicPipeline(Pipeline):
             batch_size=self.batch_size,
             optimizer=new_optimizer,
             model=new_model,
-            trainer=new_trainer,
+            trainer_wrapper=new_trainer_wrapper,
             tuner_class=self.tuner_class,
             train_loader=self.train_loader,
             val_loader=self.val_loader,

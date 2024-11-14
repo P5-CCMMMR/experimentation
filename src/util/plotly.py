@@ -18,7 +18,6 @@ def plot_probabilistic_results(predictions, actuals, timestamps):
     fig = make_subplots()
     
     fig.add_trace(go.Scatter(x=timestamps, y=mean_predictions, mode='lines', name='Prediction'))
-    fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual'))
     
     fig.add_trace(go.Scatter(
         x=timestamps, 
@@ -77,6 +76,8 @@ def plot_probabilistic_results(predictions, actuals, timestamps):
         showlegend=False
     ))
 
+    fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual'))
+
     fig.update_layout(
         title="Predictions vs Actuals with Uncertainty",
         xaxis_title="Time",
@@ -84,7 +85,9 @@ def plot_probabilistic_results(predictions, actuals, timestamps):
         legend_title="Legend",
         hovermode="x",
         plot_bgcolor='white',
-        paper_bgcolor='white'
+        paper_bgcolor='white',
+        xaxis=dict(showgrid=True, gridcolor='lightgrey'),
+        yaxis=dict(showgrid=True, gridcolor='lightgrey')
     )
 
     fig.show()

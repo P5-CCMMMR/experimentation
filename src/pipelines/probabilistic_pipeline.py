@@ -8,19 +8,20 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from src.pipelines.normalizers.normalizer import Normalizer
+from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.pipelines.tuners.tuner_wrapper import TunerWrapper
 
 
 class ProbabilisticPipeline(Pipeline):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
-                 optimizer: torch.optim.Optimizer, model: nn.Module, trainer: L.Trainer,
+                 optimizer: torch.optim.Optimizer, model: nn.Module, trainer_wrapper: TrainerWrapper,
                  tuner_class: TunerWrapper,
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                  train_error_func, val_error_func, test_error_func,
                  target_column: int):
         super().__init__(learning_rate, seq_len, batch_size,
-                 optimizer, model, trainer,
+                 optimizer, model, trainer_wrapper,
                  tuner_class,
                  train_loader, val_loader, test_loader,
                  test_timesteps, normalizer,
@@ -53,8 +54,6 @@ class ProbabilisticPipeline(Pipeline):
         self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
     def test(self):
-        if self.tuner is None:
-            raise RuntimeError("Need to train before testing")
         self.trainer.test(self)
 
         mean, stddev = self.all_predictions

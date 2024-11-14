@@ -34,6 +34,7 @@ nvidia-nvtx-cu12==12.1.105
 packaging==24.1
 pandas==2.2.3
 pillow==10.4.0
+plotly==5.17.0
 pyparsing==3.1.4
 python-dateutil==2.9.0.post0
 pytorch-lightning==2.4.0
@@ -51,4 +52,5 @@ typing_extensions==4.12.2
 tzdata==2024.1
 yarl==1.11.1
 gdown==5.2.0
+nbformat>=4.2.0
 unzip==1.0.0

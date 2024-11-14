@@ -3,9 +3,8 @@ import torch
 from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from torch.utils.data import DataLoader
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
-from src.util.error import RMSE
 from src.util.flex_predict import flex_predict, prob_flex_predict
-from src.util.plot import plot_flex_probabilities
+from src.util.plotly import plot_flex_probabilities
 
 def get_prob_mafe(data, model, seq_len, error, boundary, time_horizon, target_column, confidence=0.95):
     if len(data) < (time_horizon + seq_len):

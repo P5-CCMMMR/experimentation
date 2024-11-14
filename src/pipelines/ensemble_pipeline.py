@@ -1,8 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import copy
 import numpy as np
+import torch
 from src.pipelines.pipeline import Pipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
+import os
 
 class EnsemblePipeline(ProbabilisticPipeline):
     def __init__(self, pipeline_arr, num_ensembles):
@@ -26,6 +28,16 @@ class EnsemblePipeline(ProbabilisticPipeline):
     def copy(self):
         raise NotImplementedError("copy not Meant to be used for ensemble")
     
+    def save(self, path):
+        print(f"saving to {path}")
+        os.makedirs(path, exist_ok=True)
+        for i, (pipeline) in enumerate(self.pipeline_arr):
+            torch.save(pipeline.state_dict(), f"{path}/sub_model{i}.pth")
+
+
+    def load(self, path):
+        for i, (pipeline) in enumerate(self.pipeline_arr):
+            pipeline.load_state_dict(torch.load(f"{path}/sub_model{i}.pth", weights_only=True))
     
     def fit(self): 
         with ThreadPoolExecutor(max_workers=self.num_ensembles) as executor:
