@@ -2,13 +2,13 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-def plot_results(predictions, actuals, timestamps):
+def plot_results(predictions, actuals, timestamps, horizon_len):
     if isinstance(predictions, tuple):
-        plot_probabilistic_results(predictions, actuals, timestamps)
+        plot_probabilistic_results(predictions, actuals, timestamps, horizon_len)
     else:
-        plot_deterministic_results(predictions, actuals, timestamps)
+        plot_deterministic_results(predictions, actuals, timestamps, horizon_len)
 
-def plot_probabilistic_results(predictions, actuals, timestamps):
+def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len):
     mean_predictions, std_predictions = predictions
     mean_predictions = np.array(mean_predictions)
     std_predictions = np.array(std_predictions)
@@ -76,6 +76,14 @@ def plot_probabilistic_results(predictions, actuals, timestamps):
         showlegend=False
     ))
 
+    fig.add_trace(go.Scatter(
+        x=timestamps[::horizon_len], 
+        y=mean_predictions[::horizon_len], 
+        mode='markers', 
+        name='Prediction Start Points', 
+        marker=dict(size=4, symbol='circle', line_width=1)
+    ))
+
     fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual'))
 
     fig.update_layout(
@@ -92,7 +100,7 @@ def plot_probabilistic_results(predictions, actuals, timestamps):
 
     fig.show()
 
-def plot_deterministic_results(predictions, actuals, timestamps):
+def plot_deterministic_results(predictions, actuals, timestamps, horizon_len):
     predictions = np.array(predictions)
     actuals = np.array(actuals)
     timestamps = timestamps[:len(predictions)]
@@ -100,6 +108,13 @@ def plot_deterministic_results(predictions, actuals, timestamps):
     fig = make_subplots()
     
     fig.add_trace(go.Scatter(x=timestamps, y=predictions, mode='lines', name='Prediction'))
+    fig.add_trace(go.Scatter(
+        x=timestamps[::horizon_len], 
+        y=predictions[::horizon_len], 
+        mode='markers', 
+        name='Prediction Start Points', 
+        marker=dict(size=4, symbol='circle', line_width=1)
+    ))
     fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual'))
 
     fig.update_layout(
