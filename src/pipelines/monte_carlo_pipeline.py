@@ -19,7 +19,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                     train_error_func, val_error_func, test_error_func,
                     target_column: int,
                     inference_samples: int,
-                    inference_dropout: float = 0):
+                    inference_dropout: float = 0.5):
         super().__init__(learning_rate, seq_len, batch_size,
                             optimizer, model, trainer_wrapper,
                             tuner_class,
