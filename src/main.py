@@ -9,7 +9,7 @@ from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.flex_error import get_mafe, get_prob_mafe
 from src.util.plot import plot_results
 from src.util.power_splitter import PowerSplitter
-from src.util.error import NRMSE, MNLL
+from src.util.metrics import NRMSE, MNLL
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
