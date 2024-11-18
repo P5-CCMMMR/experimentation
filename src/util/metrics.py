@@ -19,33 +19,26 @@ def NRMSE(y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.zeros_like(y)
     return RMSE(y_hat, y) / (y.max() - y.min())
 
-def NLL(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+def LSCV(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
-    Negative Log Likelihood
-    Returns the sum of the NLL of the batch\n
+    Logarithmic Score for Continuous Variables\n
+    Based of: https://en.wikipedia.org/wiki/Scoring_rule#Logarithmic_score_for_continuous_variables
     """
-    # Small term to avoid division by zero
-    eps = 1e-16
-    
-    stddev = torch.clamp(stddev, min=eps)
-    variance = torch.pow(stddev, 2)
-    
-    nll = 0.5 * (torch.log(2 * torch.pi * variance) + ((y - mean) ** 2) / variance)
-    return torch.sum(nll)
+    return torch.sum(-torch.log(norm.pdf(y, mean, stddev)))
 
-def MNLL(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+def MLSCV(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
-    Mean Negative Log Likelihood
+    Mean Logarithmic Score for Continuous Variables
     """
-    return NLL(mean, stddev, y) / y.size(0)
+    return LSCV(mean, stddev, y) / y.size(0)
 
-def NMNLL(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+def NMLSCV(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
-    Normalized Mean Negative Log Likelihood
+    Normalized Mean Logarithmic Score for Continuous Variables
     """
     if y.max() == y.min():
         return torch.zeros_like(y)
-    return MNLL(mean, stddev, y) / (y.max() - y.min())
+    return MLSCV(mean, stddev, y) / (y.max() - y.min())
 
 def KL(mean1: torch.Tensor, stddev1: torch.Tensor, mean2: torch.Tensor, stddev2: torch.Tensor) -> torch.Tensor:
     """
@@ -91,7 +84,7 @@ def CRPS(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Ten
     
     stddev = torch.clamp(stddev, min=eps)
     omega = (y - mean) / stddev
-    crps = torch.sigmoid(omega * (2 * norm.cdf(omega) - 1) + 2 * norm.pdf(omega) - torch.pi**-0.5)
+    crps = torch.sigmoid(omega * (2 * norm.cdf(omega, mean, stddev) - 1) + 2 * norm.pdf(omega, mean, stddev) - torch.pi**-0.5)
     
     return torch.sum(crps)
 
