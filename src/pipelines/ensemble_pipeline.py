@@ -65,7 +65,6 @@ class EnsemblePipeline(ProbabilisticPipeline):
         mean_arr = np.array(self.all_predictions[0]).reshape(-1, self.horizen_len) 
         stddev_arr = np.array(self.all_predictions[1]).reshape(-1, self.horizen_len) 
         
-        print(f"predictions length: {len(self.all_predictions[0])} | actuals len: {len(self.all_actuals)}")
         all_y = []
         if len(self.all_predictions[0]) > len(self.all_actuals):
             for i in range(0, len(self.all_actuals)):
@@ -73,9 +72,22 @@ class EnsemblePipeline(ProbabilisticPipeline):
         else:
             all_y = np.array(self.all_actuals).reshape(-1, self.horizen_len) 
 
-        print(f"mean_arr length: {len(mean_arr)} | actuals len: {len(all_y)}")
-        for mean, stddev, y in zip(mean_arr, stddev_arr, all_y):     
-            self._log_test_errors(torch.tensor(mean, device=y.device), torch.tensor(stddev, device=y.device), torch.tensor(y, device=y.device))
+        func_arr = self.test_error_func_arr
+        for func in func_arr:
+            loss_arr = []
+            for mean, stddev, y in zip(mean_arr, stddev_arr, all_y):     
+                if func.is_deterministic():
+                    temp_loss = func.calc(torch.tensor(mean, device=y.device), torch.tensor(y, device=y.device))
+                elif func.is_probabilistic():
+                    temp_loss = func.calc(torch.tensor(mean, device=y.device), torch.tensor(stddev, device=y.device), torch.tensor(y, device=y.device))
+                if temp_loss.numel() == 1:
+                    loss_arr.append(temp_loss)
+                else:
+                    print(f"temp_loss: {temp_loss}, mean: {mean}, y: {y}")
+
+            title = func.get_title()
+            avg_loss = (sum(loss_arr) / len(loss_arr)).item()
+            print(f"{title:<30} {avg_loss:.6f}")
 
     def forward(self, x):
         predictions = []
