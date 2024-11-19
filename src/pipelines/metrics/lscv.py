@@ -17,11 +17,16 @@ class LSCV(ProbabilisticMetric):
         Based of: https://en.wikipedia.org/wiki/Scoring_rule#Logarithmic_score_for_continuous_variables
         """
 
+        eps = 1e-16
+
         mean_np = mean.cpu().numpy()
         stddev_np = stddev.cpu().numpy()
         y_np = y.cpu().numpy()
         
-        return torch.sum(-torch.log(torch.tensor(norm.pdf(y_np, mean_np, stddev_np), dtype=torch.float32, device=y.device)))
+        pdf_vals = norm.pdf(y_np, mean_np, stddev_np)
+        pdf_tensor = torch.clamp(torch.tensor(pdf_vals, dtype=torch.float32, device=y.device), min=eps)
+        
+        return torch.sum(-torch.log(pdf_tensor))
     
 
 class MLSCV(LSCV):
