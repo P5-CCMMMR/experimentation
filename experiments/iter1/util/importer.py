@@ -7,7 +7,7 @@ import multiprocessing
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.power_splitter import PowerSplitter
-from src.util.error import RMSE, NRMSE, MNLL
+
 from src.util.plotly import plot_results
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
@@ -19,6 +19,10 @@ from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
 from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
+
+from src.pipelines.metrics.crps import *
+from src.pipelines.metrics.lscv import *
+from src.pipelines.metrics.rmse import * 
 
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
@@ -47,11 +51,12 @@ num_layers = 2
  
 # MC ONLY
 inference_samples = 50
+inference_dropout = 0.5
 
 # Training
 dropout = 0.50
 gradient_clipping = 0
-early_stopping_threshold = 0.15
+early_stopping_threshold = 0.18
 
 num_ensembles = 5
 

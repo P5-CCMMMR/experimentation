@@ -18,36 +18,43 @@ class ProbabilisticPipeline(Pipeline):
                  tuner_class: TunerWrapper,
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
-                 train_error_func, val_error_func, test_error_func,
+                 train_error_func, val_error_func, test_error_func_arr,
                  target_column: int):
         super().__init__(learning_rate, seq_len, batch_size,
                  optimizer, model, trainer_wrapper,
                  tuner_class,
                  train_loader, val_loader, test_loader,
                  test_timesteps, normalizer,
-                 train_error_func, val_error_func, test_error_func,
+                 train_error_func, val_error_func, test_error_func_arr,
                  target_column)
         self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
     def training_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
-        loss = self.train_error_func(y_hat, y)
+        loss = self.train_error_func.calc(y_hat, y)
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True, prog_bar=True)
         return loss
     
     def validation_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
-        loss = self.val_error_func(y_hat, y)
+        loss = self.val_error_func.calc(y_hat, y)
         self.log('val_loss', loss, on_epoch=True, logger=True, prog_bar=True)
         return loss
 
     def test_step(self, batch):
         x, y = batch
         mean_prediction, std_prediction = self.forward(x)
-        loss = self.test_error_func(torch.tensor(mean_prediction, device=y.device), torch.tensor(std_prediction, device=y.device), y)
-        self.log('test_loss', loss, on_step=True, logger=True, prog_bar=True)
+
+        func_arr = self.test_error_func_arr
+        for func in func_arr:
+            if func.is_deterministic():
+                loss = func.calc(torch.tensor(mean_prediction, device=y.device), y)
+                self.log(func.get_title(), loss, on_step=True, logger=True, prog_bar=True)
+            if func.is_probabilistic():
+                loss = func.calc(torch.tensor(mean_prediction, device=y.device), torch.tensor(std_prediction, device=y.device), y)
+                self.log(func.get_title(), loss, on_step=True, logger=True, prog_bar=True)
         
         self.all_predictions[0].extend(mean_prediction.flatten())
         self.all_predictions[1].extend(std_prediction.flatten())
@@ -67,3 +74,21 @@ class ProbabilisticPipeline(Pipeline):
         def __init__(self):
             super().__init__()
             self.pipeline_class = ProbabilisticPipeline
+
+        def set_error(self, error_func):
+            self.train_error_func = error_func
+            self.val_error_func = error_func
+            self.test_error_func = error_func
+            return self
+
+        def set_train_error(self, error_func):
+            self.train_error_func = error_func
+            return self
+
+        def set_val_error(self, error_func):
+            self.val_error_func = error_func
+            return self
+        
+        def add_test_error(self, error_func):
+            self.test_error_func_arr.append(error_func)
+            return self

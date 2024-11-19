@@ -22,7 +22,7 @@ class Pipeline(L.LightningModule, ABC):
                  tuner_class: TunerWrapper,
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
-                 train_error_func, val_error_func, test_error_func,
+                 train_error_func, val_error_func, test_error_func_arr,
                  target_column):
         super().__init__()
         self.seq_len = seq_len
@@ -41,7 +41,7 @@ class Pipeline(L.LightningModule, ABC):
 
         self.train_error_func = train_error_func
         self.val_error_func = val_error_func
-        self.test_error_func = test_error_func
+        self.test_error_func_arr = test_error_func_arr
 
         self.optimizer = optimizer
         self.normalizer = normalizer
@@ -117,7 +117,7 @@ class Pipeline(L.LightningModule, ABC):
 
             self.train_error_func = None
             self.val_error_func = None
-            self.test_error_func = None
+            self.test_error_func_arr = []
 
             self.normalizer_class = None
             self.tuner_class = None
@@ -212,25 +212,23 @@ class Pipeline(L.LightningModule, ABC):
         def set_optimizer(self, optimizer: torch.optim.Optimizer):
             self.optimizer = optimizer
             return self
-
+        
+        @abstractmethod
         def set_error(self, error_func):
-            self.train_error_func = error_func
-            self.val_error_func = error_func
-            self.test_error_func = error_func
-            return self
-
+            pass
+        
+        @abstractmethod
         def set_train_error(self, error_func):
-            self.train_error_func = error_func
-            return self
+            pass
 
+        @abstractmethod
         def set_val_error(self, error_func):
-            self.val_error_func = error_func
-            return self
+            pass
         
-        def set_test_error(self, error_func):
-            self.test_error_func = error_func
-            return self
-        
+        @abstractmethod
+        def add_test_error(self, error_func):
+            pass
+
         def _check_none(self, **kwargs):
             for key, value in kwargs.items():
                 if value is None:
@@ -297,7 +295,7 @@ class Pipeline(L.LightningModule, ABC):
                                           test_normalizer,
                                           self.train_error_func,
                                           self.val_error_func,
-                                          self.test_error_func,
+                                          self.test_error_func_arr,
                                           self.target_column)
 
             return pipeline

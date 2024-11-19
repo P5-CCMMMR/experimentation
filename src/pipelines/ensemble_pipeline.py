@@ -7,8 +7,8 @@ from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 import os
 
 class EnsemblePipeline(ProbabilisticPipeline):
-    def __init__(self, pipeline_arr, num_ensembles):
-        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+    def __init__(self, pipeline_arr, num_ensembles, test_error_func_arr):
+        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None)
         self.pipeline_arr = pipeline_arr
         self.num_ensembles = num_ensembles
 
@@ -44,7 +44,8 @@ class EnsemblePipeline(ProbabilisticPipeline):
             futures = [executor.submit(pipeline.fit) for pipeline in self.pipeline_arr]
             for future in as_completed(futures):
                 future.result()
-    
+
+    #! Make test test the ensemble
     def test(self):
         with ThreadPoolExecutor(max_workers=self.num_ensembles) as executor:
             futures = [executor.submit(pipeline.test) for pipeline in self.pipeline_arr]

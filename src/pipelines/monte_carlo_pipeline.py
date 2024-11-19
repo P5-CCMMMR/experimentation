@@ -16,16 +16,16 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                     tuner_class: TunerWrapper,
                     train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                     test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
-                    train_error_func, val_error_func, test_error_func,
+                    train_error_func, val_error_func, test_error_func_arr,
                     target_column: int,
                     inference_samples: int,
-                    inference_dropout: float = 0.5):
+                    inference_dropout: float):
         super().__init__(learning_rate, seq_len, batch_size,
                             optimizer, model, trainer_wrapper,
                             tuner_class,
                             train_loader, val_loader, test_loader,
                             test_timesteps, normalizer,
-                            train_error_func, val_error_func, test_error_func,
+                            train_error_func, val_error_func, test_error_func_arr,
                             target_column)
         self.inference_samples = inference_samples
         self.inference_dropout = inference_dropout
@@ -71,7 +71,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             normalizer=self.normalizer,
             train_error_func=self.train_error_func,
             val_error_func=self.val_error_func,
-            test_error_func=self.test_error_func,
+            test_error_func_arr=self.test_error_func_arr,
             target_column=self.target_column,
             inference_samples=self.inference_samples
         )
@@ -82,7 +82,6 @@ class MonteCarloPipeline(ProbabilisticPipeline):
     class Builder(ProbabilisticPipeline.Builder):
         def __init__(self):
             super().__init__()
-            self.inference_samples = 0
             self.pipeline_class = MonteCarloPipeline
 
         def set_inference_samples(self, inference_samples):
@@ -91,6 +90,27 @@ class MonteCarloPipeline(ProbabilisticPipeline):
         
         def set_inference_dropout(self, inference_dropout):
             self.inference_dropout = inference_dropout
+            return self
+
+        def set_error(self, error_func):
+            assert error_func.is_deterministic(), "Training and Validation error functions for Monte-Carlo has to be deterministic"
+            self.train_error_func = error_func
+            self.val_error_func = error_func
+            self.test_error_func = error_func
+            return self
+
+        def set_train_error(self, error_func):
+            assert error_func.is_deterministic(), "Training error functions for Monte-Carlo has to be deterministic"
+            self.train_error_func = error_func
+            return self
+
+        def set_val_error(self, error_func):
+            assert error_func.is_deterministic(), "Validation error functions for Monte-Carlo has to be deterministic"
+            self.val_error_func = error_func
+            return self
+        
+        def add_test_error(self, error_func):
+            self.test_error_func_arr.append(error_func)
             return self
         
         def build(self):
@@ -110,7 +130,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                                           test_normalizer,
                                           self.train_error_func,
                                           self.val_error_func,
-                                          self.test_error_func,
+                                          self.test_error_func_arr,
                                           self.target_column,
                                           self.inference_samples,
                                           self.inference_dropout)

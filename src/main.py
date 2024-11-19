@@ -6,10 +6,9 @@ import pandas as pd
 import multiprocessing
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
-from src.util.flex_error import get_mafe, get_prob_mafe
-from src.util.plot import plot_results
+from src.util.evaluator import Evaluator
+from src.util.plotly import plot_results
 from src.util.power_splitter import PowerSplitter
-from src.util.metrics import NRMSE, NMLSCV
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
@@ -20,10 +19,15 @@ from src.pipelines.splitters.std_splitter import StdSplitter
 from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
+from src.pipelines.metrics.crps import *
+from src.pipelines.metrics.lscv import *
+from src.pipelines.metrics.rmse import * 
+
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
+
 
 import torch.optim as optim
 
@@ -117,36 +121,73 @@ def main(d):
         .set_trainer(trainer) \
         .set_tuner_class(StdTunerWrapper) \
         .set_inference_samples(inference_samples) \
-        .set_test_error(NMLSCV) \
+        .set_inference_dropout(inference_dropout) \
+        .add_test_error(NRMSE) \
+        .add_test_error(NMLSCV) \
+        .add_test_error(NMCRPS) \
         .build()
+
 
 #    model = EnsemblePipeline.Builder() \
 #        .set_pipeline(model) \
 #        .set_num_ensembles(num_ensembles) \
 #        .build()
-    
-    model.fit()
-    model.test()
 
-    plot_results(model.get_predictions(), model.get_actuals(), model.get_timestamps())
+    model.load_state_dict(torch.load('src/testing_model.pth', weights_only=True))
 
-    model.eval()
+    def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence):
+        predictions = model.get_predictions()
 
-    ps = PowerSplitter(splitter.get_test(cleaner.clean(df)), TIMESTAMP, POWER)
+        if isinstance(predictions, tuple):
+            predictions_2d_arr = tuple(np.array(pred).reshape(-1, time_horizon) for pred in predictions)
+        else:
+            predictions_2d_arr = np.array(predictions).reshape(-1, time_horizon)
 
-    on_df = ps.get_mt_power(on_limit_w, consecutive_points)
-    off_df = ps.get_lt_power(off_limit_w, consecutive_points)
+        actuals_arr = np.array(model.get_actuals()).reshape(-1, time_horizon)[::time_horizon].flatten()
+        timestep_arr = model.get_timestamps()
 
-    on_data = np.array(on_df)
-    off_data = np.array(off_df)
+        if isinstance(predictions_2d_arr, tuple):
+            for i in range(0, time_horizon):
+                predictions_arr = tuple(np.array(pred)[i::time_horizon].flatten() for pred in predictions_2d_arr)
+                plot_results(predictions_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
+        else: 
+            for i in range(0, time_horizon):
+                predictions_arr = predictions_2d_arr[i::time_horizon].flatten()
+                plot_results(predictions_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
 
-    print("Calculating mafe...")
-    if (isinstance(model, ProbabilisticPipeline)):
-        print("PROB MAFE ON:", get_prob_mafe(on_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN, flex_confidence))
-        print("PROB MAFE OFF:", get_prob_mafe(off_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN, flex_confidence))
-    else:
-        print("MAFE ON:", get_mafe(on_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
-        print("MAFE OFF:", get_mafe(off_data, model, seq_len, error, temp_boundary, time_horizon, TARGET_COLUMN))
+        model.eval()
+
+        ps = PowerSplitter(splitter.get_test(cleaner.clean(df)), TIMESTAMP, POWER)
+
+        on_df = ps.get_mt_power(on_limit_w, consecutive_points)
+        off_df = ps.get_lt_power(off_limit_w, consecutive_points)
+
+        def normalize_and_convert_dates(data):
+            data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
+            temp = MinMaxNormalizer(data.astype(float)).normalize()
+            return temp[0]
+
+        on_data = np.array(on_df)
+        on_data = normalize_and_convert_dates(on_data)
+
+        off_data = np.array(off_df)
+        off_data = normalize_and_convert_dates(off_data)
+
+        evaluator = Evaluator(model, error, temp_boundary)
+
+        print("Calculating On set...")
+        evaluator.init_predictions(on_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence) 
+        print(f"On Mafe: {evaluator.evaluate(lambda a, b: abs(a - b))}") 
+        print(f"On Maofe: {evaluator.evaluate(lambda a, b: abs(max(a - b, 0)))}")
+        print(f"On Maufe: {evaluator.evaluate(lambda a, b: abs(min(a - b, 0)))}")
+
+        print("Calculating Off set...")
+        evaluator.init_predictions(off_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence)
+        print(f"Off Mafe: {evaluator.evaluate(lambda a, b: abs(a - b))}")
+        print(f"Off Maofe: {evaluator.evaluate(lambda a, b: abs(max(a - b, 0)))}")
+        print(f"Off Maufe: {evaluator.evaluate(lambda a, b: abs(min(a - b, 0)))}")
+
+    evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, 0.95)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")
