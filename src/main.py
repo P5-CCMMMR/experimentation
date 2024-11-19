@@ -46,6 +46,7 @@ num_layers = 2
  
 # MC ONLY
 inference_samples = 50
+inference_dropout = 0.5
 
 # Training
 dropout = 0.50

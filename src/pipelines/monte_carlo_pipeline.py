@@ -18,7 +18,8 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                     test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                     train_error_func, val_error_func, test_error_func,
                     target_column: int,
-                    inference_samples: int):
+                    inference_samples: int,
+                    inference_dropout: float = 0.5):
         super().__init__(learning_rate, seq_len, batch_size,
                             optimizer, model, trainer_wrapper,
                             tuner_class,
@@ -27,9 +28,11 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                             train_error_func, val_error_func, test_error_func,
                             target_column)
         self.inference_samples = inference_samples
-
+        self.inference_dropout = inference_dropout
+    
     def forward(self, x):
         self.model.train()
+        self.__switch_to_inference_dropout()
         predictions = []
 
         with torch.no_grad():
@@ -42,6 +45,11 @@ class MonteCarloPipeline(ProbabilisticPipeline):
         std_prediction = np.std(predictions, axis=0)
 
         return mean_prediction, std_prediction
+    
+    def __switch_to_inference_dropout(self):
+        for module in self.model.modules():
+            if isinstance(module, nn.Dropout):
+                module.p = self.inference_dropout
     
     def copy(self):
         new_model = self.model.copy()
@@ -81,6 +89,10 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             self.inference_samples = inference_samples
             return self
         
+        def set_inference_dropout(self, inference_dropout):
+            self.inference_dropout = inference_dropout
+            return self
+        
         def build(self):
             train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()
 
@@ -100,7 +112,8 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                                           self.val_error_func,
                                           self.test_error_func,
                                           self.target_column,
-                                          self.inference_samples)
+                                          self.inference_samples,
+                                          self.inference_dropout)
             return pipeline
         
     
