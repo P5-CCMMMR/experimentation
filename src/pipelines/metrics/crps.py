@@ -27,7 +27,7 @@ class CRPS(ProbabilisticMetric):
         cdf_tensor = torch.tensor(cdf_vals, dtype=torch.float32, device=y.device)
         pdf_tensor = torch.tensor(pdf_vals, dtype=torch.float32, device=y.device)
         
-        crps = torch.sigmoid(omega * (2 * cdf_tensor - 1) + 2 * pdf_tensor - torch.pi**-0.5)
+        crps = stddev * (omega * (2 * cdf_tensor - 1) + 2 * pdf_tensor - torch.pi**-0.5)
 
         return torch.sum(crps)
     
