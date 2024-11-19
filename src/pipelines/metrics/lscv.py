@@ -13,12 +13,15 @@ class LSCV(ProbabilisticMetric):
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Logarithmic Score for Continuous Variables\n
+        Returns sum of the logarithmic score for batch\n
         Based of: https://en.wikipedia.org/wiki/Scoring_rule#Logarithmic_score_for_continuous_variables
         """
-        y = y.cpu()
-        mean = mean.cpu()
-        stddev = stddev.cpu()
-        return torch.sum(-torch.log(torch.tensor(norm.pdf(y, mean, stddev))))
+
+        mean_np = mean.cpu().numpy()
+        stddev_np = stddev.cpu().numpy()
+        y_np = y.cpu().numpy()
+        
+        return torch.sum(-torch.log(torch.tensor(norm.pdf(y_np, mean_np, stddev_np), dtype=torch.float32, device=y.device)))
     
 
 class MLSCV(LSCV):
