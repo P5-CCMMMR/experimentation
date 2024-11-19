@@ -58,13 +58,19 @@ class Pipeline(L.LightningModule, ABC):
         self.all_predictions = []
         self.all_actuals = []
 
-    @abstractmethod
     def training_step(self, batch):
-        pass
-  
-    @abstractmethod
+        x, y = batch
+        y_hat = self.model(x)
+        loss = self.train_error_func.calc(y_hat, y)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True, prog_bar=True)
+        return loss
+    
     def validation_step(self, batch):
-        pass
+        x, y = batch
+        y_hat = self.model(x)
+        loss = self.val_error_func.calc(y_hat, y)
+        self.log('val_loss', loss, on_epoch=True, logger=True, prog_bar=True)
+        return loss
 
     @abstractmethod
     def test_step(self, batch):

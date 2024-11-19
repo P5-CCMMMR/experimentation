@@ -2,20 +2,6 @@ import copy
 from src.pipelines.pipeline import Pipeline
 
 class DeterministicPipeline(Pipeline):
-    def training_step(self, batch):
-        x, y = batch
-        y_hat = self.forward(x)
-        loss = self.train_error_func(y_hat, y)
-        self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True, prog_bar=True)
-        return loss
-    
-    def validation_step(self, batch):
-        x, y = batch
-        y_hat = self.forward(x)
-        loss = self.val_error_func(y_hat, y)
-        self.log('val_loss', loss, on_epoch=True, logger=True, prog_bar=True)
-        return loss
-
     def test_step(self, batch):
         x, y = batch
         y_hat = self.forward(x)
@@ -61,7 +47,7 @@ class DeterministicPipeline(Pipeline):
             assert error_func.is_deterministic(), "Error functions for Deterministic pipeline has to be deterministic"
             self.train_error_func = error_func
             self.val_error_func = error_func
-            self.test_error_func = error_func
+            self.add_test_error(error_func)
             return self
 
         def set_train_error(self, error_func):

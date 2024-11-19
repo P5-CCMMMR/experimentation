@@ -122,9 +122,6 @@ def main(d):
         .set_tuner_class(StdTunerWrapper) \
         .set_inference_samples(inference_samples) \
         .set_inference_dropout(inference_dropout) \
-        .add_test_error(NRMSE) \
-        .add_test_error(NMLSCV) \
-        .add_test_error(NMCRPS) \
         .build()
 
 
@@ -133,7 +130,7 @@ def main(d):
 #        .set_num_ensembles(num_ensembles) \
 #        .build()
 
-    model.load_state_dict(torch.load('src/testing_model.pth', weights_only=True))
+    model.fit()
 
     def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence):
         predictions = model.get_predictions()

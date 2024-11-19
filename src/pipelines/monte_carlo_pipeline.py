@@ -73,7 +73,8 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             val_error_func=self.val_error_func,
             test_error_func_arr=self.test_error_func_arr,
             target_column=self.target_column,
-            inference_samples=self.inference_samples
+            inference_samples=self.inference_samples,
+            inference_dropout=self.inference_dropout
         )
         return new_instance
     
@@ -94,24 +95,19 @@ class MonteCarloPipeline(ProbabilisticPipeline):
 
         def set_error(self, error_func):
             assert error_func.is_deterministic(), "Training and Validation error functions for Monte-Carlo has to be deterministic"
-            self.train_error_func = error_func
-            self.val_error_func = error_func
-            self.test_error_func = error_func
+            super().set_error(error_func)
             return self
 
         def set_train_error(self, error_func):
             assert error_func.is_deterministic(), "Training error functions for Monte-Carlo has to be deterministic"
-            self.train_error_func = error_func
+            super().set_train_error(error_func)
             return self
 
         def set_val_error(self, error_func):
             assert error_func.is_deterministic(), "Validation error functions for Monte-Carlo has to be deterministic"
-            self.val_error_func = error_func
+            super().set_val_error(error_func)
             return self
         
-        def add_test_error(self, error_func):
-            self.test_error_func_arr.append(error_func)
-            return self
         
         def build(self):
             train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()

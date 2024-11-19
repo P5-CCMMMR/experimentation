@@ -7,10 +7,11 @@ from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 import os
 
 class EnsemblePipeline(ProbabilisticPipeline):
-    def __init__(self, pipeline_arr, num_ensembles, test_error_func_arr):
+    def __init__(self, pipeline_arr, num_ensembles, horizon_len, test_error_func_arr):
         super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None)
         self.pipeline_arr = pipeline_arr
         self.num_ensembles = num_ensembles
+        self.horizen_len = horizon_len
 
         self.timesteps = self.pipeline_arr[0].get_timestamps()
         self.all_predictions = []
@@ -45,7 +46,7 @@ class EnsemblePipeline(ProbabilisticPipeline):
             for future in as_completed(futures):
                 future.result()
 
-    #! Make test test the ensemble
+    #! Make test test the ensemble This is not tried out and need testing
     def test(self):
         with ThreadPoolExecutor(max_workers=self.num_ensembles) as executor:
             futures = [executor.submit(pipeline.test) for pipeline in self.pipeline_arr]
@@ -60,7 +61,22 @@ class EnsemblePipeline(ProbabilisticPipeline):
             self.all_predictions = self._ensemble_probabilistic_predictions(self.all_predictions)
         else:
             self.all_predictions = self._ensemble_deterministic_predictions(self.all_predictions)
+
+        mean_arr = np.array(self.all_predictions[0]).reshape(-1, self.horizen_len) 
+        stddev_arr = np.array(self.all_predictions[1]).reshape(-1, self.horizen_len) 
         
+        print(f"predictions length: {len(self.all_predictions[0])} | actuals len: {len(self.all_actuals)}")
+        all_y = []
+        if len(self.all_predictions[0]) > len(self.all_actuals):
+            for i in range(0, len(self.all_actuals)):
+                all_y.append(self.all_actuals[i:i+self.horizen_len])
+        else:
+            all_y = np.array(self.all_actuals).reshape(-1, self.horizen_len) 
+
+        print(f"mean_arr length: {len(mean_arr)} | actuals len: {len(all_y)}")
+        for mean, stddev, y in zip(mean_arr, stddev_arr, all_y):     
+            self._log_test_errors(torch.tensor(mean, device=y.device), torch.tensor(stddev, device=y.device), torch.tensor(y, device=y.device))
+
     def forward(self, x):
         predictions = []
 
@@ -113,7 +129,7 @@ class EnsemblePipeline(ProbabilisticPipeline):
         return mean_predictions, std_predictions
 
  
-    class Builder(Pipeline.Builder):
+    class Builder(ProbabilisticPipeline.Builder):
         def __init__(self):
             super().__init__()
             self.pipeline_class = EnsemblePipeline
@@ -125,6 +141,10 @@ class EnsemblePipeline(ProbabilisticPipeline):
             self.num_ensembles = num_ensembles
             return self
         
+        def set_horizon_len(self, horizon_len):
+            self.horizon_len = horizon_len
+            return self
+
         def set_pipeline(self, sub_pipeline):
             if not isinstance(sub_pipeline, Pipeline):
                 raise ValueError("Pipeline instance given not extended from Pipeline class")
@@ -136,7 +156,9 @@ class EnsemblePipeline(ProbabilisticPipeline):
                 self.pipeline_arr.append(self.sub_pipeline.copy())
                          
             return self.pipeline_class(self.pipeline_arr,
-                                       self.num_ensembles)
+                                       self.num_ensembles,
+                                       self.horizon_len,
+                                       self.test_error_func_arr)
         
     
 
