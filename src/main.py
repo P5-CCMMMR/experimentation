@@ -9,7 +9,7 @@ from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from src.util.flex_error import get_mafe, get_prob_mafe
 from src.util.plot import plot_results
 from src.util.power_splitter import PowerSplitter
-from src.util.error import NRMSE, MNLL
+from src.util.metrics import NRMSE, NMLSCV
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
@@ -117,8 +117,7 @@ def main(d):
         .set_trainer(trainer) \
         .set_tuner_class(StdTunerWrapper) \
         .set_inference_samples(inference_samples) \
-        .set_inference_dropout(inference_dropout) \
-        .set_test_error(MNLL) \
+        .set_test_error(NMLSCV) \
         .build()
 
 #    model = EnsemblePipeline.Builder() \
