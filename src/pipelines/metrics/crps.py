@@ -1,6 +1,5 @@
 import torch
 from .metric import ProbabilisticMetric
-import torch.nn as nn
 from scipy.stats import norm
 
 class CRPS(ProbabilisticMetric):
@@ -20,7 +19,15 @@ class CRPS(ProbabilisticMetric):
 
         stddev = torch.clamp(stddev, min=eps)
         omega = (y - mean) / stddev
-        crps = torch.sigmoid(omega * (2 * norm.cdf(omega, mean, stddev) - 1) + 2 * norm.pdf(omega, mean, stddev) - torch.pi**-0.5)
+        omega_np = omega.cpu().numpy()
+        
+        cdf_vals = norm.cdf(omega_np)
+        pdf_vals = norm.pdf(omega_np)
+        
+        cdf_tensor = torch.tensor(cdf_vals, dtype=torch.float32, device=y.device)
+        pdf_tensor = torch.tensor(pdf_vals, dtype=torch.float32, device=y.device)
+        
+        crps = torch.sigmoid(omega * (2 * cdf_tensor - 1) + 2 * pdf_tensor - torch.pi**-0.5)
 
         return torch.sum(crps)
     
