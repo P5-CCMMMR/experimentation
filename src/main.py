@@ -46,6 +46,7 @@ num_layers = 2
  
 # MC ONLY
 inference_samples = 50
+inference_dropout = 0.5
 
 # Training
 dropout = 0.50
@@ -116,6 +117,7 @@ def main(d):
         .set_trainer(trainer) \
         .set_tuner_class(StdTunerWrapper) \
         .set_inference_samples(inference_samples) \
+        .set_inference_dropout(inference_dropout) \
         .set_test_error(MNLL) \
         .build()
 
