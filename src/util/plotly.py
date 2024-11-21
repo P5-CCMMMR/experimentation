@@ -153,8 +153,8 @@ def plot_loss(loss):
     fig.add_trace(go.Scatter(x=epochs, y=loss, mode='lines+markers', name='Loss'))
 
     fig.update_layout(
-        title="Training Loss Over Steps",
-        xaxis_title="Steps",
+        title="Training Loss Over Epochs",
+        xaxis_title="Epochs",
         yaxis_title="Loss",
         legend_title="Legend",
         hovermode="x"
