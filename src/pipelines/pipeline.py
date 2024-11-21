@@ -57,6 +57,7 @@ class Pipeline(L.LightningModule, ABC):
 
         self.all_predictions = []
         self.all_actuals = []
+        self.val_loss_arr = []
 
     def training_step(self, batch):
         x, y = batch
@@ -69,6 +70,7 @@ class Pipeline(L.LightningModule, ABC):
         x, y = batch
         y_hat = self.model(x)
         loss = self.val_error_func.calc(y_hat, y)
+        self.val_loss_arr.append(loss.cpu())
         self.log('val_loss', loss, on_epoch=True, logger=True, prog_bar=True)
         return loss
 
@@ -107,6 +109,9 @@ class Pipeline(L.LightningModule, ABC):
     
     def get_actuals(self):
         return self.all_actuals
+    
+    def get_validation_loss(self):
+        return self.val_loss_arr
     
     def get_timestamps(self):
         return self.timesteps

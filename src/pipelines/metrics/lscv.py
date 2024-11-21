@@ -53,5 +53,5 @@ class NMLSCV(MLSCV):
         Normalized Mean Logarithmic Score for Continuous Variables
         """
         if y.max() == y.min():
-            return torch.zeros_like(y)
+            return torch.tensor(0.0)
         return MLSCV.calc(mean, stddev, y) / (y.max() - y.min())

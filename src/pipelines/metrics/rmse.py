@@ -28,5 +28,5 @@ class NRMSE(RMSE):
         Normalized Root Mean Squared Error
         """
         if y.max() == y.min():
-            return torch.zeros_like(y)
+            return torch.tensor(0.0)
         return RMSE.calc(y_hat, y) / (y.max() - y.min())

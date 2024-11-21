@@ -143,3 +143,21 @@ def plot_flex_probabilities(probabilities, confidence):
     )
 
     fig.show()
+
+def plot_loss(loss):
+    epochs = np.arange(1, len(loss) + 1)
+    loss = np.array(loss)
+
+    fig = make_subplots()
+        
+    fig.add_trace(go.Scatter(x=epochs, y=loss, mode='lines+markers', name='Loss'))
+
+    fig.update_layout(
+        title="Training Loss Over Steps",
+        xaxis_title="Steps",
+        yaxis_title="Loss",
+        legend_title="Legend",
+        hovermode="x"
+    )
+
+    fig.show()

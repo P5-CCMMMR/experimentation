@@ -6,9 +6,10 @@ import pandas as pd
 import multiprocessing
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from src.util.power_splitter import PowerSplitter
 
-from src.util.plotly import plot_results
+from src.util.plotly import plot_results, plot_loss
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
@@ -45,9 +46,9 @@ POWER     = "PowerConsumption"
 input_size = 4
 time_horizon = 4
 hidden_size = 32
-num_epochs = 1000
+num_epochs = 100
 seq_len = 96
-num_layers = 2
+num_layers = 1
  
 # MC ONLY
 inference_samples = 50

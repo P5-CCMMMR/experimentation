@@ -29,6 +29,9 @@ class EnsemblePipeline(ProbabilisticPipeline):
     def copy(self):
         raise NotImplementedError("copy not Meant to be used for ensemble")
     
+    def get_validation_loss(self):
+        return [pipeline.get_validation_loss() for pipeline in self.pipeline_arr]
+    
     def save(self, path):
         print(f"saving to {path}")
         os.makedirs(path, exist_ok=True)
@@ -72,8 +75,7 @@ class EnsemblePipeline(ProbabilisticPipeline):
                     temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
             elif func.is_probabilistic():
                 temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
-            if temp_loss.numel() == 1: #! This is because temp_loss is tensor([0., 0., 0., 0.,]) if y has 4 consecutive equal values
-                loss_arr.append(temp_loss)
+            loss_arr.append(temp_loss)
 
             title = func.get_title()
             avg_loss = (sum(loss_arr) / len(loss_arr)).item()

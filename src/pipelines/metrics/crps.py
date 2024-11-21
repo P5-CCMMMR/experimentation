@@ -55,5 +55,5 @@ class NMCRPS(CRPS):
         Normalized Mean Continuous Ranked Probability Score
         """
         if y.max() == y.min():
-            return torch.zeros_like(y)
+            return torch.tensor(0.0)
         return MCRPS.calc(mean, stddev, y) / (y.max() - y.min())
