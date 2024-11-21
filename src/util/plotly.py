@@ -17,7 +17,6 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len):
 
     fig = make_subplots()
     
-    fig.add_trace(go.Scatter(x=timestamps, y=mean_predictions, mode='lines', name='Prediction'))
     
     fig.add_trace(go.Scatter(
         x=timestamps, 
@@ -75,6 +74,8 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len):
         opacity=0.8, 
         showlegend=False
     ))
+    
+    fig.add_trace(go.Scatter(line_color='blue', x=timestamps, y=mean_predictions, mode='lines', name='Prediction'))
 
     fig.add_trace(go.Scatter(
         x=timestamps[::horizon_len], 
@@ -84,7 +85,7 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len):
         marker=dict(size=4, symbol='circle', line_width=1)
     ))
 
-    fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual'))
+    fig.add_trace(go.Scatter(line_color='red', x=timestamps, y=actuals, mode='lines', name='Actual'))
 
     fig.update_layout(
         title="Predictions vs Actuals with Uncertainty",

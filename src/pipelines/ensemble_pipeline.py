@@ -46,7 +46,6 @@ class EnsemblePipeline(ProbabilisticPipeline):
             for future in as_completed(futures):
                 future.result()
 
-    #! Make test test the ensemble This is not tried out and need testing
     def test(self):
         with ThreadPoolExecutor(max_workers=self.num_ensembles) as executor:
             futures = [executor.submit(pipeline.test) for pipeline in self.pipeline_arr]
@@ -62,28 +61,19 @@ class EnsemblePipeline(ProbabilisticPipeline):
         else:
             self.all_predictions = self._ensemble_deterministic_predictions(self.all_predictions)
 
-        mean_arr = np.array(self.all_predictions[0]).reshape(-1, self.horizen_len) 
-        stddev_arr = np.array(self.all_predictions[1]).reshape(-1, self.horizen_len) 
-        
-        all_y = []
-        if len(self.all_predictions[0]) > len(self.all_actuals):
-            for i in range(0, len(self.all_actuals)):
-                all_y.append(self.all_actuals[i:i+self.horizen_len])
-        else:
-            all_y = np.array(self.all_actuals).reshape(-1, self.horizen_len) 
+        mean_arr = self.all_predictions[0]
+        stddev_arr = self.all_predictions[1] 
+        all_y = self.all_actuals
 
         func_arr = self.test_error_func_arr
         for func in func_arr:
             loss_arr = []
-            for mean, stddev, y in zip(mean_arr, stddev_arr, all_y):     
-                if func.is_deterministic():
-                    temp_loss = func.calc(torch.tensor(mean, device=y.device), torch.tensor(y, device=y.device))
-                elif func.is_probabilistic():
-                    temp_loss = func.calc(torch.tensor(mean, device=y.device), torch.tensor(stddev, device=y.device), torch.tensor(y, device=y.device))
-                if temp_loss.numel() == 1:
-                    loss_arr.append(temp_loss)
-                else:
-                    print(f"temp_loss: {temp_loss}, mean: {mean}, y: {y}")
+            if func.is_deterministic():
+                    temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
+            elif func.is_probabilistic():
+                temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
+            if temp_loss.numel() == 1: #! This is because temp_loss is tensor([0., 0., 0., 0.,]) if y has 4 consecutive equal values
+                loss_arr.append(temp_loss)
 
             title = func.get_title()
             avg_loss = (sum(loss_arr) / len(loss_arr)).item()
