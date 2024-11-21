@@ -14,6 +14,7 @@ from src.util.plotly import plot_results, plot_loss
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
 from src.pipelines.models.gru import GRU
+from src.pipelines.models.tcn import TCN
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
@@ -53,6 +54,10 @@ num_layers = 1
 # MC ONLY
 inference_samples = 50
 inference_dropout = 0.5
+
+# TCN
+num_channels = [16, 32, 64]
+kernel_size = 2
 
 # Training
 dropout = 0.50
