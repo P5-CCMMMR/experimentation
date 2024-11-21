@@ -13,8 +13,7 @@ class TCN(Model):
         
     def forward(self, x):
         out = self.tcn(x)
-        out = out[:, -1, :]
-        out = self.dropout(out)
+        out = self.dropout(out[:, -1, :])
         return self.fc(out)
         
     def copy(self):
