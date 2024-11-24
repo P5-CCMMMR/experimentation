@@ -28,8 +28,10 @@ from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
-
+from ray.tune.integration.pytorch_lightning import TuneReportCallback
+from ray import tune
 import torch.optim as optim
+
 
 matplotlib.use("Agg")
 
@@ -40,12 +42,22 @@ TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 # Hyper parameters
+config = {
+    "num_epochs": tune.choice([800,1000,1200]),
+    "seq_len": tune.choice([80,96,114]),
+    "batch_size": tune.choice([100,128,156]),
+    "learning_rate": tune.choice([0.004,0.005,0.006]),
+    "hidden_size": tune.choice([20,32,48]),
+    "dropout": tune.choice([0.4,0.5,0.6]),
+    "time_horizon": tune.choice([3,4,5])
+}
+
 # Model
 input_size = 4
-time_horizon = 4
-hidden_size = 32
-num_epochs = 1000
-seq_len = 96
+time_horizon = config["time_horizon"]
+hidden_size = config["hidden_size"]
+num_epochs = config["num_epochs"]
+seq_len = config["seq_len"]
 num_layers = 2
  
 # MC ONLY
@@ -53,7 +65,7 @@ inference_samples = 50
 inference_dropout = 0.5
 
 # Training
-dropout = 0.50
+dropout = config["dropout"]
 gradient_clipping = 0
 early_stopping_threshold = 0.15
 
@@ -65,8 +77,8 @@ temp_boundary = 0.1
 error = 0
 
 # Controlled by tuner
-batch_size = 128
-learning_rate = 0.005
+batch_size = config["batch_size"]
+learning_rate = config["learning_rate"]
 
 # Data Split
 train_days = 16
@@ -98,11 +110,13 @@ def main(d):
     splitter = StdSplitter(train_days, val_days, test_days)
     
     model = LSTM(hidden_size, num_layers, input_size, time_horizon, dropout)
+    metrics = {'loss': 'val_loss', "acc": "NRMSE Loss: " }
     trainer = TrainerWrapper(L.Trainer, 
                              max_epochs=num_epochs, 
-                             callbacks=[ConditionalEarlyStopping(threshold=early_stopping_threshold)], 
+                             callbacks=[ConditionalEarlyStopping(threshold=early_stopping_threshold), TuneReportCallback(metrics, on="validation_end")],
                              gradient_clip_val=gradient_clipping, 
                              fast_dev_run=d)
+    trainer.fit(model, df)
     optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
     model = MonteCarloPipeline.Builder() \
