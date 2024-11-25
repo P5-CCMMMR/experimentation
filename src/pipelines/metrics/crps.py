@@ -57,6 +57,6 @@ class NMCRPS(TCRPS):
         # Add small term to avoid divison by zero
         eps = torch.tensor(1e-16)
         range = y.max() - y.min()
-        denominator = range if range > eps else eps
+        denominator = max(eps, range)
         
         return MCRPS.calc(mean, stddev, y) / denominator
