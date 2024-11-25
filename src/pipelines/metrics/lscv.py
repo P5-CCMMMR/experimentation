@@ -55,4 +55,4 @@ class NMLSCV(MLSCV):
         eps = 1e-16
         denominator = y.max() - y.min() if y.max() != y.min() else torch.tensor(eps)
         
-        return MLSCV.calc(mean, stddev, y) / denominator
+        return MLSCV.calc(mean, stddev, y) - y.min() / denominator

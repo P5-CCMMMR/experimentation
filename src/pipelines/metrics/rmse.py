@@ -32,4 +32,4 @@ class NRMSE(RMSE):
         eps = 1e-16
         denominator = y.max() - y.min() if y.max() != y.min() else torch.tensor(eps)
    
-        return RMSE.calc(y_hat, y) / denominator
+        return RMSE.calc(y_hat, y) - y.min() / denominator

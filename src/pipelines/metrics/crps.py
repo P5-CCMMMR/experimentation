@@ -58,4 +58,4 @@ class NMCRPS(TCRPS):
         eps = 1e-16
         denominator = y.max() - y.min() if y.max() != y.min() else torch.tensor(eps)
         
-        return MCRPS.calc(mean, stddev, y) / denominator
+        return MCRPS.calc(mean, stddev, y) - y.min() / denominator
