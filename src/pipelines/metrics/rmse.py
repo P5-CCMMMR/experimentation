@@ -27,9 +27,9 @@ class NRMSE(RMSE):
         """
         Normalized Root Mean Squared Error
         """
-        
         # Add small term to avoid divison by zero
-        eps = 1e-16
-        denominator = y.max() - y.min() if y.max() != y.min() else torch.tensor(eps)
+        eps = torch.tensor(1e-16)
+        range = y.max() - y.min()
+        denominator = range if range > eps else eps
    
-        return RMSE.calc(y_hat, y) - y.min() / denominator
+        return RMSE.calc(y_hat, y) / denominator
