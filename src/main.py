@@ -54,10 +54,10 @@ config = {
 
 # Model
 input_size = 4
-time_horizon = config["time_horizon"]
-hidden_size = config["hidden_size"]
-num_epochs = config["num_epochs"]
-seq_len = config["seq_len"]
+time_horizon = 4
+hidden_size = 32
+num_epochs = 1000
+seq_len = 96
 num_layers = 2
  
 # MC ONLY
@@ -65,7 +65,7 @@ inference_samples = 50
 inference_dropout = 0.5
 
 # Training
-dropout = config["dropout"]
+dropout = 0.5
 gradient_clipping = 0
 early_stopping_threshold = 0.15
 
@@ -77,8 +77,8 @@ temp_boundary = 0.1
 error = 0
 
 # Controlled by tuner
-batch_size = config["batch_size"]
-learning_rate = config["learning_rate"]
+batch_size = 128
+learning_rate = 0.005
 
 # Data Split
 train_days = 16
@@ -110,13 +110,11 @@ def main(d):
     splitter = StdSplitter(train_days, val_days, test_days)
     
     model = LSTM(hidden_size, num_layers, input_size, time_horizon, dropout)
-    metrics = {'loss': 'val_loss', "acc": "NRMSE Loss: " }
     trainer = TrainerWrapper(L.Trainer, 
                              max_epochs=num_epochs, 
-                             callbacks=[ConditionalEarlyStopping(threshold=early_stopping_threshold), TuneReportCallback(metrics, on="validation_end")],
+                             callbacks=[ConditionalEarlyStopping(threshold=early_stopping_threshold)],
                              gradient_clip_val=gradient_clipping, 
                              fast_dev_run=d)
-    trainer.fit(model, df)
     optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
     model = MonteCarloPipeline.Builder() \
@@ -208,32 +206,6 @@ if __name__ == "__main__":
         print("DEBUG MODE")
     main(args.d)
 
-
-num_samples = 10
-gpus_per_trial = 0
-
-
-
-
-trainable = tune.with_parameters(
-    main,
-    num_gpus=gpus_per_trial
-)
-
-analysis = tune.run(
-    trainable,
-    resources_per_trial={
-        "cpu": 1,
-        "gpu": gpus_per_trial
-    },
-    metric="loss",
-    code="min",
-    config=config,
-    num_samples=num_samples,
-    name="main"
-)
-
-print(analysis.best_config)
 
 
 

@@ -1,7 +1,6 @@
 from ray import tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
-num_samples = 10
-gpus_per_trial = 0
+
 import torch
 import lightning as L
 import matplotlib
@@ -36,8 +35,14 @@ from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
 from src.util.evaluator import Evaluator
-
+import tempfile
 import torch.optim as optim
+import os
+MODEL_PATH = 'model_saves/testing_model'
+nist_path = "/home/scoop/experimentation/src/UKDATA_cleaned.csv"
+num_layers = 1
+
+
 
 config = {
     "num_epochs": tune.choice([800,1000,1200]),
@@ -56,7 +61,8 @@ TARGET_COLUMN = 2
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
-
+num_samples = 10
+gpus_per_trial = 0.1
 
 # Data Split
 train_days = 16
@@ -78,12 +84,7 @@ clean_delta_temp = 15
 
 
 
-
-
-
-
-
-def nig():
+def nig(config):
     # Hyper parameters
     # Model
     # Model
@@ -125,7 +126,6 @@ def nig():
                             max_epochs=num_epochs, 
                             callbacks=[EarlyStopping(monitor='val_loss', min_delta=0.0, patience=3, verbose=False, mode='min', strict=True), TuneReportCallback(metrics, on="validation_end")], 
                             gradient_clip_val=gradient_clipping)
-    trainer.fit(model, df)
     optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
     model = DeterministicPipeline.Builder() \
@@ -149,12 +149,10 @@ def nig():
     model.fit()
 
 trainable = tune.with_parameters(
-    nig ,
-    num_gpus=gpus_per_trial
+    nig
 )
 
 analysis = tune.run(
-    
     trainable,
     resources_per_trial={
         "cpu": 1,
