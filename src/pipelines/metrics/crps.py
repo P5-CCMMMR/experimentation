@@ -2,15 +2,15 @@ import torch
 from .metric import ProbabilisticMetric
 from scipy.stats import norm
 
-class CRPS(ProbabilisticMetric):
+class TCRPS(ProbabilisticMetric):
     @staticmethod
     def get_title():
-        return "CRPS Loss: "
+        return "TCRPS: "
 
     @staticmethod
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
-        Continuous Ranked Probability Score\\
+        Total Continuous Ranked Probability Score\\
         Returns the sum of the CRPS of the batch\n
         Based of: https://towardsdatascience.com/crps-a-scoring-function-for-bayesian-machine-learning-models-dd55a7a337a8
         """
@@ -32,22 +32,22 @@ class CRPS(ProbabilisticMetric):
         return torch.sum(crps)
     
 
-class MCRPS(CRPS):
+class MCRPS(TCRPS):
     @staticmethod
     def get_title():
-        return "MCRPS Loss: "
+        return "MCRPS: "
 
     @staticmethod
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Mean Continuous Ranked Probability Score
         """
-        return CRPS.calc(mean, stddev, y) / mean.size(0)
+        return TCRPS.calc(mean, stddev, y) / mean.size(0)
     
-class NMCRPS(CRPS):
+class NMCRPS(TCRPS):
     @staticmethod
     def get_title():
-        return "NMCRPS Loss: "
+        return "NMCRPS: "
 
     @staticmethod
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:

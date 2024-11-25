@@ -3,16 +3,15 @@ from .metric import ProbabilisticMetric
 import torch.nn as nn
 from scipy.stats import norm
 
-# ! need change have tensor to numpy error
-class LSCV(ProbabilisticMetric):
+class TLSCV(ProbabilisticMetric):
     @staticmethod
     def get_title():
-        return "LSCV Loss: "
+        return "Total LSCV: "
 
     @staticmethod
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
-        Logarithmic Score for Continuous Variables\n
+        Total Logarithmic Score for Continuous Variables\n
         Returns sum of the logarithmic score for batch\n
         Based of: https://en.wikipedia.org/wiki/Scoring_rule#Logarithmic_score_for_continuous_variables
         """
@@ -29,23 +28,23 @@ class LSCV(ProbabilisticMetric):
         return torch.sum(-torch.log(pdf_tensor))
     
 
-class MLSCV(LSCV):
+class MLSCV(TLSCV):
     @staticmethod
     def get_title():
-        return "MLSCV Loss: "
+        return "MLSCV: "
 
     @staticmethod
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Mean Logarithmic Score for Continuous Variables
         """
-        return LSCV.calc(mean, stddev, y) / y.size(0)
+        return TLSCV.calc(mean, stddev, y) / y.size(0)
     
     
 class NMLSCV(MLSCV):
     @staticmethod
     def get_title():
-        return "NMLSCV Loss: "
+        return "NMLSCV: "
     
     @staticmethod
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
