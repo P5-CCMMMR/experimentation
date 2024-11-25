@@ -78,6 +78,7 @@ class Pipeline(L.LightningModule, ABC):
     
     def on_validation_epoch_end(self):
         self.epoch_val_lost_arr.append(sum(self.val_loss_arr) / len(self.val_loss_arr))
+        self.log('val_loss', (sum(self.val_loss_arr) / len(self.val_loss_arr)))
         self.val_loss_arr = []
     
     @abstractmethod
