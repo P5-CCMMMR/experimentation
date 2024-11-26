@@ -1,5 +1,6 @@
 from ray import tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
+from ray.train import Checkpoint
 
 import torch
 import lightning as L
@@ -45,13 +46,13 @@ num_layers = 1
 
 
 config = {
-    "num_epochs": tune.choice([800,1000,1200]),
-    "seq_len": tune.choice([80,96,114]),
-    "batch_size": tune.choice([100,128,156]),
-    "learning_rate": tune.choice([0.004,0.005,0.006]),
-    "hidden_size": tune.choice([20,32,48]),
-    "dropout": tune.choice([0.4,0.5,0.6]),
-    "time_horizon": tune.choice([3,4,5])
+    "num_epochs": tune.randint(800,1200),
+    "seq_len": tune.randint(80,114),
+    "hidden_size": tune.randint(20,48),
+    "dropout": tune.uniform(0.4,0.6),
+    "time_horizon": tune.randint(3,5),
+    "learning_rate": tune.loguniform(1e-4, 1e-1),
+    "num_layers": tune.randint(1,4)
 }
 
 matplotlib.use("Agg")
@@ -61,7 +62,7 @@ TARGET_COLUMN = 2
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
-num_samples = 10
+num_samples = 2
 gpus_per_trial = 0.1
 
 # Data Split
@@ -112,10 +113,12 @@ def nig(config):
     error = 0
 
     # Controlled by tuner
-    batch_size = config["batch_size"]
+    batch_size = 128
     learning_rate = config["learning_rate"]
     assert time_horizon > 0, "Time horizon must be a positive integer"
     
+    
+
     df = pd.read_csv(nist_path)
 
     cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
@@ -147,6 +150,9 @@ def nig(config):
             .build()
 
     model.fit()
+
+
+
 
 trainable = tune.with_parameters(
     nig
