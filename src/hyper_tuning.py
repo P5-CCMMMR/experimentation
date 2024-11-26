@@ -23,6 +23,8 @@ from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
+from src.pipelines.splitters.day_splitter import DaySplitter
+from src.pipelines.splitters.blocked_k_fold_splitter import BlockedKFoldSplitter
 from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
@@ -35,22 +37,16 @@ from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
-from src.util.evaluator import Evaluator
-import tempfile
 import torch.optim as optim
-import os
 MODEL_PATH = 'model_saves/testing_model'
-nist_path = "/home/scoop/experimentation/src/UKDATA_cleaned.csv"
-num_layers = 1
-
-
+nist_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/NIST_cleaned.csv"
 
 config = {
-    "num_epochs": tune.randint(800,1200),
-    "seq_len": tune.randint(80,114),
+    "num_epochs": tune.randint(50,100),
+    "seq_len": tune.randint(16,672),
     "hidden_size": tune.randint(20,48),
-    "dropout": tune.uniform(0.4,0.6),
-    "time_horizon": tune.randint(3,5),
+    "dropout": tune.loguniform(0,1),
+    "time_horizon": tune.loguniform(4,96),
     "learning_rate": tune.loguniform(1e-4, 1e-1),
     "num_layers": tune.randint(1,4)
 }
@@ -62,8 +58,9 @@ TARGET_COLUMN = 2
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
+gradient_clipping = 0
 num_samples = 2
-gpus_per_trial = 0.1
+gpus_per_trial = 0
 
 # Data Split
 train_days = 16
@@ -82,80 +79,72 @@ clean_out_low = -50
 clean_out_high = 50
 clean_pow_low = 0
 clean_delta_temp = 15
+    
+# MC ONLY
+inference_dropout = 0.5
+inference_samples = 50
 
+# Ensemble ONLY
+num_ensembles = 5
+flex_confidence = 0.90
 
+input_size = 4
+batch_size = 128
+folds = 5
 
-def nig(config):
+def train(config):
+    df = pd.read_csv(nist_path)
+    df = DaySplitter(TIMESTAMP, POWER, train_days + val_days, 0, test_days).get_train(df)
     # Hyper parameters
     # Model
-    # Model
-    input_size = 4
     time_horizon = config["time_horizon"]
     hidden_size = config["hidden_size"]
     num_epochs = config["num_epochs"]
     seq_len = config["seq_len"]
-    num_layers = 2
+    num_layers = config["num_layers"]
     
-    # MC ONLY
-    inference_samples = 50
-    inference_dropout = 0.5
-
     # Training
     dropout = config["dropout"]
-    gradient_clipping = 0
-    early_stopping_threshold = 0.15
-
-    num_ensembles = 5
-
-    # Flexibility
-    flex_confidence = 0.90
-    temp_boundary = 0.1
-    error = 0
 
     # Controlled by tuner
-    batch_size = 128
     learning_rate = config["learning_rate"]
+
     assert time_horizon > 0, "Time horizon must be a positive integer"
-    
-    
+    for i in range(0, folds):
+        df = df.copy(deep=True)
+        splitter = BlockedKFoldSplitter(folds=folds)
+        splitter.set_val_index(i)
+        cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
+        metrics = {'loss': 'val_loss'}    
+        model = LSTM(hidden_size, num_layers, input_size, time_horizon, dropout)
+        trainer = TrainerWrapper(L.Trainer, 
+                                max_epochs=num_epochs, 
+                                callbacks=[EarlyStopping(monitor='val_loss', min_delta=0.0, patience=3, verbose=False, mode='min', strict=True), TuneReportCallback(metrics, on="validation_end")], 
+                                gradient_clip_val=gradient_clipping)
+        optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
-    df = pd.read_csv(nist_path)
+        model = DeterministicPipeline.Builder() \
+                .add_data(df) \
+                .set_cleaner(cleaner) \
+                .set_normalizer_class(MinMaxNormalizer) \
+                .set_splitter(splitter) \
+                .set_sequencer_class(AllTimeSequencer) \
+                .set_target_column(TARGET_COLUMN) \
+                .set_model(model) \
+                .set_optimizer(optimizer) \
+                .set_batch_size(batch_size) \
+                .set_seq_len(seq_len) \
+                .set_worker_num(NUM_WORKERS) \
+                .set_error(NRMSE) \
+                .set_train_error(RMSE) \
+                .set_trainer(trainer) \
+                .set_tuner_class(StdTunerWrapper) \
+                .build()
 
-    cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
-    splitter = StdSplitter(train_days, val_days, test_days)
-    metrics = {'loss': 'val_loss'}    
-    model = LSTM(hidden_size, num_layers, input_size, time_horizon, dropout)
-    trainer = TrainerWrapper(L.Trainer, 
-                            max_epochs=num_epochs, 
-                            callbacks=[EarlyStopping(monitor='val_loss', min_delta=0.0, patience=3, verbose=False, mode='min', strict=True), TuneReportCallback(metrics, on="validation_end")], 
-                            gradient_clip_val=gradient_clipping)
-    optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
-
-    model = DeterministicPipeline.Builder() \
-            .add_data(df) \
-            .set_cleaner(cleaner) \
-            .set_normalizer_class(MinMaxNormalizer) \
-            .set_splitter(splitter) \
-            .set_sequencer_class(TimeSequencer) \
-            .set_target_column(TARGET_COLUMN) \
-            .set_model(model) \
-            .set_optimizer(optimizer) \
-            .set_batch_size(batch_size) \
-            .set_seq_len(seq_len) \
-            .set_worker_num(NUM_WORKERS) \
-            .set_error(NRMSE) \
-            .set_train_error(RMSE) \
-            .set_trainer(trainer) \
-            .set_tuner_class(StdTunerWrapper) \
-            .build()
-
-    model.fit()
-
-
-
+        model.fit()
 
 trainable = tune.with_parameters(
-    nig
+    train
 )
 
 analysis = tune.run(
@@ -168,7 +157,7 @@ analysis = tune.run(
     mode="min",
     config=config,
     num_samples=num_samples,
-    name="nig"
+    name="train"
 )
 
 print(analysis.best_config)

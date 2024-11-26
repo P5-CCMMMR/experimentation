@@ -263,34 +263,41 @@ class Pipeline(L.LightningModule, ABC):
                 val_dfs.append(self.splitter.get_val(cleaned_df))
                 test_dfs.append(self.splitter.get_test(cleaned_df))
                 
-            train_df = pd.concat(train_dfs, ignore_index=True)
-            val_df = pd.concat(val_dfs, ignore_index=True)
-            test_df = pd.concat(test_dfs, ignore_index=True)
+            train_df = pd.concat(train_dfs, ignore_index=True) if train_dfs else pd.DataFrame()
+            val_df = pd.concat(val_dfs, ignore_index=True) if val_dfs else pd.DataFrame()
+            test_df = pd.concat(test_dfs, ignore_index=True) if test_dfs else pd.DataFrame()
 
-            test_timestamps = pd.to_datetime(test_df.values[:,0])
+            test_timestamps = pd.to_datetime(test_df.values[:,0]) if not test_df.empty else pd.DatetimeIndex([])
 
-            # Idk its **a** solution
-            train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
-            val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
-            test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
+            if not train_df.empty:
+                train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
+                train_normalizer = self.normalizer_class(train_df.values.astype(float)) 
+                train_df = train_normalizer.normalize()
+                train_segmenter = self.sequencer_class(train_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
+                train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+            else:
+                train_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
+                train_normalizer = self.normalizer_class(np.array([]))
 
-            train_normalizer = self.normalizer_class(train_df.values.astype(float)) 
-            val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
-            test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
+            if not val_df.empty:
+                val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
+                val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
+                val_df = val_normalizer.normalize()
+                val_segmenter = self.sequencer_class(val_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
+                val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+            else:
+                val_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
+                val_normalizer = self.normalizer_class(np.array([]))
 
-            train_df = train_normalizer.normalize()
-            val_df = val_normalizer.normalize()
-            test_df = test_normalizer.normalize()
-
-            horizon_len = self.model.get_horizon_len()
-
-            train_segmenter = self.sequencer_class(train_df[0], self.seq_len, horizon_len, self.target_column)
-            val_segmenter = self.sequencer_class(val_df[0], self.seq_len, horizon_len, self.target_column)
-            test_segmenter = self.sequencer_class(test_df[0], self.seq_len, horizon_len, self.target_column)
-
-            train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
-            val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
-            test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+            if not test_df.empty:
+                test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
+                test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
+                test_df = test_normalizer.normalize()
+                test_segmenter = self.sequencer_class(test_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
+                test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+            else:
+                test_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
+                test_normalizer = self.normalizer_class(np.array([]))
             
             return train_loader, val_loader, test_loader, test_timestamps, test_normalizer
 
