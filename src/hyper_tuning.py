@@ -42,11 +42,11 @@ MODEL_PATH = 'model_saves/testing_model'
 nist_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/NIST_cleaned.csv"
 
 config = {
-    "num_epochs": tune.loguniform(50,1000),
-    "seq_len": tune.loguniform(16,672),
-    "hidden_size": tune.loguniform(4,128),
-    "dropout": tune.loguniform(0,1),
-    "time_horizon": tune.loguniform(4,96),
+    "num_epochs": tune.randint(50,1000),
+    "seq_len": tune.randint(16,672),
+    "hidden_size": tune.randint(4,128),
+    "dropout": tune.randint(0,1),
+    "time_horizon": tune.randint(4,96),
     "learning_rate": tune.loguniform(1e-4, 1e-1),
     "num_layers": tune.randint(1,4)
 }
