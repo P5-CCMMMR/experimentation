@@ -38,38 +38,33 @@ from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
 import torch.optim as optim
-MODEL_PATH = 'model_saves/testing_model'
 nist_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/NIST_cleaned.csv"
+uk_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/UKDATA_cleaned.csv"
 
 config = {
-    "num_epochs": tune.randint(50,1000),
-    "seq_len": tune.randint(16,672),
-    "hidden_size": tune.randint(4,128),
-    "dropout": tune.randint(0,1),
-    "time_horizon": tune.randint(4,96),
-    "learning_rate": tune.loguniform(1e-4, 1e-1),
-    "num_layers": tune.randint(1,4)
+    "seq_len": tune.qrandint(16,672, 8), 
+    "hidden_size": tune.qrandint(24,128, 8),
+    "dropout": tune.quniform(0, 0.8, 0.1),
+    "num_layers": tune.randint(1,2),
+    "arch_idx": tune.randint(0, 2) # LSTM, GRU 
 }
+arch_arr = [LSTM, GRU]
+arch_str_arr = ["LSTM", "GRU"]
 
 matplotlib.use("Agg")
 
-NUM_WORKERS = multiprocessing.cpu_count()
+NUM_WORKERS = max(1, multiprocessing.cpu_count() // 2)
 TARGET_COLUMN = 2
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 gradient_clipping = 0
-num_samples = 2
-gpus_per_trial = 0
+gpus_per_trial = 0.1
 
 # Data Split
 train_days = 16
 val_days = 2
 test_days = 2
-
-# ON / OFF Power Limits
-off_limit_w = 88
-on_limit_w = 963
 
 consecutive_points = 3
 
@@ -91,57 +86,60 @@ flex_confidence = 0.90
 input_size = 4
 batch_size = 128
 folds = 5
+num_epochs = 100
+learning_rate = 0.005
+time_horizon = 4
+num_samples = 10
+
 
 def train(config):
-    df = pd.read_csv(nist_path)
-    df = DaySplitter(TIMESTAMP, POWER, train_days + val_days, 0, test_days).get_train(df)
-    # Hyper parameters
-    # Model
-    time_horizon = config["time_horizon"]
+    df_arr = []
+    for path in [nist_path, uk_path]:
+        df = pd.read_csv(path)
+        df = DaySplitter(TIMESTAMP, POWER, train_days + val_days, 0, test_days).get_train(df)
+        df_arr.append(df)
+
     hidden_size = config["hidden_size"]
-    num_epochs = config["num_epochs"]
     seq_len = config["seq_len"]
     num_layers = config["num_layers"]
-    
-    # Training
     dropout = config["dropout"]
-
-    # Controlled by tuner
-    learning_rate = config["learning_rate"]
+    arch_class = arch_arr[config["arch_idx"]]
 
     assert time_horizon > 0, "Time horizon must be a positive integer"
-    for i in range(0, folds):
-        df = df.copy(deep=True)
-        splitter = BlockedKFoldSplitter(folds=folds)
-        splitter.set_val_index(i)
-        cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
-        metrics = {'loss': 'val_loss'}    
-        model = LSTM(hidden_size, num_layers, input_size, time_horizon, dropout)
-        trainer = TrainerWrapper(L.Trainer, 
-                                max_epochs=num_epochs, 
-                                callbacks=[EarlyStopping(monitor='val_loss', min_delta=0.0, patience=3, verbose=False, mode='min', strict=True), TuneReportCallback(metrics, on="validation_end")], 
-                                gradient_clip_val=gradient_clipping)
-        optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
+    for df in df_arr:
+        for i in range(0, folds):
+            df = df.copy(deep=True)
+            splitter = BlockedKFoldSplitter(folds=folds)
+            splitter.set_val_index(i)
+            cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
+            metrics = {'loss': 'val_loss'}    
+            model = arch_class(hidden_size, num_layers, input_size, time_horizon, dropout)
+            trainer = TrainerWrapper(L.Trainer, 
+                                    max_epochs=num_epochs, 
+                                    callbacks=[EarlyStopping(monitor='val_loss', min_delta=0.0, patience=3, verbose=False, mode='min', strict=True), 
+                                               TuneReportCallback(metrics, on="validation_end")], 
+                                    gradient_clip_val=gradient_clipping)
+            optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
-        model = DeterministicPipeline.Builder() \
-                .add_data(df) \
-                .set_cleaner(cleaner) \
-                .set_normalizer_class(MinMaxNormalizer) \
-                .set_splitter(splitter) \
-                .set_sequencer_class(AllTimeSequencer) \
-                .set_target_column(TARGET_COLUMN) \
-                .set_model(model) \
-                .set_optimizer(optimizer) \
-                .set_batch_size(batch_size) \
-                .set_seq_len(seq_len) \
-                .set_worker_num(NUM_WORKERS) \
-                .set_error(NRMSE) \
-                .set_train_error(RMSE) \
-                .set_trainer(trainer) \
-                .set_tuner_class(StdTunerWrapper) \
-                .build()
+            model = DeterministicPipeline.Builder() \
+                    .add_data(df) \
+                    .set_cleaner(cleaner) \
+                    .set_normalizer_class(MinMaxNormalizer) \
+                    .set_splitter(splitter) \
+                    .set_sequencer_class(AllTimeSequencer) \
+                    .set_target_column(TARGET_COLUMN) \
+                    .set_model(model) \
+                    .set_optimizer(optimizer) \
+                    .set_batch_size(batch_size) \
+                    .set_seq_len(seq_len) \
+                    .set_worker_num(NUM_WORKERS) \
+                    .set_error(NRMSE) \
+                    .set_train_error(RMSE) \
+                    .set_trainer(trainer) \
+                    .set_tuner_class(StdTunerWrapper) \
+                    .build()
 
-        model.fit()
+            model.fit()
 
 trainable = tune.with_parameters(
     train
@@ -150,7 +148,7 @@ trainable = tune.with_parameters(
 analysis = tune.run(
     trainable,
     resources_per_trial={
-        "cpu": 1,
+        "cpu": NUM_WORKERS,
         "gpu": gpus_per_trial
     },
     metric="loss",
@@ -160,4 +158,20 @@ analysis = tune.run(
     name="train"
 )
 
-print(analysis.best_config)
+results = analysis.results_df.sort_values(by="loss")
+
+output_file = "all_config.txt"
+
+with open(output_file, "a") as f:
+    f.write("-" * 100 + "\n")
+    f.write(f"{'loss':<20} | {'architecture':<12} | {'seq_len':<10} | {'hidden_size':<12} | {'dropout':<8} | {'num_layers':<10} | {'iter':<5} | {'total_time':<10}\n")
+    for i, row in results.iterrows():
+        loss = row['loss']
+        arch_idx = row['config/arch_idx']
+        seq_len = row['config/seq_len']
+        hidden_size = row['config/hidden_size']
+        dropout = row['config/dropout']
+        num_layers = row['config/num_layers']
+        iter = row['training_iteration']
+        total_time = row['time_total_s']
+        f.write(f"{loss:<20} | {arch_str_arr[arch_idx]:<12} | {seq_len:<10} | {hidden_size:<12} | {round(dropout):<8} | {num_layers:<10} | {iter:<5} | {total_time:<10}\n")

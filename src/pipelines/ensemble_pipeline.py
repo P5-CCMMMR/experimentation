@@ -32,6 +32,9 @@ class EnsemblePipeline(ProbabilisticPipeline):
     def get_validation_loss(self):
         return [pipeline.get_validation_loss() for pipeline in self.pipeline_arr]
     
+    def get_training_loss(self):
+        return [pipeline.get_training_loss() for pipeline in self.pipeline_arr]
+    
     def save(self, path):
         print(f"saving to {path}")
         os.makedirs(path, exist_ok=True)

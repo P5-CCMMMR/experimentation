@@ -59,12 +59,16 @@ class Pipeline(L.LightningModule, ABC):
         self.all_actuals = []
 
         self.val_loss_arr = []
-        self.epoch_val_lost_arr = []
+        self.train_loss_arr = []
+
+        self.epoch_train_loss_arr = []
+        self.epoch_val_loss_arr = []
 
     def training_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
         loss = self.train_error_func.calc(y_hat, y)
+        self.train_loss_arr.append(loss.cpu())
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True, prog_bar=True)
         return loss
     
@@ -77,9 +81,13 @@ class Pipeline(L.LightningModule, ABC):
         return loss
     
     def on_validation_epoch_end(self):
-        self.epoch_val_lost_arr.append(sum(self.val_loss_arr) / len(self.val_loss_arr))
+        if len(self.val_loss_arr) <= 0: return
+        self.epoch_val_loss_arr.append(sum(self.val_loss_arr) / len(self.val_loss_arr))
         self.log('val_loss', (sum(self.val_loss_arr) / len(self.val_loss_arr)))
         self.val_loss_arr = []
+        if len(self.train_loss_arr) <= 0: return
+        self.epoch_train_loss_arr.append(sum(self.train_loss_arr) / len(self.train_loss_arr))
+        self.train_loss_arr = []
     
     @abstractmethod
     def test_step(self, batch):
@@ -118,7 +126,10 @@ class Pipeline(L.LightningModule, ABC):
         return self.all_actuals
     
     def get_validation_loss(self):
-        return self.epoch_val_lost_arr
+        return self.epoch_val_loss_arr
+    
+    def get_training_loss(self):
+        return self.epoch_train_loss_arr
     
     def get_timestamps(self):
         return self.timesteps

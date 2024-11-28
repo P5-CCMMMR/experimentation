@@ -19,6 +19,8 @@ from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
+from src.pipelines.splitters.day_splitter import DaySplitter
+from src.pipelines.splitters.blocked_k_fold_splitter import BlockedKFoldSplitter
 from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
