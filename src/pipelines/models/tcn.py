@@ -15,7 +15,8 @@ class TCN(Model):
         # Use same hidden size for all residual blocks
         num_channels = [hidden_size] * num_layers
         
-        # Calculate kernel size based of num_layers and seq_len
+        # Calculate kernel size based of num_layers and seq_len. 
+        # Kernel size should be big enough so that the receptive field is at least as big as the sequence length
         kernel_size = ceil((2**(num_layers+1) + seq_len - 3) / (2**(num_layers+1) - 2))
         
         self.tcn = TCNModel(self.input_len, num_channels, kernel_size=kernel_size, dropout=dropout, causal=True, input_shape='NLC', use_skip_connections=True, activation='leaky_relu')
