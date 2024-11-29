@@ -8,3 +8,5 @@ __pycache__
 *.pth
 .mypy_cache
 *.ckpt
+.vscode
+*.zip

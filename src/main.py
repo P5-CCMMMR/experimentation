@@ -3,238 +3,213 @@ import lightning as L
 import matplotlib
 import numpy as np
 import pandas as pd
-import torch
-import src.network.models.base_model as bm
-import src.network.models.mc_model as mc
-from src.util.flex_predict import flex_predict
-from src.util.multi_timestep_forecast import multiTimestepForecasting
-import src.util.normalize as norm
-from src.data_preprocess.data_handler import DataHandler
-from src.data_preprocess.tvt_data_splitter import TvtDataSplitter
-from src.data_preprocess.day_data_splitter import DayDataSplitter
-from lightning.pytorch.tuner import Tuner
-from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+import multiprocessing
+from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
-from src.util.plot import plot_results
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from src.util.constants import NUM_WORKERS
+from src.util.evaluator import Evaluator
+from src.util.plotly import plot_results
+from src.util.power_splitter import PowerSplitter
+
+from src.pipelines.cleaners.temp_cleaner import TempCleaner
+from src.pipelines.models.lstm import LSTM
+from src.pipelines.models.gru import GRU
+from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
+from src.pipelines.sequencers.time_sequencer import TimeSequencer
+from src.pipelines.splitters.std_splitter import StdSplitter
+from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
+from src.pipelines.optimizers.optimizer import OptimizerWrapper
+
+from src.pipelines.metrics.crps import *
+from src.pipelines.metrics.lscv import *
+from src.pipelines.metrics.rmse import * 
+from src.pipelines.metrics.mafe import mafe, maofe, maufe
+from src.pipelines.metrics.epfr import epfr
+
+from src.pipelines.deterministic_pipeline import DeterministicPipeline
+from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
+from src.pipelines.ensemble_pipeline import EnsemblePipeline
+from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
+
+from ray.tune.integration.pytorch_lightning import TuneReportCallback
+from ray import tune
+import torch.optim as optim
+
 
 matplotlib.use("Agg")
 
 MODEL_PATH = 'model.pth'
-MODEL_ITERATIONS = 10
-TARGET_COLUMN = 1
+NUM_WORKERS = multiprocessing.cpu_count()
+TARGET_COLUMN = 2
+TIMESTAMP = "Timestamp"
+POWER     = "PowerConsumption"
 
 # Hyper parameters
-hidden_size = 32
-num_epochs = 125
-seq_len = 96
-swa_learning_rate = 0.01
-num_layers = 2
-dropout = 0.50
-gradient_clipping = 0
-num_ensembles = 1
+config = {
+    "num_epochs": tune.choice([800,1000,1200]),
+    "seq_len": tune.choice([80,96,114]),
+    "batch_size": tune.choice([100,128,156]),
+    "learning_rate": tune.choice([0.004,0.005,0.006]),
+    "hidden_size": tune.choice([20,32,48]),
+    "dropout": tune.choice([0.4,0.5,0.6]),
+    "time_horizon": tune.choice([3,4,5])
+}
 
+# Model
+input_size = 4
+time_horizon = 4
+hidden_size = 32
+num_epochs = 1000
+seq_len = 96
+num_layers = 2
+ 
 # MC ONLY
 inference_samples = 50
+inference_dropout = 0.5
+
+# Training
+dropout = 0.5
+gradient_clipping = 0
+early_stopping_threshold = 0.15
+
+num_ensembles = 5
+
+# Flexibility
+flex_confidence = 0.90
+temp_boundary = 0.1
+error = 0
 
 # Controlled by tuner
 batch_size = 128
 learning_rate = 0.005
 
-# Other
-early_stopping_threshold = 0.25
+# Data Split
+train_days = 16
+val_days = 2
+test_days = 2
 
-# Data Parameters
-nist = {
-    "training_days"       : 16, 
-    "val_days"            : 2,
-    "test_days"           : 2,
-    "validation_days"     : 0,
-    "off_limit_w"         : 100,
-    "on_limit_w"          : 1500,   
-    "consecutive_points"  : 3,
+# ON / OFF Power Limits
+off_limit_w = 100
+on_limit_w = 1500
 
-    "train_data_path"     : "src/data_preprocess/dataset/train/NIST.csv",
-    "val_data_path"       : "src/data_preprocess/dataset/val/NIST.csv",
-    "test_data_path"      : "src/data_preprocess/dataset/test/NIST.csv",
-    "on_data_path"        : "src/data_preprocess/dataset/on/NIST.csv",
-    "off_data_path"       : "src/data_preprocess/dataset/off/NIST.csv",
-    "data_path"           : "src/data_preprocess/dataset/NIST_cleaned.csv",
+consecutive_points = 3
 
-    "power_col"           : "PowerConsumption",
-    "timestamp_col"       : "Timestamp"
-}
+nist_path = "src/data_preprocess/dataset/NIST_cleaned.csv"
+ukdata_path = "src/data_preprocess/dataset/UKDATA_cleaned.csv"
 
-dengiz = {
-    "training_days"       : 18, 
-    "test_days"           : 2,
-    "validation_days"     : 0,
-    "off_limit_w"         : None,   # Yet to be known
-    "on_limit_w"          : None,   # Yet to be known
-    "consecutive_points"  : 3,
+clean_in_low = 10
+clean_in_high = 30
+clean_out_low = -50
+clean_out_high = 50
+clean_pow_low = 0
+clean_delta_temp = 15
 
-    "train_data_path"     : "src/data_preprocess/dataset/train/Dengiz.csv",
-    "test_data_path"      : "src/data_preprocess/dataset/test/Dengiz.csv",
-    "on_data_path"        : "src/data_preprocess/dataset/on/Dengiz.csv",
-    "off_data_path"       : "src/data_preprocess/dataset/off/Dengiz.csv",
-    "data_path"           : "src/data_preprocess/dataset/Dengiz_cleaned.csv",
-
-    "power_col"           : "PowerConsumption",
-    "timestamp_col"       : "Timestamp"
-}
-
-# Other
-early_stopping_threshold = 0.1
-
-
-used_dataset       = nist
-training_days      = used_dataset["training_days"]
-test_days          = used_dataset["test_days"]
-validation_days    = used_dataset["validation_days"]
-off_limit          = used_dataset["off_limit_w"]
-on_limit           = used_dataset["on_limit_w"]
-consecutive_points = used_dataset["consecutive_points"]
-
-# General Constant
-TIMESTAMP = "Timestamp"
-POWER     = "PowerConsumption"
-
-# Paths
-TRAIN_DATA_PATH = used_dataset["train_data_path"]
-TEST_DATA_PATH  = used_dataset["test_data_path"]
-ON_DATA_PATH    = used_dataset["on_data_path"]
-OFF_DATA_PATH   = used_dataset["off_data_path"]
-DATA_PATH       = used_dataset["data_path"]
-
-def train_and_test_model(trainer, lit_model):
-    trainer.fit(lit_model)
-    trainer.test(lit_model)
-    return lit_model.get_predictions(), lit_model.get_actuals()
-
-def main(i, d):
-    temp_boundery = 0.5
-    seq_len = 4
-    error = 0
-
-    mnist_dh = DataHandler(nist, DayDataSplitter)
-
-    model_training_and_eval(mnist_dh, i, d)
-
-    model = bm.GRU(hidden_size, num_layers, dropout)
-    model.load_state_dict(torch.load(MODEL_PATH))
-    model.eval()
-
-    on_df = mnist_dh.get_on_data()
-    off_df = mnist_dh.get_off_data()
-
-    on_data_arr = mnist_dh.split_dataframe_by_continuity(on_df, 15, seq_len)
-    off_data_arr = mnist_dh.split_dataframe_by_continuity(off_df, 15, seq_len)
-
-    get_mafe(on_data_arr, model, seq_len, error, temp_boundery)
-    get_mafe(off_data_arr, model, seq_len, error, temp_boundery)
-
-def model_training_and_eval(mnist_dh, iterations, debug):
-    train_data = mnist_dh.get_train_data().values
-    val_data   = mnist_dh.get_val_data().values
-    test_data  = mnist_dh.get_test_data().values
-
-    test_timestamps = pd.to_datetime(test_data[:,0])
-
-    train_data, _, _ = norm.minmax_scale(train_data[:,1:].astype(float))
-    val_data, _, _ = norm.minmax_scale(val_data[:,1:].astype(float))
-    test_data, test_min_vals, test_max_vals = norm.minmax_scale(test_data[:,1:].astype(float))
+def main(d):
+    assert time_horizon > 0, "Time horizon must be a positive integer"
     
-    best_loss = None
-    # TODO: change iterations to save folder with best ensembled model
-    for _ in range(iterations):
-        all_models = []
-        for _ in range(num_ensembles):
-            model = bm.GRU(hidden_size, num_layers, dropout)
-            lit_model = mc.MCModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data, inference_samples)
-            all_models.append(lit_model)
-        
-        trainers = [L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug) for _ in range(num_ensembles)]
-        
-        tuners = [Tuner(trainer) for trainer in trainers]
-        for tuner, lit_model in zip(tuners, all_models):
-            tuner.lr_find(lit_model)
-            tuner.scale_batch_size(lit_model, mode="binsearch")
-            
-        all_predictions = []
-        all_actuals = None
-        
-        # Run ensembles in parallel
-        with ThreadPoolExecutor(max_workers=min(num_ensembles, NUM_WORKERS)) as executor:
-            futures = [executor.submit(train_and_test_model, trainer, lit_model) for trainer, lit_model in zip(trainers, all_models)]
-            for future in as_completed(futures):
-                predictions, actuals = future.result()
-                all_predictions.append(predictions)
-                if all_actuals is None:
-                    all_actuals = actuals
-            
-        plot_results(all_predictions, all_actuals, test_timestamps, test_min_vals, test_max_vals)
+    df = pd.read_csv(nist_path)
 
-        model = bm.GRU(hidden_size, num_layers, dropout)
-        lit_model = bm.BaseModel(model, learning_rate, seq_len, batch_size, train_data, val_data, test_data)
-        trainer = L.Trainer(max_epochs=num_epochs, callbacks=[StochasticWeightAveraging(swa_lrs=swa_learning_rate), ConditionalEarlyStopping(threshold=early_stopping_threshold)], gradient_clip_val=gradient_clipping, fast_dev_run=debug)
-        tuner = Tuner(trainer)
-        tuner.lr_find(lit_model)
-        tuner.scale_batch_size(lit_model, mode="binsearch")
+    cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
+    splitter = StdSplitter(train_days, val_days, test_days)
+    
+    model = LSTM(hidden_size, num_layers, input_size, time_horizon, dropout)
+    trainer = TrainerWrapper(L.Trainer, 
+                             max_epochs=num_epochs, 
+                             callbacks=[ConditionalEarlyStopping(threshold=early_stopping_threshold)],
+                             gradient_clip_val=gradient_clipping, 
+                             fast_dev_run=d)
+    optimizer = OptimizerWrapper(optim.Adam, model, lr=learning_rate)
 
-        trainer.fit(lit_model)
-        test_results = trainer.test(lit_model)
-
-        test_loss = test_results[0].get('test_loss_epoch', None) if test_results else None
-
-        if best_loss is None or best_loss > test_loss :
-            print("NEW BEST")
-#            lit_model.plot_results(test_timestamps, test_min_vals, test_max_vals)
-            best_loss = test_loss 
-            torch.save(model.state_dict(), MODEL_PATH)
+    model = MonteCarloPipeline.Builder() \
+        .add_data(df) \
+        .set_cleaner(cleaner) \
+        .set_normalizer_class(MinMaxNormalizer) \
+        .set_splitter(splitter) \
+        .set_sequencer_class(TimeSequencer) \
+        .set_target_column(TARGET_COLUMN) \
+        .set_model(model) \
+        .set_optimizer(optimizer) \
+        .set_batch_size(batch_size) \
+        .set_seq_len(seq_len) \
+        .set_worker_num(NUM_WORKERS) \
+        .set_error(NRMSE) \
+        .set_trainer(trainer) \
+        .set_tuner_class(StdTunerWrapper) \
+        .set_inference_samples(inference_samples) \
+        .set_inference_dropout(inference_dropout) \
+        .build()
 
 
+#    model = EnsemblePipeline.Builder() \
+#        .set_pipeline(model) \
+#        .set_num_ensembles(num_ensembles) \
+#        .build()
 
-def get_mafe(data_arr, model, seq_len, error, boundary):
-    flex_predictions = []
-    flex_actual_values = []
+    model.fit()
 
-    for data in data_arr:
-        for i in range(0, len(data), seq_len):
-            if len(data) < i + seq_len * 2:
-                break
+    def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence):
+        predictions = model.get_predictions()
 
-            in_temp_idx = 2
+        if isinstance(predictions, tuple):
+            predictions_2d_arr = tuple(np.array(pred).reshape(-1, time_horizon) for pred in predictions)
+        else:
+            predictions_2d_arr = np.array(predictions).reshape(-1, time_horizon)
 
-            input_data = data[i: i + seq_len]
+        actuals_arr = np.array(model.get_actuals()).reshape(-1, time_horizon)[::time_horizon].flatten()
+        timestep_arr = model.get_timestamps()
 
-            # get the actual result data by first gettin the next *seq* data steps forward, 
-            # and taking only the in_temp_id column to get the actual result indoor temperatures
-            result_actual = data[i + seq_len : i + (seq_len * 2), in_temp_idx:in_temp_idx + 1] 
+        if isinstance(predictions_2d_arr, tuple):
+            for i in range(0, time_horizon):
+                predictions_arr = tuple(np.array(pred)[i::time_horizon].flatten() for pred in predictions_2d_arr)
+                plot_results(predictions_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
+        else: 
+            for i in range(0, time_horizon):
+                predictions_arr = predictions_2d_arr[i::time_horizon].flatten()
+                plot_results(predictions_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
 
-            result_predictions = multiTimestepForecasting(model, input_data, seq_len)
+        model.eval()
 
-            last_in_temp = input_data[len(input_data) - 1][2]
+        ps = PowerSplitter(splitter.get_test(cleaner.clean(df)), TIMESTAMP, POWER)
 
-            lower_boundery = last_in_temp - boundary
-            upper_boundery = last_in_temp + boundary
+        on_df = ps.get_mt_power(on_limit_w, consecutive_points)
+        off_df = ps.get_lt_power(off_limit_w, consecutive_points)
 
-            actual_flex = flex_predict(result_actual, lower_boundery, upper_boundery, error)
-            predicted_flex = flex_predict(result_predictions, lower_boundery, upper_boundery, error)
+        def normalize_and_convert_dates(data):
+            data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
+            temp = MinMaxNormalizer(data.astype(float)).normalize()
+            return temp[0]
 
-            flex_predictions.append(predicted_flex)
-            flex_actual_values.append(actual_flex)
+        on_data = np.array(on_df)
+        on_data = normalize_and_convert_dates(on_data)
 
-        # need to check why the prediction allways perfect, and why its either all the data its flexible or no data
-    flex_difference = [a - b for a, b in zip(flex_predictions, flex_actual_values)]
-    print(flex_difference)
+        off_data = np.array(off_df)
+        off_data = normalize_and_convert_dates(off_data)
 
+        evaluator = Evaluator(model, error, temp_boundary)
+
+        print("Calculating On set...")
+        evaluator.init_predictions(on_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence) 
+        print(f"On Mafe: {evaluator.evaluate(mafe)}") 
+        print(f"On Maofe: {evaluator.evaluate(maofe)}")
+        print(f"On Maufe: {evaluator.evaluate(maufe)}")
+        print(f"On EPFR: {evaluator.evaluate(epfr)}")
+
+        print("Calculating Off set...")
+        evaluator.init_predictions(off_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence)
+        print(f"Off Mafe: {evaluator.evaluate(mafe)}")
+        print(f"Off Maofe: {evaluator.evaluate(maofe)}")
+        print(f"Off Maufe: {evaluator.evaluate(maufe)}")
+        print(f"Off EPFR: {evaluator.evaluate(epfr)}")
+
+    evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, 0.95)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the model training and testing.")
-    parser.add_argument('--i', type=int, required=True, help='Number of iterations to run the training and testing loop.')
-    parser.add_argument('--d', action='store_true', help='Debug mode')
+    parser.add_argument('-d', action='store_true', help='Debug mode')
     args = parser.parse_args()
     if args.d:
         print("DEBUG MODE")
-    main(args.i, args.d)
+    main(args.d)
+
+
+
+

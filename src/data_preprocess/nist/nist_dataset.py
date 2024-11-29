@@ -15,7 +15,7 @@ INDENV_MIN_PATH_2015 = DATASETFOLDER + "IndEnv-minute-2015.csv"
 OUTENV_MIN_PATH_2014 = DATASETFOLDER + "OutEnv-minute-2014.csv"
 OUTENV_MIN_PATH_2015 = DATASETFOLDER + "OutEnv-minute-2015.csv"
 
-CLEAN_NIST_PATH = DATASETFOLDER + "NIST_cleaned.csv"
+CLEAN_NIST_PATH = "src/data_preprocess/dataset/NIST_cleaned.csv"
 
 # Data parameters
 SAMPLE_TIME = "15min"
@@ -24,7 +24,7 @@ USE_UTC = True
 MAX_TEMP_DELTA = 15
 
 # HVAC
-hvac_df = pd.concat([pd.read_csv(HVAC_MIN_PATH_2014), pd.read_csv(HVAC_MIN_PATH_2015)])
+hvac_df = pd.read_csv(HVAC_MIN_PATH_2015) #pd.concat([pd.read_csv(HVAC_MIN_PATH_2014), pd.read_csv(HVAC_MIN_PATH_2015)])
 hvac_df = hvac_df[[TIMESTAMP, "HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"]]
 hvac_df["PowerConsumption"] = hvac_df.HVAC_HeatPumpIndoorUnitPower + hvac_df.HVAC_HeatPumpOutdoorUnitPower
 hvac_df = hvac_df.drop(["HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"], axis="columns")
@@ -52,7 +52,7 @@ df = df.join(outdoor_df.set_index(TIMESTAMP), on=TIMESTAMP)
 
 df = df[(df.IndoorTemp >= 10) & (df.IndoorTemp <= 30)]
 df = df[(df.OutdoorTemp >= -50) & (df.OutdoorTemp <= 50)]
-series = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
+df = df[(df.IndoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA) & (df.OutdoorTemp.diff().abs().astype(float) <= MAX_TEMP_DELTA)]
 df = df[df.PowerConsumption > 0]
 
 df = df.dropna()

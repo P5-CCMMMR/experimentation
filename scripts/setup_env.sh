@@ -14,7 +14,7 @@ package_installed() {
 if ! command_exists python3; then
     echo "Python is not installed. Installing the latest version of Python..."
     sudo apt update
-    sudo apt install -y python3 python3-venv python3-pip
+    sudo apt install -y python3 python3-venv python3-pip unzip
 else
     echo "Python is already installed."
     sudo apt update
@@ -61,10 +61,6 @@ mkdir -p src/data_preprocess/nist
 mkdir -p src/data_preprocess/nist/data_root
 mkdir -p graph
 mkdir -p src/data_preprocess/dataset
-mkdir -p src/data_preprocess/dataset/off
-mkdir -p src/data_preprocess/dataset/on
-mkdir -p src/data_preprocess/dataset/test
-mkdir -p src/data_preprocess/dataset/train
 
 declare -A datasets
 
@@ -86,5 +82,14 @@ do
         echo "$key already exists."
     fi
 done
+
+# Download datasets from UKDATA
+
+echo "Downloading datasets from UKDATA..."
+mkdir -p src/data_preprocess/ukdata
+gdown 1Fv2xtlxWNabYTLpPyBVL__GR6mQ2T0MO -O src/data_preprocess/ukdata/
+unzip src/data_preprocess/ukdata/UKDATA_CLEANED.zip -d src/data_preprocess/ukdata/
+mv src/data_preprocess/ukdata/UKDATA_CLEANED src/data_preprocess/ukdata/data_root
+rm src/data_preprocess/ukdata/UKDATA_CLEANED.zip
 
 echo "Setup complete."
