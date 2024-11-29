@@ -2,27 +2,19 @@ from ray import tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.train import Checkpoint
 
-import torch
 import lightning as L
 import matplotlib
-import numpy as np
 import pandas as pd
 import multiprocessing
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
-from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-from src.util.power_splitter import PowerSplitter
-
-from src.util.plotly import plot_results, plot_loss
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
 from src.pipelines.models.gru import GRU
 from src.pipelines.models.tcn import TCN
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
-from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
-from src.pipelines.splitters.std_splitter import StdSplitter
 from src.pipelines.splitters.day_splitter import DaySplitter
 from src.pipelines.splitters.blocked_k_fold_splitter import BlockedKFoldSplitter
 from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
@@ -33,9 +25,6 @@ from src.pipelines.metrics.lscv import *
 from src.pipelines.metrics.rmse import * 
 
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
-from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
-from src.pipelines.ensemble_pipeline import EnsemblePipeline
-from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
 import torch.optim as optim
 nist_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/NIST_cleaned.csv"
@@ -46,10 +35,10 @@ config = {
     "hidden_size": tune.qrandint(24,128, 8),
     "dropout": tune.quniform(0, 0.8, 0.1),
     "num_layers": tune.randint(1,2),
-    "arch_idx": tune.randint(0, 2) # LSTM, GRU 
+    "arch_idx": tune.randint(0, 3) # LSTM, GRU, TCN
 }
-arch_arr = [LSTM, GRU]
-arch_str_arr = ["LSTM", "GRU"]
+arch_arr = [LSTM, GRU, TCN]
+arch_str_arr = ["LSTM", "GRU", "TCN"]
 
 matplotlib.use("Agg")
 
@@ -91,6 +80,12 @@ learning_rate = 0.005
 time_horizon = 4
 num_samples = 10
 
+debug = False
+
+if debug:
+    num_epochs = 1
+    num_samples = 1
+    folds = 2
 
 def train(config):
     df_arr = []
@@ -113,7 +108,11 @@ def train(config):
             splitter.set_val_index(i)
             cleaner = TempCleaner(clean_pow_low, clean_in_low, clean_in_high, clean_out_low, clean_out_high, clean_delta_temp)
             metrics = {'loss': 'val_loss'}    
-            model = arch_class(hidden_size, num_layers, input_size, time_horizon, dropout)
+            if arch_class == TCN:
+                model = arch_class(hidden_size, num_layers, input_size, time_horizon, dropout, seq_len)
+            else:
+                model = arch_class(hidden_size, num_layers, input_size, time_horizon, dropout)
+            
             trainer = TrainerWrapper(L.Trainer, 
                                     max_epochs=num_epochs, 
                                     callbacks=[EarlyStopping(monitor='val_loss', min_delta=0.0, patience=3, verbose=False, mode='min', strict=True), 
