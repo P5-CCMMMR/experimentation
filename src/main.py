@@ -22,6 +22,8 @@ from src.pipelines.optimizers.optimizer import OptimizerWrapper
 from src.pipelines.metrics.crps import *
 from src.pipelines.metrics.lscv import *
 from src.pipelines.metrics.rmse import * 
+from src.pipelines.metrics.mafe import mafe, maofe, maufe
+from src.pipelines.metrics.epfr import epfr
 
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
@@ -174,15 +176,17 @@ def main(d):
 
         print("Calculating On set...")
         evaluator.init_predictions(on_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence) 
-        print(f"On Mafe: {evaluator.evaluate(lambda a, b: abs(a - b))}") 
-        print(f"On Maofe: {evaluator.evaluate(lambda a, b: abs(max(a - b, 0)))}")
-        print(f"On Maufe: {evaluator.evaluate(lambda a, b: abs(min(a - b, 0)))}")
+        print(f"On Mafe: {evaluator.evaluate(mafe)}") 
+        print(f"On Maofe: {evaluator.evaluate(maofe)}")
+        print(f"On Maufe: {evaluator.evaluate(maufe)}")
+        print(f"On EPFR: {evaluator.evaluate(epfr)}")
 
         print("Calculating Off set...")
         evaluator.init_predictions(off_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence)
-        print(f"Off Mafe: {evaluator.evaluate(lambda a, b: abs(a - b))}")
-        print(f"Off Maofe: {evaluator.evaluate(lambda a, b: abs(max(a - b, 0)))}")
-        print(f"Off Maufe: {evaluator.evaluate(lambda a, b: abs(min(a - b, 0)))}")
+        print(f"Off Mafe: {evaluator.evaluate(mafe)}")
+        print(f"Off Maofe: {evaluator.evaluate(maofe)}")
+        print(f"Off Maufe: {evaluator.evaluate(maufe)}")
+        print(f"Off EPFR: {evaluator.evaluate(epfr)}")
 
     evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, 0.95)
 
