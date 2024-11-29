@@ -59,9 +59,5 @@ class Evaluator:
     def evaluate(self, error_func):
         if len(self.flex_predictions) != len(self.flex_actual_values):
              raise RuntimeError(f"predicted flex and actual flex was not the same length\n predicted_flex: {len(self.flex_predictions)} | actual_flex: {len(self.flex_actual_values)}")
-        flex_difference = []
         
-        for i in range(0, len(self.flex_actual_values)):
-            flex_difference.append(error_func(self.flex_predictions[i], self.flex_actual_values[i]))
-
-        return (sum(flex_difference) / len(flex_difference))
+        return error_func(np.array(self.flex_predictions), np.array(self.flex_actual_values))

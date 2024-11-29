@@ -27,6 +27,8 @@ from src.pipelines.optimizers.optimizer import OptimizerWrapper
 from src.pipelines.metrics.crps import *
 from src.pipelines.metrics.lscv import *
 from src.pipelines.metrics.rmse import * 
+from src.pipelines.metrics.mae import *
+from src.pipelines.metrics.maxe import *
 
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
