@@ -10,16 +10,26 @@ class CALE(ProbabilisticMetric):
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Calibration Error (CALE)\\
-        Returns the percentage of predictions that fall within 1, 2 and 3 standard deviations of the mean
+        Returns the error of the calibration of the model
         """
         within_1_std = (y > mean - stddev) & (y < mean + stddev)
         within_2_std = (y > mean - 2 * stddev) & (y < mean + 2 * stddev)
         within_3_std = (y > mean - 3 * stddev) & (y < mean + 3 * stddev)
 
-        stddev1_count = within_1_std.sum().item()
-        stddev2_count = within_2_std.sum().item()
-        stddev3_count = within_3_std.sum().item()
+        stddev_counts = torch.tensor([
+            within_1_std.sum().item(),
+            within_2_std.sum().item(),
+            within_3_std.sum().item()
+        ], dtype=torch.float32)
                         
         size = mean.size(0)
         
-        return (stddev1_count / size, stddev2_count / size, stddev3_count / size)
+        predicted_within_std = stddev_counts / size
+        
+        # Using three sigma rule
+        expected_within_std = torch.tensor([0.6827, 0.9545, 0.9973], dtype=torch.float32)
+        
+        errors = torch.abs(predicted_within_std - expected_within_std)
+        
+        return errors.mean()
+    
