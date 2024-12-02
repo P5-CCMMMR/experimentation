@@ -12,14 +12,14 @@ class CALE(ProbabilisticMetric):
         Calibration Error (CALE)\\
         Returns the percentage of predictions that fall within 1, 2 and 3 standard deviations of the mean
         """
-        stddev1_count, stddev2_count, stddev3_count = 0, 0, 0
-        for (m, s, pred) in zip(mean, stddev, y):
-            if pred > m - 3*s and pred < m + 3*s:
-                stddev3_count += 1
-                if pred > m - 2*s and pred < m + 2*s:
-                    stddev2_count += 1
-                    if pred > m - s and pred < m + s:
-                        stddev1_count += 1
+        within_1_std = (y > mean - stddev) & (y < mean + stddev)
+        within_2_std = (y > mean - 2 * stddev) & (y < mean + 2 * stddev)
+        within_3_std = (y > mean - 3 * stddev) & (y < mean + 3 * stddev)
+
+        stddev1_count = within_1_std.sum().item()
+        stddev2_count = within_2_std.sum().item()
+        stddev3_count = within_3_std.sum().item()
                         
-        size = len(mean)
+        size = mean.size(0)
+        
         return (stddev1_count / size, stddev2_count / size, stddev3_count / size)
