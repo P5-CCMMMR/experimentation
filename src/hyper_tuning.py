@@ -35,7 +35,7 @@ config = {
     "seq_len": tune.qrandint(16,672, 8), 
     "hidden_size": tune.qrandint(24,128, 8),
     "dropout": tune.quniform(0, 0.8, 0.1),
-    "num_layers": tune.randint(2,3),
+    "num_layers": tune.randint(1,3),
     "arch_idx": tune.randint(0, 3) # LSTM, GRU, TCN
 }
 arch_arr = [LSTM, GRU, TCN]
