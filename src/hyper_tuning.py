@@ -1,3 +1,4 @@
+import numpy as np
 from ray import tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.train import Checkpoint
@@ -34,7 +35,7 @@ config = {
     "seq_len": tune.qrandint(16,672, 8), 
     "hidden_size": tune.qrandint(24,128, 8),
     "dropout": tune.quniform(0, 0.8, 0.1),
-    "num_layers": tune.randint(1,2),
+    "num_layers": tune.randint(2,3),
     "arch_idx": tune.randint(0, 3) # LSTM, GRU, TCN
 }
 arch_arr = [LSTM, GRU, TCN]
@@ -173,4 +174,30 @@ with open(output_file, "a") as f:
         num_layers = row['config/num_layers']
         iter = row['training_iteration']
         total_time = row['time_total_s']
-        f.write(f"{loss:<20} | {arch_str_arr[arch_idx]:<12} | {seq_len:<10} | {hidden_size:<12} | {round(dropout):<8} | {num_layers:<10} | {iter:<5} | {total_time:<10}\n")
+        f.write(f"{loss:<20} | {arch_str_arr[arch_idx]:<12} | {seq_len:<10} | {hidden_size:<12} | {round(dropout , 1):<8} | {num_layers:<10} | {iter:<5} | {total_time:<10}\n")
+
+def clean_and_sort_file(filename):
+    data = []
+
+
+    with open(filename, "r") as f:
+        for line in f:
+            if line.startswith("-") or "loss" in line or not line.strip():
+                continue
+            try:
+                parts = line.split("|", 1)
+                loss = float(parts[0].strip())  
+                rest_of_line = parts[1] if len(parts) > 1 else ""
+                data.append((loss, rest_of_line.strip()))  
+            except (ValueError, IndexError):
+                continue
+
+    data.sort(key=lambda x: x[0])
+
+    with open(filename, "w") as f:
+        f.write(f"{'-' * 100}\n")
+        f.write(f"{'loss':<20} | {'architecture':<12} | {'seq_len':<10} | {'hidden_size':<12} | {'dropout':<8} | {'num_layers':<10} | {'iter':<5} | {'total_time':<10}\n")
+        for loss, rest_of_line in data:
+            f.write(f"{loss:<20} | {rest_of_line}\n")
+
+clean_and_sort_file(output_file)
