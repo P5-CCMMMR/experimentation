@@ -38,8 +38,11 @@ from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 from src.util.evaluator import Evaluator
 
 import torch.optim as optim
+from lightning.pytorch import seed_everything
 
 matplotlib.use("Agg")
+
+seed_everything(1337)
 
 NUM_WORKERS = multiprocessing.cpu_count()
 TARGET_COLUMN = 2
