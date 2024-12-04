@@ -276,6 +276,7 @@ class Pipeline(L.LightningModule, ABC):
                 train_dfs.append(self.splitter.get_train(cleaned_df))
                 val_dfs.append(self.splitter.get_val(cleaned_df))
                 test_dfs.append(self.splitter.get_test(cleaned_df))
+
                 
             train_df = pd.concat(train_dfs, ignore_index=True) if train_dfs else pd.DataFrame()
             val_df = pd.concat(val_dfs, ignore_index=True) if val_dfs else pd.DataFrame()
@@ -287,7 +288,7 @@ class Pipeline(L.LightningModule, ABC):
                 train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
                 train_normalizer = self.normalizer_class(train_df.values.astype(float)) 
                 train_df = train_normalizer.normalize()
-                train_segmenter = self.sequencer_class(train_df[0], self.seq_len, horizon_len, self.target_column)
+                train_segmenter = self.sequencer_class(train_df, self.seq_len, horizon_len, self.target_column)
                 train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
                 train_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
@@ -297,7 +298,7 @@ class Pipeline(L.LightningModule, ABC):
                 val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
                 val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
                 val_df = val_normalizer.normalize()
-                val_segmenter = self.sequencer_class(val_df[0], self.seq_len, horizon_len, self.target_column)
+                val_segmenter = self.sequencer_class(val_df, self.seq_len, horizon_len, self.target_column)
                 val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
                 val_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
