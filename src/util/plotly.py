@@ -140,6 +140,8 @@ def plot_flex_probabilities(flex_probabilities, confidence):
             name=f'Forecast {i + 1} Probability'
         ))
     
+    fig.add_trace(go.Scatter(x=list(range(len(probabilities))), y=[confidence]*len(probabilities), mode='lines', name=f'Confidence Level ({confidence})', line=dict(dash='dash', color='red')))
+    
     fig.update_layout(
         title="Probability of Forecast Falling Within Bounds",
         xaxis_title="Predicted Flexibility",
