@@ -35,7 +35,8 @@ from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
-from src.pipelines.deterministic_baseline import DeterministicBaseline
+from src.pipelines.copy_deterministic_baseline import CopyDeterministicBaseline
+from src.pipelines.lag_deterministic_baseline import LagDeterministicBaseline
 
 from src.util.evaluator import Evaluator
 

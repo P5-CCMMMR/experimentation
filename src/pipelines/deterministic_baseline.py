@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from src.pipelines.pipeline import Pipeline
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
@@ -44,17 +45,32 @@ class DeterministicBaseline(DeterministicPipeline):
             self.all_predictions.append(self.forward(x.detach().cpu().numpy()))
             self.all_actuals.append(y.detach().cpu().numpy().flatten())
 
-        #func_arr = self.test_error_func_arr
-        #for func in func_arr:
-        #    loss_arr = func.calc(torch.tensor(self.all_predictions), torch.tensor(self.all_actuals))
-        #    title = func.get_title()
-        #    avg_loss = (sum(loss_arr) / len(loss_arr)).item()
-        #    print(f"{title:<30} {avg_loss:.6f}")
+        self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
+        self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
+
+        func_arr = self.test_error_func_arr
+        for func in func_arr:
+            loss = func.calc(torch.tensor(self.all_predictions), torch.tensor(self.all_actuals))
+            title = func.get_title()
+            print(f"{title:<30} {loss:.6f}")
 
     def forward(self, x):
-        print(self.normalizer.denormalize(x))
-        return None
+        prediction_arr = []
+        for input in x:
+            for i in range(0, self.horizen_len):
+                before_index = self.horizen_len - i # 4 3 2 1
+                prediction_arr.append(input[len(input) - before_index][self.target_column])
+                
+        return prediction_arr
 
+    #def forward(self, x):
+    #    prediction_arr = []
+    #    for input in x:
+    #        last_input_temp = input[len(input) - 1][self.target_column]
+    #        for _ in range(0, self.horizen_len):
+    #            prediction_arr.append(last_input_temp)
+    #    return prediction_arr
+#
  
     class Builder(DeterministicPipeline.Builder):
         def __init__(self):

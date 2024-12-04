@@ -304,13 +304,10 @@ class Pipeline(L.LightningModule, ABC):
                 val_normalizer = self.normalizer_class(np.array([]))
 
             if not test_df.empty:
-                print(test_df)
                 test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
                 test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
-                print(test_df.values.astype(float))
                 test_df = test_normalizer.normalize()
-                print(test_normalizer.denormalize(test_df))
-                test_segmenter = self.sequencer_class(test_df[0], self.seq_len, horizon_len, self.target_column)
+                test_segmenter = self.sequencer_class(test_df, self.seq_len, horizon_len, self.target_column) #test_df was indexed like test_df[0], but that doens't work with baselines?!?!
                 test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
                 test_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
