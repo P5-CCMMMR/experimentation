@@ -19,39 +19,29 @@ from src.pipelines.tuners.tuner_wrapper import TunerWrapper
 class Pipeline(L.LightningModule, ABC):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
                  optimizer: torch.optim.Optimizer, model: nn.Module, trainer_wrapper: TrainerWrapper,
-                 tuner_class: TunerWrapper,
-                 train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
-                 test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
-                 train_error_func, val_error_func, test_error_func_arr,
-                 target_column):
+                 tuner_class: TunerWrapper, train_error_func, val_error_func, test_error_func_arr,
+                 target_column, df_arr, cleaner: Cleaner, splitter: Splitter, normalizer_class: Normalizer, sequencer_class: Sequencer, worker_num: int):
         super().__init__()
         self.seq_len = seq_len
 
         self.batch_size = batch_size
+
         if model is not None:
             self.horizen_len = model.get_horizon_len()
 
         self.learning_rate = learning_rate
-
-        self.train_loader = train_loader
-        self.val_loader = val_loader
-        self.test_loader = test_loader
-
-        self.timesteps = test_timesteps
+        
+        self.trainer_wrapper = trainer_wrapper
+        if trainer_wrapper is not None:
+            self.trainer = trainer_wrapper.get_trainer()
+        
+        self.optimizer = optimizer
 
         self.train_error_func = train_error_func
         self.val_error_func = val_error_func
         self.test_error_func_arr = test_error_func_arr
 
-        self.optimizer = optimizer
-        self.normalizer = normalizer
         self.model = model
-        self.trainer_wrapper = trainer_wrapper
-        if trainer_wrapper is not None:
-            self.trainer = trainer_wrapper.get_trainer()
-
-        self.tuner_class = tuner_class
-        self.tuner = None
 
         self.target_column = target_column
 
@@ -64,6 +54,70 @@ class Pipeline(L.LightningModule, ABC):
         self.epoch_train_loss_arr = []
         self.epoch_val_loss_arr = []
 
+        # Intial data loading
+        self.train_loader, self.val_loader, self.test_loader, self.test_timesteps, self.normalizer = self._get_loaders(df_arr, cleaner, splitter, normalizer_class, sequencer_class, worker_num)
+
+        # Tuning
+        self.tuner_class = tuner_class
+        self.tuner = tuner_class(self.trainer, self)
+        self.tuner.tune()
+        
+        # Tuned data loading
+        self.train_loader, self.val_loader, self.test_loader, self.test_timesteps, self.normalizer = self._get_loaders(df_arr, cleaner, splitter, normalizer_class, sequencer_class, worker_num)
+
+        # Tuned model loading
+        for g in self.optimizer.optimizer.param_groups:
+            g['lr'] = self.learning_rate
+
+    def _get_loaders(self, df_arr, cleaner, splitter, normalizer_class, sequencer_class, worker_num):
+            train_dfs = []
+            val_dfs = []
+            test_dfs = []
+
+            for df in df_arr:
+                cleaned_df = cleaner.clean(df)
+                train_dfs.append(splitter.get_train(cleaned_df))
+                val_dfs.append(splitter.get_val(cleaned_df))
+                test_dfs.append(splitter.get_test(cleaned_df))
+                
+            train_df = pd.concat(train_dfs, ignore_index=True) if train_dfs else pd.DataFrame()
+            val_df = pd.concat(val_dfs, ignore_index=True) if val_dfs else pd.DataFrame()
+            test_df = pd.concat(test_dfs, ignore_index=True) if test_dfs else pd.DataFrame()
+
+            test_timestamps = pd.to_datetime(test_df.values[:,0]) if not test_df.empty else pd.DatetimeIndex([])
+
+            if not train_df.empty:
+                train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
+                train_normalizer = normalizer_class(train_df.values.astype(float)) 
+                train_df = train_normalizer.normalize()
+                train_segmenter = sequencer_class(train_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
+                train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=worker_num)
+            else:
+                train_loader = DataLoader([], batch_size=self.batch_size, num_workers=worker_num)
+                train_normalizer = normalizer_class(np.array([]))
+
+            if not val_df.empty:
+                val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
+                val_normalizer = normalizer_class(val_df.values.astype(float)) 
+                val_df = val_normalizer.normalize()
+                val_segmenter = sequencer_class(val_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
+                val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=worker_num)
+            else:
+                val_loader = DataLoader([], batch_size=self.batch_size, num_workers=worker_num)
+                val_normalizer = normalizer_class(np.array([]))
+
+            if not test_df.empty:
+                test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
+                test_normalizer = normalizer_class(test_df.values.astype(float)) 
+                test_df = test_normalizer.normalize()
+                test_segmenter = sequencer_class(test_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
+                test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=worker_num)
+            else:
+                test_loader = DataLoader([], batch_size=self.batch_size, num_workers=worker_num)
+                test_normalizer = normalizer_class(np.array([]))
+            
+            return train_loader, val_loader, test_loader, test_timestamps, test_normalizer
+    
     def training_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
@@ -93,9 +147,7 @@ class Pipeline(L.LightningModule, ABC):
     def test_step(self, batch):
         pass
 
-    def fit(self): # Cancer train keyword taken by L.module
-        self.tuner = self.tuner_class(self.trainer, self)
-        self.tuner.tune()
+    def fit(self):
         self.trainer.fit(self)
 
     def test(self):
@@ -202,7 +254,6 @@ class Pipeline(L.LightningModule, ABC):
         def set_optimizer(self, optimizer):
             if not isinstance(optimizer, OptimizerWrapper):
                 raise ValueError("Optimizer instance given not extended from torch.optim class")
-
             self.optimizer = optimizer
             return self
         
@@ -237,10 +288,6 @@ class Pipeline(L.LightningModule, ABC):
         def set_worker_num(self, worker_num):
             self.worker_num = worker_num
             return self
-
-        def set_optimizer(self, optimizer: torch.optim.Optimizer):
-            self.optimizer = optimizer
-            return self
         
         @abstractmethod
         def set_error(self, error_func):
@@ -262,60 +309,9 @@ class Pipeline(L.LightningModule, ABC):
             for key, value in kwargs.items():
                 if value is None:
                     raise ValueError(f"{key} cannot be None")
-                
-        def _get_loaders(self):
-            train_dfs = []
-            val_dfs = []
-            test_dfs = []
-
-            for df in self.df_arr:
-                cleaned_df = self.cleaner.clean(df)
-                train_dfs.append(self.splitter.get_train(cleaned_df))
-                val_dfs.append(self.splitter.get_val(cleaned_df))
-                test_dfs.append(self.splitter.get_test(cleaned_df))
-                
-            train_df = pd.concat(train_dfs, ignore_index=True) if train_dfs else pd.DataFrame()
-            val_df = pd.concat(val_dfs, ignore_index=True) if val_dfs else pd.DataFrame()
-            test_df = pd.concat(test_dfs, ignore_index=True) if test_dfs else pd.DataFrame()
-
-            test_timestamps = pd.to_datetime(test_df.values[:,0]) if not test_df.empty else pd.DatetimeIndex([])
-
-            if not train_df.empty:
-                train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
-                train_normalizer = self.normalizer_class(train_df.values.astype(float)) 
-                train_df = train_normalizer.normalize()
-                train_segmenter = self.sequencer_class(train_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
-                train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
-            else:
-                train_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
-                train_normalizer = self.normalizer_class(np.array([]))
-
-            if not val_df.empty:
-                val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
-                val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
-                val_df = val_normalizer.normalize()
-                val_segmenter = self.sequencer_class(val_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
-                val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
-            else:
-                val_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
-                val_normalizer = self.normalizer_class(np.array([]))
-
-            if not test_df.empty:
-                test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
-                test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
-                test_df = test_normalizer.normalize()
-                test_segmenter = self.sequencer_class(test_df[0], self.seq_len, self.model.get_horizon_len(), self.target_column)
-                test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
-            else:
-                test_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
-                test_normalizer = self.normalizer_class(np.array([]))
-            
-            return train_loader, val_loader, test_loader, test_timestamps, test_normalizer
 
         def build(self):
             self._check_none(trainer_wrapper=self.trainer_wrapper, model=self.model, optimizer=self.optimizer)
-        
-            train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()
 
             pipeline = self.pipeline_class(self.learning_rate,
                                           self.seq_len, 
@@ -324,15 +320,16 @@ class Pipeline(L.LightningModule, ABC):
                                           self.model,
                                           self.trainer_wrapper,
                                           self.tuner_class,
-                                          train_loader,
-                                          val_loader,
-                                          test_loader,
-                                          test_timestamps,
-                                          test_normalizer,
                                           self.train_error_func,
                                           self.val_error_func,
                                           self.test_error_func_arr,
-                                          self.target_column)
+                                          self.target_column,
+                                          self.df_arr,
+                                          self.cleaner,
+                                          self.splitter,
+                                          self.normalizer_class,
+                                          self.sequencer_class,
+                                          self.worker_num)
 
             return pipeline
     
