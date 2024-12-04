@@ -134,7 +134,7 @@ def plot_flex_probabilities(flex_probabilities, confidence):
     for i, probabilities in enumerate(flex_probabilities):
         probabilities.insert(0, 1)
         fig.add_trace(go.Scatter(
-            x=list(range(1, len(probabilities) + 1)),
+            x=list(range(len(probabilities))),
             y=probabilities,
             mode='lines+markers',
             name=f'Forecast {i + 1} Probability'
