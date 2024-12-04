@@ -128,20 +128,26 @@ def plot_deterministic_results(predictions, actuals, timestamps, horizon_len):
 
     fig.show()
 
-def plot_flex_probabilities(probabilities, confidence):
+def plot_flex_probabilities(flex_probabilities, confidence):
     fig = make_subplots()
-    
-    fig.add_trace(go.Scatter(x=list(range(len(probabilities))), y=probabilities, mode='lines+markers', name='Probability within bounds'))
-    fig.add_trace(go.Scatter(x=list(range(len(probabilities))), y=[confidence]*len(probabilities), mode='lines', name=f'Confidence Level ({confidence})', line=dict(dash='dash', color='red')))
 
+    for i, probabilities in enumerate(flex_probabilities):
+        probabilities.insert(0, 1)
+        fig.add_trace(go.Scatter(
+            x=list(range(1, len(probabilities) + 1)),
+            y=probabilities,
+            mode='lines+markers',
+            name=f'Forecast {i + 1} Probability'
+        ))
+    
     fig.update_layout(
         title="Probability of Forecast Falling Within Bounds",
-        xaxis_title="Time Step",
+        xaxis_title="Predicted Flexibility",
         yaxis_title="Probability",
         legend_title="Legend",
         hovermode="x"
-    )
-
+    )   
+    
     fig.show()
 
 def plot_loss(loss):
