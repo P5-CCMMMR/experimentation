@@ -58,16 +58,17 @@ class Pipeline(L.LightningModule, ABC):
         self.train_loader, self.val_loader, self.test_loader, self.test_timesteps, self.normalizer = self._get_loaders(df_arr, cleaner, splitter, normalizer_class, sequencer_class, worker_num)
 
         # Tuning
-        self.tuner_class = tuner_class
-        self.tuner = tuner_class(self.trainer, self)
-        self.tuner.tune()
-        
-        # Tuned data loading
-        self.train_loader, self.val_loader, self.test_loader, self.test_timesteps, self.normalizer = self._get_loaders(df_arr, cleaner, splitter, normalizer_class, sequencer_class, worker_num)
+        if (tuner_class is not None):
+            self.tuner_class = tuner_class
+            self.tuner = tuner_class(self.trainer, self)
+            self.tuner.tune()
+            
+            # Tuned data loading
+            self.train_loader, self.val_loader, self.test_loader, self.test_timesteps, self.normalizer = self._get_loaders(df_arr, cleaner, splitter, normalizer_class, sequencer_class, worker_num)
 
-        # Tuned model loading
-        for g in self.optimizer.optimizer.param_groups:
-            g['lr'] = self.learning_rate
+            # Tuned model loading
+            for g in self.optimizer.optimizer.param_groups:
+                g['lr'] = self.learning_rate
 
     def _get_loaders(self, df_arr, cleaner, splitter, normalizer_class, sequencer_class, worker_num):
             train_dfs = []
