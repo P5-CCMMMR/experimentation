@@ -75,11 +75,9 @@ class EnsemblePipeline(ProbabilisticPipeline):
         for func in func_arr:
             loss_arr = []
             if func.is_deterministic():
-                    temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
+                loss_arr = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
             elif func.is_probabilistic():
-                temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
-            loss_arr.append(temp_loss)
-
+                loss_arr = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
             title = func.get_title()
             avg_loss = (sum(loss_arr) / len(loss_arr)).item()
             print(f"{title:<30} {avg_loss:.6f}")

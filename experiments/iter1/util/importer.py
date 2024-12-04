@@ -35,6 +35,8 @@ from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
+from src.pipelines.deterministic_baseline import DeterministicBaseline
+
 from src.util.evaluator import Evaluator
 
 import torch.optim as optim
