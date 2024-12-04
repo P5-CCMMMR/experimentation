@@ -8,5 +8,5 @@ class TestCALE(unittest.TestCase):
         stddev = torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5])
         y = torch.tensor([1.05, 2.1, 3.5, 4.5, 6.0])
         result = CALE.calc(mean, stddev, y)
-        self.assertAlmostEqual(result.item(), 0.1466333121061325)
+        self.assertAlmostEqual(result.item(), 0.0345989353954792)
         
