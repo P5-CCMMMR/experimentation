@@ -17,7 +17,7 @@ from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
 from src.pipelines.splitters.day_splitter import DaySplitter
 from src.pipelines.splitters.blocked_k_fold_splitter import BlockedKFoldSplitter
-from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
+from src.pipelines.tuners.tuner import Tuner
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
 from src.pipelines.metrics.crps import *
@@ -135,7 +135,6 @@ def train(config):
                     .set_error(NRMSE) \
                     .set_train_error(RMSE) \
                     .set_trainer(trainer) \
-                    .set_tuner_class(StdTunerWrapper) \
                     .build()
 
             model.fit()

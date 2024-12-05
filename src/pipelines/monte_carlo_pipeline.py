@@ -7,26 +7,24 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from src.pipelines.normalizers.normalizer import Normalizer
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
-from src.pipelines.tuners.tuner_wrapper import TunerWrapper
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
 class MonteCarloPipeline(ProbabilisticPipeline):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
                     optimizer: torch.optim.Optimizer, model: nn.Module, trainer_wrapper: TrainerWrapper,
-                    tuner_class: TunerWrapper,
                     train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                     test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                     train_error_func, val_error_func, test_error_func_arr,
                     target_column: int,
+                    use_tuner: bool,
                     inference_samples: int,
                     inference_dropout: float):
         super().__init__(learning_rate, seq_len, batch_size,
                             optimizer, model, trainer_wrapper,
-                            tuner_class,
                             train_loader, val_loader, test_loader,
                             test_timesteps, normalizer,
                             train_error_func, val_error_func, test_error_func_arr,
-                            target_column)
+                            target_column, use_tuner)
         self.inference_samples = inference_samples
         self.inference_dropout = inference_dropout
     
@@ -63,7 +61,6 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             optimizer=new_optimizer,
             model=new_model,
             trainer_wrapper=new_trainer_wrapper,
-            tuner_class=self.tuner_class,
             train_loader=self.train_loader,
             val_loader=self.val_loader,
             test_loader=self.test_loader,
@@ -73,6 +70,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             val_error_func=self.val_error_func,
             test_error_func_arr=self.test_error_func_arr,
             target_column=self.target_column,
+            use_tuner=self.use_tuner,
             inference_samples=self.inference_samples,
             inference_dropout=self.inference_dropout
         )
@@ -118,7 +116,6 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                                           self.optimizer,
                                           self.model,
                                           self.trainer_wrapper,
-                                          self.tuner_class,
                                           train_loader,
                                           val_loader,
                                           test_loader,
@@ -128,6 +125,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                                           self.val_error_func,
                                           self.test_error_func_arr,
                                           self.target_column,
+                                          self.use_tuner,
                                           self.inference_samples,
                                           self.inference_dropout)
             return pipeline

@@ -10,7 +10,8 @@ class CALE(ProbabilisticMetric):
     def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Calibration Error (CALE)\\
-        Returns the error of the calibration of the model
+        Returns the error of the calibration of the model\\
+        Based on: https://proceedings.mlr.press/v80/kuleshov18a/kuleshov18a.pdf
         """
         within_1_std = (y > mean - stddev) & (y < mean + stddev)
         within_2_std = (y > mean - 2 * stddev) & (y < mean + 2 * stddev)
@@ -29,7 +30,7 @@ class CALE(ProbabilisticMetric):
         # Using three sigma rule
         expected_within_std = torch.tensor([0.6827, 0.9545, 0.9973], dtype=torch.float32)
         
-        errors = torch.abs(predicted_within_std - expected_within_std)
+        errors = torch.pow(torch.abs(predicted_within_std - expected_within_std), 2)
         
         return errors.mean()
     

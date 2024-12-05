@@ -16,7 +16,7 @@ from src.pipelines.models.gru import GRU
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
-from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
+from src.pipelines.tuners.tuner import Tuner
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
 from src.pipelines.metrics.crps import *
@@ -133,7 +133,6 @@ def main(d):
         .set_worker_num(NUM_WORKERS) \
         .set_error(NRMSE) \
         .set_trainer(trainer) \
-        .set_tuner_class(StdTunerWrapper) \
         .set_inference_samples(inference_samples) \
         .set_inference_dropout(inference_dropout) \
         .build()
