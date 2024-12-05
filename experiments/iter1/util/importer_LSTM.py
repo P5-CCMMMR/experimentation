@@ -3,6 +3,7 @@ import lightning as L
 import matplotlib
 import numpy as np
 import pandas as pd
+import os
 import multiprocessing
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
 from src.util.conditional_early_stopping import ConditionalEarlyStopping
@@ -53,9 +54,9 @@ POWER     = "PowerConsumption"
 # Model
 input_size = 4
 time_horizon = 4
-hidden_size = 112
+hidden_size = 64
 num_epochs = 100
-seq_len = 520
+seq_len = 152
 num_layers = 1
  
 # MC ONLY
