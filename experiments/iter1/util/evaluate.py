@@ -7,7 +7,7 @@ from src.util.plotly import plot_results
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.util.evaluator import Evaluator
 
-def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence):
+def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence=0.95):
     predictions = model.get_predictions()
     
     if isinstance(predictions, tuple):

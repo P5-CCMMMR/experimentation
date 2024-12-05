@@ -1,4 +1,3 @@
-import copy
 from src.pipelines.pipeline import Pipeline
 
 class DeterministicPipeline(Pipeline):
@@ -25,7 +24,6 @@ class DeterministicPipeline(Pipeline):
             optimizer=new_optimizer,
             model=new_model,
             trainer_wrapper=new_trainer_wrapper,
-            tuner_class=self.tuner_class,
             train_loader=self.train_loader,
             val_loader=self.val_loader,
             test_loader=self.test_loader,
@@ -34,7 +32,8 @@ class DeterministicPipeline(Pipeline):
             train_error_func=self.train_error_func,
             val_error_func=self.val_error_func,
             test_error_func_arr=self.test_error_func_arr,
-            target_column=self.target_column
+            target_column=self.target_column,
+            use_tuner=self.use_tuner
         )
         return new_instance
  
@@ -64,5 +63,3 @@ class DeterministicPipeline(Pipeline):
             assert error_func.is_deterministic(), "Error functions for Deterministic pipeline has to be deterministic"
             self.test_error_func_arr.append(error_func)
             return self
-    
-
