@@ -144,7 +144,7 @@ def plot_flex_probabilities(probabilities, confidence):
 
     fig.show()
 
-def plot_loss(loss):
+def plot_loss(loss, path):
     epochs = np.arange(1, len(loss) + 1)
     loss = np.array(loss)
 
@@ -161,3 +161,4 @@ def plot_loss(loss):
     )
 
     fig.show()
+    fig.write_image(path + ".png")
