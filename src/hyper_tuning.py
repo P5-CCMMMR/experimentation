@@ -35,9 +35,10 @@ uk_path = os.getcwd() + "/src/data_preprocess/dataset/UKDATA_cleaned.csv"
 config = {
     "seq_len": tune.qrandint(16,192, 8), 
     "hidden_size": tune.qrandint(32,128, 8),
-    "dropout": tune.loguniform(0.01, 0.5),
+    "dropout": tune.loguniform(0.01, 0.4),
     "num_layers": tune.randint(1,2),
-    "arch": tune.choice(["LSTM", "GRU", "TCN"])
+    "arch": tune.choice(["LSTM", "GRU", "TCN"]),
+    "batch_size": tune.choice([128, 256])
 }
 
 arch_arr = [LSTM, GRU, TCN]
@@ -76,14 +77,13 @@ num_ensembles = 5
 flex_confidence = 0.90
 
 input_size = 4
-batch_size = 128
 folds = 5
 num_epochs = 100
 learning_rate = 0.005
 time_horizon = 4
 num_samples = 10
 
-debug = False
+debug = True
 
 if debug:
     num_epochs = 1
@@ -102,6 +102,7 @@ def train(config):
     num_layers = config["num_layers"]
     dropout = config["dropout"]
     arch_class = arch_dict[config["arch"]]
+    batch_size = config["batch_size"]
 
     assert time_horizon > 0, "Time horizon must be a positive integer"
     for df in df_arr:
@@ -165,8 +166,8 @@ results = analysis.results_df.sort_values(by="loss")
 output_file = "all_config.txt"
 
 with open(output_file, "a") as f:
-    f.write("-" * 100 + "\n")
-    f.write(f"{'loss':<20} | {'architecture':<12} | {'seq_len':<10} | {'hidden_size':<12} | {'dropout':<8} | {'num_layers':<10} | {'iter':<5} | {'total_time':<10}\n")
+    f.write("-" * 132 + "\n")
+    f.write(f"{'loss':<18} | {'architecture':<12} | {'batch_size':<10} | {'seq_len':<7} | {'hidden_size':<11} | {'dropout':<19} | {'num_layers':<10} | {'iter':<4} | {'total_time':<5}\n")
     for i, row in results.iterrows():
         loss = row['loss']
         arch = row['config/arch']
@@ -176,4 +177,5 @@ with open(output_file, "a") as f:
         num_layers = row['config/num_layers']
         iter = row['training_iteration']
         total_time = row['time_total_s']
-        f.write(f"{loss:<20} | {arch:<12} | {seq_len:<10} | {hidden_size:<12} | {round(dropout):<8} | {num_layers:<10} | {iter:<5} | {total_time:<10}\n")
+        batch_size = row['config/batch_size']
+        f.write(f"{loss:<18} | {arch:<12} | {batch_size:<10} | {seq_len:<7} | {hidden_size:<11} | {dropout:<19} | {num_layers:<10} | {iter:<4} | {total_time:<5}\n")
