@@ -8,7 +8,12 @@ class RNN(Model):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.dropout = dropout
-        self.rnn = nn.RNN(input_len, hidden_size, num_layers, batch_first=True, dropout=dropout)
+        
+        if self.num_layers == 1:
+            self.rnn = nn.RNN(input_len, hidden_size, num_layers, batch_first=True)
+        else:
+            self.rnn = nn.RNN(input_len, hidden_size, num_layers, batch_first=True, dropout=dropout)
+            
         self.dropout_layer = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_size, self.output_size)
 

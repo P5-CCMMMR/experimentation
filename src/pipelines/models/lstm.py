@@ -8,7 +8,12 @@ class LSTM(Model):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.dropout = dropout
-        self.lstm = nn.LSTM(input_len, hidden_size, num_layers, batch_first=True, dropout=dropout)
+        
+        if num_layers == 1:
+            self.lstm = nn.LSTM(input_len, hidden_size, num_layers, batch_first=True)
+        else:
+            self.lstm = nn.LSTM(input_len, hidden_size, num_layers, batch_first=True, dropout=dropout)    
+    
         self.dropout_layer = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_size, self.output_size)
 

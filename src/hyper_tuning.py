@@ -27,18 +27,19 @@ from src.pipelines.metrics.rmse import *
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 
 import torch.optim as optim
-nist_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/NIST_cleaned.csv"
-uk_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/UKDATA_cleaned.csv"
+nist_path = "src/data_preprocess/dataset/NIST_cleaned.csv"
+uk_path = "src/data_preprocess/dataset/UKDATA_cleaned.csv"
 
 config = {
-    "seq_len": tune.qrandint(16,672, 8), 
-    "hidden_size": tune.qrandint(24,128, 8),
-    "dropout": tune.quniform(0, 0.8, 0.1),
+    "seq_len": tune.qrandint(16,192, 8), 
+    "hidden_size": tune.qrandint(32,128, 8),
+    "dropout": tune.loguniform(0.01, 0.5),
     "num_layers": tune.randint(1,2),
-    "arch_idx": tune.randint(0, 3) # LSTM, GRU, TCN
+    "arch": tune.choice(["LSTM", "GRU", "TCN"])
 }
+
 arch_arr = [LSTM, GRU, TCN]
-arch_str_arr = ["LSTM", "GRU", "TCN"]
+arch_dict = {"LSTM": arch_arr[0], "GRU": arch_arr[1], "TCN": arch_arr[2]}
 
 matplotlib.use("Agg")
 
@@ -48,7 +49,7 @@ TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 gradient_clipping = 0
-gpus_per_trial = 0.1
+gpus_per_trial = 1
 
 # Data Split
 train_days = 16
@@ -98,7 +99,7 @@ def train(config):
     seq_len = config["seq_len"]
     num_layers = config["num_layers"]
     dropout = config["dropout"]
-    arch_class = arch_arr[config["arch_idx"]]
+    arch_class = arch_dict[config["arch"]]
 
     assert time_horizon > 0, "Time horizon must be a positive integer"
     for df in df_arr:
@@ -135,6 +136,7 @@ def train(config):
                     .set_error(NRMSE) \
                     .set_train_error(RMSE) \
                     .set_trainer(trainer) \
+                    .set_use_tuner(True) \
                     .build()
 
             model.fit()
@@ -165,11 +167,11 @@ with open(output_file, "a") as f:
     f.write(f"{'loss':<20} | {'architecture':<12} | {'seq_len':<10} | {'hidden_size':<12} | {'dropout':<8} | {'num_layers':<10} | {'iter':<5} | {'total_time':<10}\n")
     for i, row in results.iterrows():
         loss = row['loss']
-        arch_idx = row['config/arch_idx']
+        arch = row['config/arch']
         seq_len = row['config/seq_len']
         hidden_size = row['config/hidden_size']
         dropout = row['config/dropout']
         num_layers = row['config/num_layers']
         iter = row['training_iteration']
         total_time = row['time_total_s']
-        f.write(f"{loss:<20} | {arch_str_arr[arch_idx]:<12} | {seq_len:<10} | {hidden_size:<12} | {round(dropout):<8} | {num_layers:<10} | {iter:<5} | {total_time:<10}\n")
+        f.write(f"{loss:<20} | {arch:<12} | {seq_len:<10} | {hidden_size:<12} | {round(dropout):<8} | {num_layers:<10} | {iter:<5} | {total_time:<10}\n")
