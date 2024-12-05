@@ -27,8 +27,10 @@ from src.pipelines.metrics.rmse import *
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 
 import torch.optim as optim
-nist_path = "src/data_preprocess/dataset/NIST_cleaned.csv"
-uk_path = "src/data_preprocess/dataset/UKDATA_cleaned.csv"
+import os
+
+nist_path = os.getcwd() + "/src/data_preprocess/dataset/NIST_cleaned.csv"
+uk_path = os.getcwd() + "/src/data_preprocess/dataset/UKDATA_cleaned.csv"
 
 config = {
     "seq_len": tune.qrandint(16,192, 8), 
