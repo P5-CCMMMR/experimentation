@@ -59,10 +59,6 @@ num_layers = 1
 inference_samples = 50
 inference_dropout = 0.25
 
-# TCN
-num_channels = [16, 32, 64]
-kernel_size = 2
-
 # Training
 dropout = 0
 gradient_clipping = 0
