@@ -128,6 +128,41 @@ def plot_deterministic_results(predictions, actuals, timestamps, horizon_len):
 
     fig.show()
 
+def plot_comparative_results(predictions1, predictions2, actuals, timestamps, horizon_len, width=800, height=600):
+    predictions1 = np.array(predictions1)
+    predictions2 = np.array(predictions2)
+    actuals = np.array(actuals)
+    timestamps = timestamps[:len(predictions1)]
+    fig = make_subplots()
+    
+    fig.add_trace(go.Scatter(x=timestamps, y=predictions1, mode='lines', name='Copy Strategy', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=timestamps, y=predictions2, mode='lines', name='Lag Strategy', line=dict(color='blue')))
+    fig.add_trace(go.Scatter(
+        x=timestamps[::horizon_len], 
+        y=predictions1[::horizon_len], 
+        mode='markers', 
+        name='Prediction 1 Start Points', 
+        marker=dict(size=4, symbol='circle', line=dict(width=1, color='darkgreen'))
+    ))
+    fig.add_trace(go.Scatter(
+        x=timestamps[::horizon_len], 
+        y=predictions2[::horizon_len], 
+        mode='markers', 
+        name='Prediction 2 Start Points', 
+        marker=dict(size=4, symbol='circle', line=dict(width=1, color='darkblue'))
+    ))
+    fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual', line=dict(color='red')))
+    fig.update_layout(
+        title="Comparative Predictions vs Actuals",
+        xaxis_title="Time",
+        yaxis_title="Indoor Temperature",
+        legend_title="Legend",
+        hovermode="x",
+        width=width,
+        height=height
+    )
+    fig.show()
+
 def plot_flex_probabilities(probabilities, confidence):
     fig = make_subplots()
     
