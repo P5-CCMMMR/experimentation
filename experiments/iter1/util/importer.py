@@ -29,14 +29,16 @@ from src.pipelines.metrics.lscv import *
 from src.pipelines.metrics.rmse import * 
 from src.pipelines.metrics.mae import *
 from src.pipelines.metrics.maxe import *
+from src.pipelines.metrics.cale import *
 
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
-from src.pipelines.copy_deterministic_baseline import CopyDeterministicBaseline
-from src.pipelines.lag_deterministic_baseline import LagDeterministicBaseline
+from src.pipelines.baselines.copy_deterministic_baseline import CopyDeterministicBaseline
+from src.pipelines.baselines.lag_deterministic_baseline import LagDeterministicBaseline
+from src.pipelines.baselines.naive_probabilistic_baseline import NaiveProbabilisticBaseline
 
 from src.util.evaluator import Evaluator
 
