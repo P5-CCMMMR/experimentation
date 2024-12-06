@@ -33,10 +33,10 @@ nist_path = os.getcwd() + "/src/data_preprocess/dataset/NIST_cleaned.csv"
 uk_path = os.getcwd() + "/src/data_preprocess/dataset/UKDATA_cleaned.csv"
 
 config = {
-    "seq_len": tune.qrandint(16,192, 8), 
-    "hidden_size": tune.qrandint(32,128, 8),
+    "seq_len": tune.qrandint(16, 192, 8), 
+    "hidden_size": tune.qrandint(32, 128, 8),
     "dropout": tune.loguniform(0.01, 0.4),
-    "num_layers": tune.randint(1,2),
+    "num_layers": tune.choice([1, 2]),
     "arch": tune.choice(["LSTM", "GRU", "TCN"]),
     "batch_size": tune.choice([128, 256])
 }
@@ -46,13 +46,13 @@ arch_dict = {"LSTM": arch_arr[0], "GRU": arch_arr[1], "TCN": arch_arr[2]}
 
 matplotlib.use("Agg")
 
-NUM_WORKERS = max(1, multiprocessing.cpu_count() // 2)
+NUM_WORKERS = multiprocessing.cpu_count() // 2
 TARGET_COLUMN = 2
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 gradient_clipping = 0
-gpus_per_trial = 1
+gpus_per_trial = 0.5
 
 # Data Split
 train_days = 16
@@ -83,7 +83,7 @@ learning_rate = 0.005
 time_horizon = 4
 num_samples = 10
 
-debug = True
+debug = False
 
 if debug:
     num_epochs = 1
