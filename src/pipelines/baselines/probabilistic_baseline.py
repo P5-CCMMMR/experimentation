@@ -10,6 +10,14 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
 
         self.horizen_len = horizon_len
 
+        self.reset_forward_memory()
+
+    def reset_forward_memory(self):
+        self.step_start_index = 0
+        self.forward_prediction_2d_arr = []
+        for _ in range(0, self.horizen_len):
+            self.forward_prediction_2d_arr.append([])
+
     def training_step(self, batch):
         raise NotImplementedError("Training_step not meant to be used for deterministic baseline")
     
@@ -42,11 +50,10 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
 
         for batch in self.test_loader:
             x, y = batch
-            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
             mean_prediction, std_prediction = self.forward(x)
             self.all_predictions[0].extend(mean_prediction.flatten())
             self.all_predictions[1].extend(std_prediction.flatten())
-            
+            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
         mean, stddev = self.all_predictions
 
