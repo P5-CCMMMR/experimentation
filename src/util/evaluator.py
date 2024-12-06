@@ -1,7 +1,5 @@
-import math
 import numpy as np
-import pandas as pd
-import torch
+import multiprocessing
 from src.pipelines.sequencers.time_sequencer import TimeSequencer
 from torch.utils.data import DataLoader
 from src.util import flex_predict
@@ -26,9 +24,11 @@ class Evaluator:
         self.flex_actual_values = []
         self.flex_probabilities = []
         self.flex_predictions = []
+        
+        print("DATA LEN: ", len(data))
 
         dataset = TimeSequencer(data, seq_len, time_horizon, target_column)
-        dataloader = DataLoader(dataset, 1)
+        dataloader = DataLoader(dataset, 1, num_workers=multiprocessing.cpu_count())
 
         for batch in dataloader:
             input_data, result_actual = batch  
