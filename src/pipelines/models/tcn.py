@@ -20,10 +20,7 @@ class TCN(Model):
         # Kernel size should be big enough so that the receptive field is at least as big as the sequence length
         kernel_size = ceil((2**(num_layers+1) + seq_len - 3) / (2**(num_layers+1) - 2))
         
-        if num_layers == 1:
-            self.tcn = TCNModel(self.input_len, num_channels, kernel_size=kernel_size, causal=True, input_shape='NLC', use_skip_connections=True, activation='leaky_relu')
-        else:
-            self.tcn = TCNModel(self.input_len, num_channels, kernel_size=kernel_size, dropout=dropout, causal=True, input_shape='NLC', use_skip_connections=True, activation='leaky_relu')
+        self.tcn = TCNModel(self.input_len, num_channels, kernel_size=kernel_size, dropout=dropout, causal=True, input_shape='NLC', use_skip_connections=True, activation='leaky_relu')
             
         self.dropout_layer = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_size, horizon_len)
