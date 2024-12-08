@@ -11,8 +11,6 @@ Secondly you can run the experiments in the Experiments folder.
     -   Secondly you have to run the second code block to train and save the model for the experiment. (This step once for every experiment)
     -   Lastly you can run the last code block which is used for evaluation, after training of a model it will be saved and you can re evaluate as long as the save file exist. (This step at your leisure)
 
-In order to try things in non jupyter enviroment main can be run with *python -m src.main* or *python -m src.main - d* for debug
-
 If you wish to do hyperparameter tuning this can be done by running *python -m src.hyper_tuning*, but you wil your self have to change the hyper parameters in import under util in experiments or in the file you are running.
 
 # Tests

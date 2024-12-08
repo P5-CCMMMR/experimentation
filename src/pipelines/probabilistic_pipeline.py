@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from src.pipelines.pipeline import Pipeline
-import lightning as L
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -9,24 +8,20 @@ from torch.utils.data import DataLoader
 
 from src.pipelines.normalizers.normalizer import Normalizer
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
-from src.pipelines.tuners.tuner_wrapper import TunerWrapper
-
 
 class ProbabilisticPipeline(Pipeline):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
                  optimizer: torch.optim.Optimizer, model: nn.Module, trainer_wrapper: TrainerWrapper,
-                 tuner_class: TunerWrapper,
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column: int):
+                 target_column: int, use_tuner: bool):
         super().__init__(learning_rate, seq_len, batch_size,
                  optimizer, model, trainer_wrapper,
-                 tuner_class,
                  train_loader, val_loader, test_loader,
                  test_timesteps, normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column)
+                 target_column, use_tuner)
         self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
     def test_step(self, batch):

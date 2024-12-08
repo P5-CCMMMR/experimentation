@@ -1,4 +1,3 @@
-import copy
 import lightning as L
 import numpy as np
 import pandas as pd
@@ -14,16 +13,15 @@ from src.pipelines.splitters.splitter import Splitter
 from src.pipelines.sequencers.sequencer import Sequencer
 from src.pipelines.models.model import Model
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
-from src.pipelines.tuners.tuner_wrapper import TunerWrapper
+from src.pipelines.tuners.tuner import Tuner
 
 class Pipeline(L.LightningModule, ABC):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
                  optimizer: torch.optim.Optimizer, model: nn.Module, trainer_wrapper: TrainerWrapper,
-                 tuner_class: TunerWrapper,
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column):
+                 target_column, use_tuner: bool = False):
         super().__init__()
         self.seq_len = seq_len
 
@@ -50,7 +48,6 @@ class Pipeline(L.LightningModule, ABC):
         if trainer_wrapper is not None:
             self.trainer = trainer_wrapper.get_trainer()
 
-        self.tuner_class = tuner_class
         self.tuner = None
 
         self.target_column = target_column
@@ -63,6 +60,8 @@ class Pipeline(L.LightningModule, ABC):
 
         self.epoch_train_loss_arr = []
         self.epoch_val_loss_arr = []
+        
+        self.use_tuner = use_tuner
 
     def training_step(self, batch):
         x, y = batch
@@ -93,9 +92,12 @@ class Pipeline(L.LightningModule, ABC):
     def test_step(self, batch):
         pass
 
-    def fit(self): # Cancer train keyword taken by L.module
-        self.tuner = self.tuner_class(self.trainer, self)
-        self.tuner.tune()
+    def fit(self):
+        if self.use_tuner:
+            self.tuner = Tuner(self.trainer, self)
+            self.tuner.tune()
+            for g in self.optimizer.optimizer.param_groups:
+                    g['lr'] = self.learning_rate
         self.trainer.fit(self)
 
     def test(self):
@@ -149,13 +151,14 @@ class Pipeline(L.LightningModule, ABC):
             self.test_error_func_arr = []
 
             self.normalizer_class = None
-            self.tuner_class = None
 
             self.optimizer = None
             self.cleaner = None
             self.splitter = None
             self.model = None
             self.trainer = None
+            
+            self.use_tuner = False
 
             self.df_arr = []
             self.pipeline_class = Pipeline
@@ -202,7 +205,6 @@ class Pipeline(L.LightningModule, ABC):
         def set_optimizer(self, optimizer):
             if not isinstance(optimizer, OptimizerWrapper):
                 raise ValueError("Optimizer instance given not extended from torch.optim class")
-
             self.optimizer = optimizer
             return self
         
@@ -210,12 +212,6 @@ class Pipeline(L.LightningModule, ABC):
             if not isinstance(trainer_wrapper, TrainerWrapper):
                 raise ValueError("TrainerWrapper instance given not extended from TrainerWrapper class")
             self.trainer_wrapper = trainer_wrapper
-            return self
-
-        def set_tuner_class(self, tuner_class):
-            if not issubclass(tuner_class, TunerWrapper):
-                raise ValueError("TunerWrapper sub class given not extended from TunerWrapper class")
-            self.tuner_class = tuner_class
             return self
 
         def set_learning_rate(self, learning_rate: float):
@@ -237,9 +233,9 @@ class Pipeline(L.LightningModule, ABC):
         def set_worker_num(self, worker_num):
             self.worker_num = worker_num
             return self
-
-        def set_optimizer(self, optimizer: torch.optim.Optimizer):
-            self.optimizer = optimizer
+        
+        def set_use_tuner(self, use_tuner):
+            self.use_tuner = use_tuner
             return self
         
         @abstractmethod
@@ -323,7 +319,6 @@ class Pipeline(L.LightningModule, ABC):
                                           self.optimizer,
                                           self.model,
                                           self.trainer_wrapper,
-                                          self.tuner_class,
                                           train_loader,
                                           val_loader,
                                           test_loader,
@@ -332,7 +327,8 @@ class Pipeline(L.LightningModule, ABC):
                                           self.train_error_func,
                                           self.val_error_func,
                                           self.test_error_func_arr,
-                                          self.target_column)
+                                          self.target_column,
+                                          self.use_tuner)
 
             return pipeline
     
