@@ -105,6 +105,15 @@ class Pipeline(L.LightningModule, ABC):
 
         self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
+
+        results = {}
+
+        func_arr = self.test_error_func_arr
+        for func in func_arr:
+            loss = func.calc(torch.tensor(self.all_predictions), torch.tensor(self.all_actuals))
+            results[func.get_key()] = loss.item()
+
+        return results
     
     def forward(self, x):
         return self.model(x).squeeze()
