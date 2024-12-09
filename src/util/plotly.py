@@ -187,11 +187,11 @@ def plot_loss(loss_arr, path, titles=None):
 
     for i, loss in enumerate(loss_arr):
         loss = np.array(loss)
-        fig.add_trace(go.Scatter(x=epochs, y=loss, mode='lines+markers', 
+        fig.add_trace(go.Scatter(x=epochs, y=loss, mode='lines', 
                                  name=titles[i] if titles[i] != None else "loss"))
 
     fig.update_layout(
-        title="Training Loss Over Epochs",
+        title="Loss Over Epochs",
         xaxis_title="Epochs",
         yaxis_title="Loss",
         legend_title="Legend",
