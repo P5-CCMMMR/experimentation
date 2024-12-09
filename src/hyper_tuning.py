@@ -17,7 +17,7 @@ from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
 from src.pipelines.splitters.day_splitter import DaySplitter
 from src.pipelines.splitters.blocked_k_fold_splitter import BlockedKFoldSplitter
-from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
+from src.pipelines.tuners.tuner import Tuner
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
 from src.pipelines.metrics.crps import *
@@ -27,28 +27,32 @@ from src.pipelines.metrics.rmse import *
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 
 import torch.optim as optim
-nist_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/NIST_cleaned.csv"
-uk_path = "/home/vind/P5/experimentation/src/data_preprocess/dataset/UKDATA_cleaned.csv"
+import os
+
+nist_path = os.getcwd() + "/src/data_preprocess/dataset/NIST_cleaned.csv"
+uk_path = os.getcwd() + "/src/data_preprocess/dataset/UKDATA_cleaned.csv"
 
 config = {
-    "seq_len": tune.qrandint(16,672, 8), 
-    "hidden_size": tune.qrandint(24,128, 8),
-    "dropout": tune.quniform(0, 0.8, 0.1),
-    "num_layers": tune.randint(1,2),
-    "arch_idx": tune.randint(0, 3) # LSTM, GRU, TCN
+    "seq_len": tune.qrandint(16, 192, 8), 
+    "hidden_size": tune.qrandint(32, 128, 8),
+    "dropout": tune.loguniform(0.01, 0.4),
+    "num_layers": tune.choice([1, 2]),
+    "arch": tune.choice(["LSTM", "GRU", "TCN"]),
+    "batch_size": tune.choice([128, 256])
 }
+
 arch_arr = [LSTM, GRU, TCN]
-arch_str_arr = ["LSTM", "GRU", "TCN"]
+arch_dict = {"LSTM": arch_arr[0], "GRU": arch_arr[1], "TCN": arch_arr[2]}
 
 matplotlib.use("Agg")
 
-NUM_WORKERS = max(1, multiprocessing.cpu_count() // 2)
+NUM_WORKERS = multiprocessing.cpu_count() // 2
 TARGET_COLUMN = 2
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 gradient_clipping = 0
-gpus_per_trial = 0.1
+gpus_per_trial = 0.5
 
 # Data Split
 train_days = 16
@@ -73,7 +77,6 @@ num_ensembles = 5
 flex_confidence = 0.90
 
 input_size = 4
-batch_size = 128
 folds = 5
 num_epochs = 100
 learning_rate = 0.005
@@ -98,7 +101,8 @@ def train(config):
     seq_len = config["seq_len"]
     num_layers = config["num_layers"]
     dropout = config["dropout"]
-    arch_class = arch_arr[config["arch_idx"]]
+    arch_class = arch_dict[config["arch"]]
+    batch_size = config["batch_size"]
 
     assert time_horizon > 0, "Time horizon must be a positive integer"
     for df in df_arr:
@@ -135,7 +139,7 @@ def train(config):
                     .set_error(NRMSE) \
                     .set_train_error(RMSE) \
                     .set_trainer(trainer) \
-                    .set_tuner_class(StdTunerWrapper) \
+                    .set_use_tuner(True) \
                     .build()
 
             model.fit()
@@ -162,15 +166,42 @@ results = analysis.results_df.sort_values(by="loss")
 output_file = "all_config.txt"
 
 with open(output_file, "a") as f:
-    f.write("-" * 100 + "\n")
-    f.write(f"{'loss':<20} | {'architecture':<12} | {'seq_len':<10} | {'hidden_size':<12} | {'dropout':<8} | {'num_layers':<10} | {'iter':<5} | {'total_time':<10}\n")
+    f.write("-" * 132 + "\n")
+    f.write(f"{'loss':<18} | {'architecture':<12} | {'batch_size':<10} | {'seq_len':<7} | {'hidden_size':<11} | {'dropout':<19} | {'num_layers':<10} | {'iter':<4} | {'total_time':<5}\n")
     for i, row in results.iterrows():
         loss = row['loss']
-        arch_idx = row['config/arch_idx']
+        arch = row['config/arch']
         seq_len = row['config/seq_len']
         hidden_size = row['config/hidden_size']
         dropout = row['config/dropout']
         num_layers = row['config/num_layers']
         iter = row['training_iteration']
         total_time = row['time_total_s']
-        f.write(f"{loss:<20} | {arch_str_arr[arch_idx]:<12} | {seq_len:<10} | {hidden_size:<12} | {round(dropout):<8} | {num_layers:<10} | {iter:<5} | {total_time:<10}\n")
+        batch_size = row['config/batch_size']
+        f.write(f"{loss:<18} | {arch:<12} | {batch_size:<10} | {seq_len:<7} | {hidden_size:<11} | {dropout:<19} | {num_layers:<10} | {iter:<4} | {total_time:<5}\n")
+
+def clean_and_sort_file(filename):
+    data = []
+
+
+    with open(filename, "r") as f:
+        for line in f:
+            if line.startswith("-") or "loss" in line or not line.strip():
+                continue
+            try:
+                parts = line.split("|", 1)
+                loss = float(parts[0].strip())  
+                rest_of_line = parts[1] if len(parts) > 1 else ""
+                data.append((loss, rest_of_line.strip()))  
+            except (ValueError, IndexError):
+                continue
+
+    data.sort(key=lambda x: x[0])
+
+    with open(filename, "w") as f:
+        f.write(f"{'-' * 100}\n")
+        f.write(f"{'loss':<20} | {'architecture':<12} | {'seq_len':<10} | {'hidden_size':<12} | {'dropout':<8} | {'num_layers':<10} | {'iter':<5} | {'total_time':<10}\n")
+        for loss, rest_of_line in data:
+            f.write(f"{loss:<20} | {rest_of_line}\n")
+
+clean_and_sort_file(output_file)

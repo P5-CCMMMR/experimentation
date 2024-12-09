@@ -16,7 +16,7 @@ class Evaluator:
         self.flex_probabilities = []
         self.flex_predictions = []
 
-    def init_predictions(self, data, seq_len, time_horizon, target_column, confidence=None):
+    def init_predictions(self, data, seq_len, time_horizon, target_column, confidence=0.95):
         if len(data) < (time_horizon + seq_len):
             print(f"data: {len(data)} < time_horizon: {time_horizon} + seq_len: {seq_len} \nNot enough data for prob_mafe")
             return 0
@@ -39,7 +39,7 @@ class Evaluator:
             upper_boundery = last_in_temp + self.boundary
             result_predictions = self.model(input_data)
 
-            if (confidence is not None):
+            if isinstance(result_predictions, tuple):
                 actual_flex = flex_predict(result_actual[0], lower_boundery, upper_boundery, self.error)
                 predicted_flex, probabilities = prob_flex_predict(result_predictions, lower_boundery, upper_boundery, self.error, confidence=confidence)
 
@@ -52,8 +52,9 @@ class Evaluator:
 
                 self.flex_predictions.append(predicted_flex)
                 self.flex_actual_values.append(actual_flex)
-        if (confidence is not None):
-            plot_flex_probabilities(self.flex_probabilities, confidence)
+
+        if isinstance(result_predictions, tuple):
+            plot_flex_probabilities(self.flex_probabilities[-1], confidence)
 
     def evaluate(self, error_func):
         if len(self.flex_predictions) != len(self.flex_actual_values):

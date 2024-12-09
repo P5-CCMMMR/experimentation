@@ -92,4 +92,8 @@ unzip src/data_preprocess/ukdata/UKDATA_CLEANED.zip -d src/data_preprocess/ukdat
 mv src/data_preprocess/ukdata/UKDATA_CLEANED src/data_preprocess/ukdata/data_root
 rm src/data_preprocess/ukdata/UKDATA_CLEANED.zip
 
+
+mkdir -p src/experiments/iter1/model_saves
+
 echo "Setup complete."
+

@@ -1,4 +1,3 @@
-import copy
 import lightning as L
 import numpy as np
 import pandas as pd
@@ -14,16 +13,15 @@ from src.pipelines.splitters.splitter import Splitter
 from src.pipelines.sequencers.sequencer import Sequencer
 from src.pipelines.models.model import Model
 from src.pipelines.trainers.trainerWrapper import TrainerWrapper
-from src.pipelines.tuners.tuner_wrapper import TunerWrapper
+from src.pipelines.tuners.tuner import Tuner
 
 class Pipeline(L.LightningModule, ABC):
     def __init__(self, learning_rate: float, seq_len: int, batch_size: int,
                  optimizer: torch.optim.Optimizer, model: nn.Module, trainer_wrapper: TrainerWrapper,
-                 tuner_class: TunerWrapper,
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column):
+                 target_column, use_tuner: bool = False):
         super().__init__()
         self.seq_len = seq_len
 
@@ -50,7 +48,6 @@ class Pipeline(L.LightningModule, ABC):
         if trainer_wrapper is not None:
             self.trainer = trainer_wrapper.get_trainer()
 
-        self.tuner_class = tuner_class
         self.tuner = None
 
         self.target_column = target_column
@@ -58,17 +55,33 @@ class Pipeline(L.LightningModule, ABC):
         self.all_predictions = []
         self.all_actuals = []
 
-        self.val_loss_arr = []
-        self.train_loss_arr = []
+        self.temp_val_loss_arr = []
+        self.temp_train_loss_arr = []
 
         self.epoch_train_loss_arr = []
         self.epoch_val_loss_arr = []
+
+        self.test_loss_dict = {}
+        
+        self.use_tuner = use_tuner
+
+    def test_step(self, batch):
+        x, y = batch
+        y_hat = self.forward(x)
+
+        for func in self.test_error_func_arr:
+            loss = func.calc(y_hat, y)
+            self.log(func.get_title(), loss, on_epoch=True)
+            self.test_loss_dict[func.get_key()].append(loss.cpu())
+           
+        self.all_predictions.extend(y_hat.detach().cpu().numpy().flatten())
+        self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
     def training_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
         loss = self.train_error_func.calc(y_hat, y)
-        self.train_loss_arr.append(loss.cpu())
+        self.temp_train_loss_arr.append(loss.cpu())
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True, prog_bar=True)
         return loss
     
@@ -76,33 +89,48 @@ class Pipeline(L.LightningModule, ABC):
         x, y = batch
         y_hat = self.model(x)
         loss = self.val_error_func.calc(y_hat, y)
-        self.val_loss_arr.append(loss.cpu())
+        self.temp_val_loss_arr.append(loss.cpu())
         self.log('val_loss', loss, on_epoch=True, logger=True, prog_bar=True)
         return loss
     
     def on_validation_epoch_end(self):
-        if len(self.val_loss_arr) <= 0: return
-        self.epoch_val_loss_arr.append(sum(self.val_loss_arr) / len(self.val_loss_arr))
-        self.log('val_loss', (sum(self.val_loss_arr) / len(self.val_loss_arr)))
-        self.val_loss_arr = []
-        if len(self.train_loss_arr) <= 0: return
-        self.epoch_train_loss_arr.append(sum(self.train_loss_arr) / len(self.train_loss_arr))
-        self.train_loss_arr = []
-    
-    @abstractmethod
-    def test_step(self, batch):
-        pass
+        if len(self.temp_val_loss_arr) <= 0: return
+        self.epoch_val_loss_arr.append(sum(self.temp_val_loss_arr) / len(self.temp_val_loss_arr))
+        self.log('val_loss', (sum(self.temp_val_loss_arr) / len(self.temp_val_loss_arr)))
+        self.temp_val_loss_arr = []
+        if len(self.temp_train_loss_arr) <= 0: return
+        self.epoch_train_loss_arr.append(sum(self.temp_train_loss_arr) / len(self.temp_train_loss_arr))
+        self.temp_train_loss_arr = []
 
-    def fit(self): # Cancer train keyword taken by L.module
-        self.tuner = self.tuner_class(self.trainer, self)
-        self.tuner.tune()
+    def fit(self):
+        if self.use_tuner:
+            self.tuner = Tuner(self.trainer, self)
+            self.tuner.tune()
+            for g in self.optimizer.optimizer.param_groups:
+                    g['lr'] = self.learning_rate
         self.trainer.fit(self)
 
     def test(self):
+        results = {}
+
+        for func in self.test_error_func_arr:
+            self.test_loss_dict[func.get_key()] = []
+
         self.trainer.test(self)
+
+        for func in self.test_error_func_arr:
+            loss_arr = self.test_loss_dict[func.get_key()]
+            results[func.get_key()] = (sum(loss_arr)  / len(loss_arr)).item()
+
+        #func_arr = self.test_error_func_arr
+        #for func in func_arr:
+        #    loss = func.calc(torch.tensor(self.all_predictions), torch.tensor(self.all_actuals))
+        #    results[func.get_key()] = loss.item()
 
         self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
+
+        return results
     
     def forward(self, x):
         return self.model(x).squeeze()
@@ -149,13 +177,14 @@ class Pipeline(L.LightningModule, ABC):
             self.test_error_func_arr = []
 
             self.normalizer_class = None
-            self.tuner_class = None
 
             self.optimizer = None
             self.cleaner = None
             self.splitter = None
             self.model = None
             self.trainer = None
+            
+            self.use_tuner = False
 
             self.df_arr = []
             self.pipeline_class = Pipeline
@@ -202,7 +231,6 @@ class Pipeline(L.LightningModule, ABC):
         def set_optimizer(self, optimizer):
             if not isinstance(optimizer, OptimizerWrapper):
                 raise ValueError("Optimizer instance given not extended from torch.optim class")
-
             self.optimizer = optimizer
             return self
         
@@ -210,12 +238,6 @@ class Pipeline(L.LightningModule, ABC):
             if not isinstance(trainer_wrapper, TrainerWrapper):
                 raise ValueError("TrainerWrapper instance given not extended from TrainerWrapper class")
             self.trainer_wrapper = trainer_wrapper
-            return self
-
-        def set_tuner_class(self, tuner_class):
-            if not issubclass(tuner_class, TunerWrapper):
-                raise ValueError("TunerWrapper sub class given not extended from TunerWrapper class")
-            self.tuner_class = tuner_class
             return self
 
         def set_learning_rate(self, learning_rate: float):
@@ -237,9 +259,9 @@ class Pipeline(L.LightningModule, ABC):
         def set_worker_num(self, worker_num):
             self.worker_num = worker_num
             return self
-
-        def set_optimizer(self, optimizer: torch.optim.Optimizer):
-            self.optimizer = optimizer
+        
+        def set_use_tuner(self, use_tuner):
+            self.use_tuner = use_tuner
             return self
         
         @abstractmethod
@@ -327,7 +349,6 @@ class Pipeline(L.LightningModule, ABC):
                                           self.optimizer,
                                           self.model,
                                           self.trainer_wrapper,
-                                          self.tuner_class,
                                           train_loader,
                                           val_loader,
                                           test_loader,
@@ -336,7 +357,8 @@ class Pipeline(L.LightningModule, ABC):
                                           self.train_error_func,
                                           self.val_error_func,
                                           self.test_error_func_arr,
-                                          self.target_column)
+                                          self.target_column,
+                                          self.use_tuner)
 
             return pipeline
     

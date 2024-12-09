@@ -7,27 +7,32 @@ from src.util.plotly import plot_results
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.util.evaluator import Evaluator
 
-def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence):
-    predictions = model.get_predictions()
-    is_prob = (confidence != None or isinstance(predictions, tuple))
-    
-    if is_prob:
-        predictions_2d_arr = tuple(np.array(pred).reshape(-1, time_horizon) for pred in predictions)
-    else:
-        predictions_2d_arr = np.array(predictions).reshape(-1, time_horizon)
+def plot_models(predictions_arr, time_horizon, time_stamps, actuals, titels=None):
+    if not isinstance(predictions_arr, list):
+        predictions_arr = [predictions_arr]
 
-    actuals_arr = np.array(model.get_actuals()).reshape(-1, time_horizon)[::time_horizon].flatten()
-    timestep_arr = model.get_timestamps()
+    is_prob = True if isinstance(predictions_arr[0], tuple) else False
 
-    if is_prob:
-        for i in range(0, time_horizon):
-            predictions_arr = tuple(np.array(pred)[i::time_horizon].flatten() for pred in predictions_2d_arr)
-            plot_results(predictions_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
-    else: 
-        for i in range(0, time_horizon):
-            predictions_arr = predictions_2d_arr[i::time_horizon].flatten()
-            plot_results(predictions_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
+    temp_pred_arr = []
+    for preds in predictions_arr:
+        if is_prob:
+            temp_pred_arr.append(tuple(np.array(pred.flatten()).reshape(-1, time_horizon) for pred in preds))
+        else:
+            temp_pred_arr.append(np.array(preds.flatten()).reshape(-1, time_horizon))
 
+    actuals_arr = np.array(actuals).reshape(-1, time_horizon)[::time_horizon].flatten()
+    timestep_arr = time_stamps
+
+    for i in range(0, time_horizon):
+        temp_arr = []
+        for preds_2d_arr in temp_pred_arr:
+            if is_prob:
+                temp_arr.append(tuple(np.array(pred)[i::time_horizon].flatten() for pred in preds_2d_arr))
+            else:
+                temp_arr.append(preds_2d_arr[i::time_horizon].flatten())
+        plot_results(temp_arr, actuals_arr[i:], timestep_arr[i:], time_horizon, titles=titels)
+   
+def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence=0.95):
     model.eval()
 
     ps = PowerSplitter(splitter.get_test(cleaner.clean(df)), TIMESTAMP, POWER)
@@ -46,17 +51,39 @@ def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, o
     off_data = np.array(off_df)
     off_data = normalize_and_convert_dates(off_data)
     evaluator = Evaluator(model, error, temp_boundary)
-
+    
     print("Calculating On set...")
     evaluator.init_predictions(on_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence) 
-    print(f"On Mafe: {evaluator.evaluate(mafe)}") 
-    print(f"On Maofe: {evaluator.evaluate(maofe)}")
-    print(f"On Maufe: {evaluator.evaluate(maufe)}")
-    print(f"On EPFR: {evaluator.evaluate(epfr)}")
+    on_mafe = evaluator.evaluate(mafe)
+    on_maofe = evaluator.evaluate(maofe)
+    on_maufe = evaluator.evaluate(maufe)
+    on_epfr = evaluator.evaluate(epfr)
+    print(f"On Mafe: {on_mafe}") 
+    print(f"On Maofe: {on_maofe}")
+    print(f"On Maufe: {on_maufe}")
+    print(f"On EPFR: {on_epfr}")
 
     print("Calculating Off set...")
     evaluator.init_predictions(off_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence)
-    print(f"Off Mafe: {evaluator.evaluate(mafe)}")
-    print(f"Off Maofe: {evaluator.evaluate(maofe)}")
-    print(f"Off Maufe: {evaluator.evaluate(maufe)}")
-    print(f"Off EPFR: {evaluator.evaluate(epfr)}")
+    off_mafe = evaluator.evaluate(mafe)
+    off_maofe = evaluator.evaluate(maofe)
+    off_maufe = evaluator.evaluate(maufe)
+    off_epfr = evaluator.evaluate(epfr)
+    print(f"Off Mafe: {off_mafe}")
+    print(f"Off Maofe: {off_maofe}")
+    print(f"Off Maufe: {off_maufe}")
+    print(f"Off EPFR: {off_epfr}")
+
+    results = {
+        'on mafe': on_mafe,
+        'on maofe': on_maofe,
+        'on maufe': on_maufe,
+        'on epfr': on_epfr,
+        'off mafe': off_mafe,
+        'off maofe': off_maofe,
+        'off maufe': off_maufe,
+        'off epfr': off_epfr
+    }
+
+    return results
+

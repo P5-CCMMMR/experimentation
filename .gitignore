@@ -10,3 +10,4 @@ __pycache__
 *.ckpt
 .vscode
 *.zip
+all_config.txt
