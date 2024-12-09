@@ -42,7 +42,7 @@ from lightning.pytorch import seed_everything
 
 matplotlib.use("Agg")
 
-seed_everything(1337)
+seed_everything(1337, workers=True)
 
 NUM_WORKERS = multiprocessing.cpu_count()
 TARGET_COLUMN = 2
