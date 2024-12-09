@@ -7,7 +7,7 @@ from src.util.plotly import plot_results
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.util.evaluator import Evaluator
 
-def plot_models(predictions_arr, time_horizon, time_stamps, actuals):
+def plot_models(predictions_arr, time_horizon, time_stamps, actuals, titels=None):
     if not isinstance(predictions_arr, list):
         predictions_arr = [predictions_arr]
 
@@ -16,9 +16,9 @@ def plot_models(predictions_arr, time_horizon, time_stamps, actuals):
     temp_pred_arr = []
     for preds in predictions_arr:
         if is_prob:
-            temp_pred_arr.append(tuple(np.array(pred).reshape(-1, time_horizon) for pred in preds))
+            temp_pred_arr.append(tuple(np.array(pred.flatten()).reshape(-1, time_horizon) for pred in preds))
         else:
-            temp_pred_arr.append(np.array(preds).reshape(-1, time_horizon))
+            temp_pred_arr.append(np.array(preds.flatten()).reshape(-1, time_horizon))
 
     actuals_arr = np.array(actuals).reshape(-1, time_horizon)[::time_horizon].flatten()
     timestep_arr = time_stamps
@@ -30,7 +30,7 @@ def plot_models(predictions_arr, time_horizon, time_stamps, actuals):
                 temp_arr.append(tuple(np.array(pred)[i::time_horizon].flatten() for pred in preds_2d_arr))
             else:
                 temp_arr.append(preds_2d_arr[i::time_horizon].flatten())
-        plot_results(temp_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
+        plot_results(temp_arr, actuals_arr[i:], timestep_arr[i:], time_horizon, titles=titels)
    
 def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence=0.95):
     model.eval()

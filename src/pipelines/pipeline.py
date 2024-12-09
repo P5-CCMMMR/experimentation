@@ -55,19 +55,33 @@ class Pipeline(L.LightningModule, ABC):
         self.all_predictions = []
         self.all_actuals = []
 
-        self.val_loss_arr = []
-        self.train_loss_arr = []
+        self.temp_val_loss_arr = []
+        self.temp_train_loss_arr = []
 
         self.epoch_train_loss_arr = []
         self.epoch_val_loss_arr = []
+
+        self.test_loss_dict = {}
         
         self.use_tuner = use_tuner
+
+    def test_step(self, batch):
+        x, y = batch
+        y_hat = self.forward(x)
+
+        for func in self.test_error_func_arr:
+            loss = func.calc(y_hat, y)
+            self.log(func.get_title(), loss, on_epoch=True)
+            self.test_loss_dict[func.get_key()].append(loss.cpu())
+           
+        self.all_predictions.extend(y_hat.detach().cpu().numpy().flatten())
+        self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
     def training_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
         loss = self.train_error_func.calc(y_hat, y)
-        self.train_loss_arr.append(loss.cpu())
+        self.temp_train_loss_arr.append(loss.cpu())
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True, prog_bar=True)
         return loss
     
@@ -75,22 +89,18 @@ class Pipeline(L.LightningModule, ABC):
         x, y = batch
         y_hat = self.model(x)
         loss = self.val_error_func.calc(y_hat, y)
-        self.val_loss_arr.append(loss.cpu())
+        self.temp_val_loss_arr.append(loss.cpu())
         self.log('val_loss', loss, on_epoch=True, logger=True, prog_bar=True)
         return loss
     
     def on_validation_epoch_end(self):
-        if len(self.val_loss_arr) <= 0: return
-        self.epoch_val_loss_arr.append(sum(self.val_loss_arr) / len(self.val_loss_arr))
-        self.log('val_loss', (sum(self.val_loss_arr) / len(self.val_loss_arr)))
-        self.val_loss_arr = []
-        if len(self.train_loss_arr) <= 0: return
-        self.epoch_train_loss_arr.append(sum(self.train_loss_arr) / len(self.train_loss_arr))
-        self.train_loss_arr = []
-    
-    @abstractmethod
-    def test_step(self, batch):
-        pass
+        if len(self.temp_val_loss_arr) <= 0: return
+        self.epoch_val_loss_arr.append(sum(self.temp_val_loss_arr) / len(self.temp_val_loss_arr))
+        self.log('val_loss', (sum(self.temp_val_loss_arr) / len(self.temp_val_loss_arr)))
+        self.temp_val_loss_arr = []
+        if len(self.temp_train_loss_arr) <= 0: return
+        self.epoch_train_loss_arr.append(sum(self.temp_train_loss_arr) / len(self.temp_train_loss_arr))
+        self.temp_train_loss_arr = []
 
     def fit(self):
         if self.use_tuner:
@@ -101,17 +111,24 @@ class Pipeline(L.LightningModule, ABC):
         self.trainer.fit(self)
 
     def test(self):
+        results = {}
+
+        for func in self.test_error_func_arr:
+            self.test_loss_dict[func.get_key()] = []
+
         self.trainer.test(self)
+
+        for func in self.test_error_func_arr:
+            loss_arr = self.test_loss_dict[func.get_key()]
+            results[func.get_key()] = (sum(loss_arr)  / len(loss_arr)).item()
+
+        #func_arr = self.test_error_func_arr
+        #for func in func_arr:
+        #    loss = func.calc(torch.tensor(self.all_predictions), torch.tensor(self.all_actuals))
+        #    results[func.get_key()] = loss.item()
 
         self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
-
-        results = {}
-
-        func_arr = self.test_error_func_arr
-        for func in func_arr:
-            loss = func.calc(torch.tensor(self.all_predictions), torch.tensor(self.all_actuals))
-            results[func.get_key()] = loss.item()
 
         return results
     

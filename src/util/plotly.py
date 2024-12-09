@@ -2,14 +2,15 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-def plot_results(predictions, actuals, timestamps, horizon_len, time_interval=None, temp_interval=None):
+colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+
+def plot_results(predictions, actuals, timestamps, horizon_len, time_interval=None, temp_interval=None, titles=None):
     if isinstance(predictions, tuple):
-        plot_probabilistic_results(predictions, actuals, timestamps, horizon_len, time_interval, temp_interval)
+        plot_probabilistic_results(predictions, actuals, timestamps, horizon_len, time_interval, temp_interval, titles)
     else:
-        plot_deterministic_results(predictions, actuals, timestamps, horizon_len, time_interval, temp_interval)
+        plot_deterministic_results(predictions, actuals, timestamps, horizon_len, time_interval, temp_interval, titles)
 
-
-def plot_deterministic_results(predictions, actuals, timestamps, horizon_len, time_interval=None, temp_interval=None):
+def plot_deterministic_results(predictions, actuals, timestamps, horizon_len, time_interval=None, temp_interval=None, titles=None):
     if not isinstance(predictions, list):
         predictions = [predictions]
 
@@ -28,15 +29,15 @@ def plot_deterministic_results(predictions, actuals, timestamps, horizon_len, ti
         if temp_interval:
             prediction = prediction + temp_interval * i
 
-        fig.add_trace(go.Scatter(x=timestamps, y=prediction, mode='lines', name=f'Prediction {i+1}'), row=i+1, col=1)
+        fig.add_trace(go.Scatter(x=timestamps, y=prediction, mode='lines', name=titles[i] if titles else f'Prediction {i+1}', line=dict(color=colors[i % len(colors)])), row=i+1, col=1)
         fig.add_trace(go.Scatter(
             x=timestamps[::horizon_len], 
             y=prediction[::horizon_len], 
             mode='markers', 
             name=f'Prediction {i+1} Start Points', 
-            marker=dict(size=4, symbol='circle', line_width=1)
+            marker=dict(size=4, symbol='circle', line_width=1, color=colors[i % len(colors)])
         ), row=i+1, col=1)
-        fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual'), row=i+1, col=1)
+        fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual', line=dict(color='red')), row=i+1, col=1)
 
     fig.update_layout(
         title="Predictions vs Actuals",
@@ -49,7 +50,26 @@ def plot_deterministic_results(predictions, actuals, timestamps, horizon_len, ti
 
     fig.show()
 
-def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len, time_interval=None, temp_interval=None):
+def plot_boxplots(predictions, titles=None):
+    if not isinstance(predictions, list):
+        predictions = [predictions]
+
+    fig = make_subplots(rows=1, cols=len(predictions), subplot_titles=titles)
+
+    for i, prediction in enumerate(predictions):
+        prediction = np.array(prediction)
+        fig.add_trace(go.Box(y=prediction, name=titles[i] if titles else f'Prediction {i+1}', marker_color=colors[i % len(colors)]), row=1, col=i+1)
+
+    fig.update_layout(
+        title="Boxplots of Predictions",
+        yaxis_title="Values",
+        legend_title="Legend",
+        hovermode="x"
+    )
+
+    fig.show()
+
+def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len, time_interval=None, temp_interval=None, titles=None):
     if not isinstance(predictions, list):
         predictions = [predictions]
 
@@ -127,14 +147,14 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len, ti
             showlegend=False
         ), row=i+1, col=1)
         
-        fig.add_trace(go.Scatter(line_color='blue', x=timestamps, y=mean_predictions, mode='lines', name=f'Prediction {i+1}'), row=i+1, col=1)
+        fig.add_trace(go.Scatter(line_color=colors[i % len(colors)], x=timestamps, y=mean_predictions, mode='lines', name=titles[i] if titles else f'Prediction {i+1}'), row=i+1, col=1)
 
         fig.add_trace(go.Scatter(
             x=timestamps[::horizon_len], 
             y=mean_predictions[::horizon_len], 
             mode='markers', 
             name=f'Prediction {i+1} Start Points', 
-            marker=dict(size=4, symbol='circle', line_width=1)
+            marker=dict(size=4, symbol='circle', line_width=1, color=colors[i % len(colors)])
         ), row=i+1, col=1)
 
         fig.add_trace(go.Scatter(line_color='red', x=timestamps, y=actuals, mode='lines', name='Actual'), row=i+1, col=1)
@@ -159,7 +179,8 @@ def plot_flex_probabilities(flex_probabilities, confidence):
             x=list(range(len(probabilities))),
             y=probabilities,
             mode='lines+markers',
-            name=f'Forecast {i + 1} Probability'
+            name=f'Forecast {i + 1} Probability',
+            line=dict(color=colors[i % len(colors)])
         ))
     
     fig.add_trace(go.Scatter(x=list(range(len(probabilities))), y=[confidence]*len(probabilities), mode='lines', name=f'Confidence Level ({confidence})', line=dict(dash='dash', color='red')))
@@ -188,7 +209,7 @@ def plot_loss(loss_arr, path, titles=None):
     for i, loss in enumerate(loss_arr):
         loss = np.array(loss)
         fig.add_trace(go.Scatter(x=epochs, y=loss, mode='lines+markers', 
-                                 name=titles[i] if titles[i] != None else "loss"))
+                                 name=titles[i] if titles[i] != None else "loss", line=dict(color=colors[i % len(colors)])))
 
     fig.update_layout(
         title="Training Loss Over Epochs",
@@ -201,14 +222,11 @@ def plot_loss(loss_arr, path, titles=None):
     fig.show()
     fig.write_image(path + ".png")
 
-
-def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1):
+def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1.5):
     if group_names is None:
         group_names = [f'Group {i+1}' for i in range(len(dicts_array))]
     
     fig = make_subplots(rows=1, cols=len(dicts_array), subplot_titles=group_names)
-
-    colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
 
     for i, dicts in enumerate(dicts_array):
         for j, d in enumerate(dicts):
