@@ -48,7 +48,7 @@ class Evaluator:
                 self.flex_probabilities.append(probabilities)
             else:
                 actual_flex = flex_predict(result_actual[0], lower_boundery, upper_boundery, self.error)
-                predicted_flex = flex_predict(result_predictions, lower_boundery, upper_boundery, self.error)
+                predicted_flex = flex_predict(result_predictions[0], lower_boundery, upper_boundery, self.error)
 
                 self.flex_predictions.append(predicted_flex)
                 self.flex_actual_values.append(actual_flex)
