@@ -48,17 +48,15 @@ class EnsemblePipeline(ProbabilisticPipeline):
     
     def fit(self): 
         for i, pipeline in enumerate(self.pipeline_arr):
-            if self.base_seed is not None and i != 0:
-                seed = self.base_seed + i
-                self.run_with_seed(pipeline.fit, seed)
+            if self.base_seed is not None:
+                self._run_with_seed(pipeline.fit, self._get_seed(i))
             else:
                 pipeline.fit()
 
     def test(self):
         for i, pipeline in enumerate(self.pipeline_arr):
-            if self.base_seed is not None and i != 0:
-                seed = self.base_seed + i
-                self.run_with_seed(pipeline.test, seed)
+            if self.base_seed is not None:
+                self._run_with_seed(pipeline.test, self._get_seed(i))
             else:
                 pipeline.test()
 
@@ -91,9 +89,8 @@ class EnsemblePipeline(ProbabilisticPipeline):
     def forward(self, x):
         predictions = []
         for i, pipeline in enumerate(self.pipeline_arr):
-            if self.base_seed is not None and i != 0:
-                seed = self.base_seed + i
-                predictions.append(self.run_with_seed(pipeline.forward, seed, x))
+            if self.base_seed is not None:
+                predictions.append(self._run_with_seed(pipeline.forward, self._get_seed(i), x))
             else:
                 predictions.append(pipeline.forward(x))
 
@@ -103,9 +100,12 @@ class EnsemblePipeline(ProbabilisticPipeline):
             predictions = self._ensemble_deterministic_predictions(predictions)
         return predictions 
 
-    def run_with_seed(self, func, seed, *args, **kwargs):
-        seed_everything(seed, workers=True)
+    def _run_with_seed(self, func, seed, *args, **kwargs):
+        seed_everything(seed, workers=True, verbose=False)
         return func(*args, **kwargs)
+     
+    def _get_seed(self, idx):
+        return self.base_seed + idx
             
     def _ensemble_probabilistic_predictions(self, predictions):
         mean_predictions = []

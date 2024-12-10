@@ -52,9 +52,9 @@ class Evaluator:
 
                 self.flex_predictions.append(predicted_flex)
                 self.flex_actual_values.append(actual_flex)
-        print("RESULT PREDS: ", result_predictions)
+
         if isinstance(result_predictions, tuple):
-            plot_flex_probabilities(self.flex_probabilities[-1], confidence)
+            plot_flex_probabilities(self.flex_probabilities, confidence)
 
     def evaluate(self, error_func):
         if len(self.flex_predictions) != len(self.flex_actual_values):
