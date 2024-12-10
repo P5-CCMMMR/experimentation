@@ -29,6 +29,7 @@ from src.pipelines.metrics.lscv import *
 from src.pipelines.metrics.rmse import * 
 from src.pipelines.metrics.mae import *
 from src.pipelines.metrics.maxe import *
+from src.pipelines.metrics.cale import *
 
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
