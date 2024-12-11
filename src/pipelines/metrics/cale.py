@@ -2,16 +2,13 @@ import torch
 from .metric import ProbabilisticMetric
 
 class CALE(ProbabilisticMetric):
-    @staticmethod
     def get_key():
         return "cale"
-
-    @staticmethod
+    
     def get_title():
         return "CALE: "
 
-    @staticmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Calibration Error (CALE)\\
         Returns the error of the calibration of the model\\

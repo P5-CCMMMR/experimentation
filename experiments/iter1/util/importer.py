@@ -9,7 +9,7 @@ from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from src.util.power_splitter import PowerSplitter
 
-from src.util.plotly import plot_results, plot_loss, plot_pillar_diagrams
+from src.util.plotly import plot_results, plot_loss, plot_pillar_diagrams, plot_boxplots, plot_metric_comparison
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
@@ -29,11 +29,21 @@ from src.pipelines.metrics.lscv import *
 from src.pipelines.metrics.rmse import * 
 from src.pipelines.metrics.mae import *
 from src.pipelines.metrics.maxe import *
+from src.pipelines.metrics.cale import *
+
+from src.pipelines.baselines.probabilistic.penalty_strat.mean import Mean
+from src.pipelines.baselines.probabilistic.penalty_strat.naive import Naive
+from src.pipelines.baselines.probabilistic.penalty_strat.drift import Drift
+
 
 from src.pipelines.deterministic_pipeline import DeterministicPipeline
 from src.pipelines.monte_carlo_pipeline import MonteCarloPipeline
 from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
+
+from src.pipelines.baselines.deterministic.copy_deterministic_baseline import CopyDeterministicBaseline
+from src.pipelines.baselines.deterministic.lag_deterministic_baseline import LagDeterministicBaseline
+from src.pipelines.baselines.probabilistic.naive_probabilistic_baseline import NaiveProbabilisticBaseline
 
 from src.util.evaluator import Evaluator
 

@@ -3,16 +3,13 @@ from .metric import ProbabilisticMetric
 from scipy.stats import norm
 
 class TCRPS(ProbabilisticMetric):
-    @staticmethod
     def get_key():
         return "tcrps"
 
-    @staticmethod
     def get_title():
         return "TCRPS: "
 
-    @staticmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Total Continuous Ranked Probability Score\\
         Returns the sum of the CRPS of the batch\n
@@ -37,38 +34,32 @@ class TCRPS(ProbabilisticMetric):
     
 
 class MCRPS(TCRPS):
-    @staticmethod
     def get_key():
         return "mcrps"
 
-    @staticmethod
     def get_title():
         return "MCRPS: "
-
-    @staticmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Mean Continuous Ranked Probability Score
         """
-        return TCRPS.calc(mean, stddev, y) / mean.size(0)
+        return super().calc(mean, stddev, y) / mean.size(0)
     
 class NMCRPS(TCRPS):
-    @staticmethod
     def get_key():
         return "nmcrps"
 
-    @staticmethod
     def get_title():
         return "NMCRPS: "
 
-    @staticmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Normalized Mean Continuous Ranked Probability Score
         """
         # Add small term to avoid divison by zero
         eps = torch.tensor(1e-16)
-        range = y.max() - y.min()
+        range = self.max - self.min
         denominator = max(eps, range)
         
-        return MCRPS.calc(mean, stddev, y) / denominator
+        return super().calc(mean, stddev, y) / denominator
