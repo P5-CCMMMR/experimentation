@@ -9,7 +9,7 @@ from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from src.util.power_splitter import PowerSplitter
 
-from src.util.plotly import plot_results, plot_loss, create_pillar_plot
+from src.util.plotly import plot_results, plot_loss, plot_pillar_diagrams, plot_boxplots
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
@@ -21,7 +21,7 @@ from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
 from src.pipelines.splitters.day_splitter import DaySplitter
 from src.pipelines.splitters.blocked_k_fold_splitter import BlockedKFoldSplitter
-from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
+from src.pipelines.tuners.tuner import Tuner
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
 from src.pipelines.metrics.crps import *
@@ -60,25 +60,21 @@ POWER     = "PowerConsumption"
 # Model
 input_size = 4
 time_horizon = 4
-hidden_size = 32
+hidden_size = 64
 num_epochs = 100
 seq_len = 96
 num_layers = 1
  
 # MC ONLY
 inference_samples = 50
-inference_dropout = 0.5
-
-# TCN
-num_channels = [16, 32, 64]
-kernel_size = 2
+inference_dropout = 0.25
 
 # Training
-dropout = 0.50
+dropout = 0
 gradient_clipping = 0
 early_stopping_threshold = 0.18
 
-num_ensembles = 5
+num_ensembles = 2
 
 # Flexibility
 flex_confidence = 0.90

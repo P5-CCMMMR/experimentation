@@ -1,5 +1,4 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import copy
 import numpy as np
 import torch
 from src.pipelines.pipeline import Pipeline
@@ -8,10 +7,10 @@ import os
 
 class EnsemblePipeline(ProbabilisticPipeline):
     def __init__(self, pipeline_arr, num_ensembles, horizon_len, test_error_func_arr):
-        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None)
+        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None, None)
         self.pipeline_arr = pipeline_arr
         self.num_ensembles = num_ensembles
-        self.horizen_len = horizon_len
+        self.horizon_len = horizon_len
 
         self.timesteps = self.pipeline_arr[0].get_timestamps()
         self.all_predictions = []
@@ -144,6 +143,9 @@ class EnsemblePipeline(ProbabilisticPipeline):
 
         def set_num_ensembles(self, num_ensembles):
             self.num_ensembles = num_ensembles
+            
+            if self.num_ensembles < 2:
+                raise ValueError("Ensemble pipeline should have atleast 2 models")
             return self
         
         def set_horizon_len(self, horizon_len):
@@ -164,7 +166,3 @@ class EnsemblePipeline(ProbabilisticPipeline):
                                        self.num_ensembles,
                                        self.horizon_len,
                                        self.test_error_func_arr)
-        
-    
-
-

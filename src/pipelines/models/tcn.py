@@ -9,6 +9,7 @@ class TCN(Model):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.seq_len = seq_len
+        self.dropout = dropout
 
         assert num_layers > 0, "Number of layers must be greater than 0"
 
@@ -20,12 +21,13 @@ class TCN(Model):
         kernel_size = ceil((2**(num_layers+1) + seq_len - 3) / (2**(num_layers+1) - 2))
         
         self.tcn = TCNModel(self.input_len, num_channels, kernel_size=kernel_size, dropout=dropout, causal=True, input_shape='NLC', use_skip_connections=True, activation='leaky_relu')
-        self.dropout = nn.Dropout(dropout)
+            
+        self.dropout_layer = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_size, horizon_len)
         
     def forward(self, x):
         out = self.tcn(x)
-        out = self.dropout(out[:, -1, :])
+        out = self.dropout_layer(out[:, -1, :])
         return self.fc(out)
         
     def copy(self):

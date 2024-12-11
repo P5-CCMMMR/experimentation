@@ -5,7 +5,7 @@ import torch.nn as nn
 class RMSE(DeterministicMetric):
     @staticmethod
     def get_key():
-        return "rmse" 
+        return "rmse"
 
     @staticmethod
     def get_title():
@@ -24,8 +24,8 @@ class RMSE(DeterministicMetric):
 class NRMSE(RMSE):
     @staticmethod
     def get_key():
-        return "nrmse" 
-    
+        return "nrmse"
+
     @staticmethod
     def get_title():
         return "NRMSE Loss: " 

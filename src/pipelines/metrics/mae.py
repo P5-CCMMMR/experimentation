@@ -8,6 +8,10 @@ class MAE(DeterministicMetric):
         return "mae"
     
     @staticmethod
+    def get_key():
+        return "mae"
+
+    @staticmethod
     def get_title():
         return "MAE Loss: " 
 
@@ -22,7 +26,7 @@ class NMAE(MAE):
     @staticmethod
     def get_key():
         return "nmae"
-    
+
     @staticmethod
     def get_title():
         return "NMAE Loss: " 

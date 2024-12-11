@@ -6,6 +6,11 @@ import torch
 class Metric(ABC):
     @staticmethod
     @abstractmethod
+    def get_key():
+        pass
+
+    @staticmethod
+    @abstractmethod
     def is_probabilistic():
         pass
 

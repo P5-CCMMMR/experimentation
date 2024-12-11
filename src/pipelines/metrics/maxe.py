@@ -5,7 +5,7 @@ class MAXE(DeterministicMetric):
     @staticmethod
     def get_key():
         return "maxe"
-    
+
     @staticmethod
     def get_title():
         return "MAXE Loss: " 
@@ -20,7 +20,7 @@ class MAXE(DeterministicMetric):
 class NMAXE(MAXE):
     @staticmethod
     def get_key():
-        return "nmaxe" 
+        return "nmaxe"
 
     @staticmethod
     def get_title():
