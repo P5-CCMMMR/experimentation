@@ -70,8 +70,8 @@ class DeterministicBaseline(DeterministicPipeline, ABC):
             return self
         
         def build(self):    
-            _, _, test_loader, test_timestamps, test_normalizer = self._get_loaders(self.horizon_len)
-            return self.pipeline_class(self.target_column, test_loader, test_timestamps, test_normalizer, self.test_error_func_arr, self.horizon_len)
+            self._init_loaders(self.horizon_len)
+            return self.pipeline_class(self.target_column, self.test_loader, self.test_timestamps, self.test_normalizer, self.test_error_func_arr, self.horizon_len)
         
     
 

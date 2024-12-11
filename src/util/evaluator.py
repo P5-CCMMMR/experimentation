@@ -39,15 +39,18 @@ class Evaluator:
             upper_boundery = last_in_temp + self.boundary
             result_predictions = self.model(input_data)
 
+            if len(result_actual) == 1 and isinstance(result_actual[0], list): result_actual.squeeze()
+            if len(result_predictions) == 1 and isinstance(result_predictions[0], list): result_predictions.squeeze()
+
             if isinstance(result_predictions, tuple):
-                actual_flex = flex_predict(result_actual[0], lower_boundery, upper_boundery, self.error)
+                actual_flex = flex_predict(result_actual, lower_boundery, upper_boundery, self.error)
                 predicted_flex, probabilities = prob_flex_predict(result_predictions, lower_boundery, upper_boundery, self.error, confidence=confidence)
 
                 self.flex_actual_values.append(actual_flex)
                 self.flex_predictions.append(predicted_flex)
                 self.flex_probabilities.append(probabilities)
             else:
-                actual_flex = flex_predict(result_actual[0], lower_boundery, upper_boundery, self.error)
+                actual_flex = flex_predict(result_actual, lower_boundery, upper_boundery, self.error)
                 predicted_flex = flex_predict(result_predictions, lower_boundery, upper_boundery, self.error)
 
                 self.flex_predictions.append(predicted_flex)

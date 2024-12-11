@@ -35,6 +35,8 @@ def plot_models(predictions_arr, time_horizon, time_stamps, actuals, titels=None
 def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, off_limit_w, consecutive_points, seq_len, time_horizon, TARGET_COLUMN, error, temp_boundary, confidence=0.95):
     model.eval()
 
+    
+
     ps = PowerSplitter(splitter.get_test(cleaner.clean(df)), TIMESTAMP, POWER)
 
     on_df = ps.get_mt_power(on_limit_w, consecutive_points)

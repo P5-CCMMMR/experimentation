@@ -108,7 +108,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
         
         
         def build(self):
-            train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()
+            self._init_loaders()
 
             pipeline = self.pipeline_class(self.learning_rate,
                                           self.seq_len, 
@@ -116,11 +116,11 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                                           self.optimizer,
                                           self.model,
                                           self.trainer_wrapper,
-                                          train_loader,
-                                          val_loader,
-                                          test_loader,
-                                          test_timestamps,
-                                          test_normalizer,
+                                          self.train_loader,
+                                          self.val_loader,
+                                          self.test_loader,
+                                          self.test_timestamps,
+                                          self.test_normalizer,
                                           self.train_error_func,
                                           self.val_error_func,
                                           self.test_error_func_arr,

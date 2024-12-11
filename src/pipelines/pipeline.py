@@ -285,7 +285,7 @@ class Pipeline(L.LightningModule, ABC):
                 if value is None:
                     raise ValueError(f"{key} cannot be None")
                 
-        def _get_loaders(self, horizon_len=None):
+        def _init_loaders(self, horizon_len=None):
             train_dfs = []
             val_dfs = []
             test_dfs = []
@@ -304,44 +304,45 @@ class Pipeline(L.LightningModule, ABC):
             val_df = pd.concat(val_dfs, ignore_index=True) if val_dfs else pd.DataFrame()
             test_df = pd.concat(test_dfs, ignore_index=True) if test_dfs else pd.DataFrame()
 
-            test_timestamps = pd.to_datetime(test_df.values[:,0]) if not test_df.empty else pd.DatetimeIndex([])
+            self.test_timestamps = pd.to_datetime(test_df.values[:,0]) if not test_df.empty else pd.DatetimeIndex([])
 
             if not train_df.empty:
                 train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
-                train_normalizer = self.normalizer_class(train_df.values.astype(float)) 
-                train_df = train_normalizer.normalize()
+                self.train_normalizer = self.normalizer_class(train_df.values.astype(float)) 
+                train_df = self.train_normalizer.normalize()
+                self.train_error_func = self.train_error_func(train_df)
                 train_segmenter = self.sequencer_class(train_df, self.seq_len, horizon_len, self.target_column)
-                train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+                self.train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
-                train_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
-                train_normalizer = self.normalizer_class(np.array([]))
+                self.train_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
+                self.train_normalizer = self.normalizer_class(np.array([]))
 
             if not val_df.empty:
                 val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
-                val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
-                val_df = val_normalizer.normalize()
+                self.val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
+                val_df = self.val_normalizer.normalize()
+                self.val_error_func = self.val_error_func(val_df)
                 val_segmenter = self.sequencer_class(val_df, self.seq_len, horizon_len, self.target_column)
-                val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+                self.val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
-                val_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
-                val_normalizer = self.normalizer_class(np.array([]))
+                self.val_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
+                self.val_normalizer = self.normalizer_class(np.array([]))
 
             if not test_df.empty:
                 test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
-                test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
-                test_df = test_normalizer.normalize()
+                self.test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
+                test_df = self.test_normalizer.normalize()
+                self.test_error_func_arr = [error_func(test_df) for error_func in self.test_error_func_arr]
                 test_segmenter = self.sequencer_class(test_df, self.seq_len, horizon_len, self.target_column) #test_df was indexed like test_df[0], but that doens't work with baselines?!?!
-                test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
+                self.test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
-                test_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
-                test_normalizer = self.normalizer_class(np.array([]))
-            
-            return train_loader, val_loader, test_loader, test_timestamps, test_normalizer
+                self.test_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)
+                self.test_normalizer = self.normalizer_class(np.array([]))
 
         def build(self):
             self._check_none(trainer_wrapper=self.trainer_wrapper, model=self.model, optimizer=self.optimizer)
         
-            train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()
+            self._init_loaders()
 
             pipeline = self.pipeline_class(self.learning_rate,
                                           self.seq_len, 
@@ -349,11 +350,11 @@ class Pipeline(L.LightningModule, ABC):
                                           self.optimizer,
                                           self.model,
                                           self.trainer_wrapper,
-                                          train_loader,
-                                          val_loader,
-                                          test_loader,
-                                          test_timestamps,
-                                          test_normalizer,
+                                          self.train_loader,
+                                          self.val_loader,
+                                          self.test_loader,
+                                          self.test_timestamps,
+                                          self.test_normalizer,
                                           self.train_error_func,
                                           self.val_error_func,
                                           self.test_error_func_arr,
