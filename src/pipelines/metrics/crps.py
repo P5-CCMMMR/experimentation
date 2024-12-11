@@ -4,6 +4,10 @@ from scipy.stats import norm
 
 class TCRPS(ProbabilisticMetric):
     @staticmethod
+    def get_key():
+        return "crps"
+    
+    @staticmethod
     def get_title():
         return "TCRPS: "
 
@@ -34,6 +38,10 @@ class TCRPS(ProbabilisticMetric):
 
 class MCRPS(TCRPS):
     @staticmethod
+    def get_key():
+        return "mcrps"
+    
+    @staticmethod
     def get_title():
         return "MCRPS: "
 
@@ -45,6 +53,10 @@ class MCRPS(TCRPS):
         return TCRPS.calc(mean, stddev, y) / mean.size(0)
     
 class NMCRPS(TCRPS):
+    @staticmethod
+    def get_key():
+        return "nmcrps"
+    
     @staticmethod
     def get_title():
         return "NMCRPS: "

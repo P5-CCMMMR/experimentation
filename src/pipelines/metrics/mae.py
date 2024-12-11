@@ -4,6 +4,10 @@ import torch.nn as nn
 
 class MAE(DeterministicMetric):
     @staticmethod
+    def get_key():
+        return "mae"
+    
+    @staticmethod
     def get_title():
         return "MAE Loss: " 
 
@@ -15,6 +19,10 @@ class MAE(DeterministicMetric):
         return nn.functional.mse_loss(y_hat, y)
     
 class NMAE(MAE):
+    @staticmethod
+    def get_key():
+        return "nmae"
+    
     @staticmethod
     def get_title():
         return "NMAE Loss: " 

@@ -2,6 +2,10 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+PLOT_WIDTH = 800
+PLOT_HEIGHT = 600
+
+
 def plot_results(predictions, actuals, timestamps, horizon_len):
     if isinstance(predictions, tuple):
         plot_probabilistic_results(predictions, actuals, timestamps, horizon_len)
@@ -77,15 +81,16 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len):
     
     fig.add_trace(go.Scatter(line_color='blue', x=timestamps, y=mean_predictions, mode='lines', name='Prediction'))
 
+    fig.add_trace(go.Scatter(line_color='red', x=timestamps, y=actuals, mode='lines', name='Actual'))
+
     fig.add_trace(go.Scatter(
         x=timestamps[::horizon_len], 
         y=mean_predictions[::horizon_len], 
         mode='markers', 
         name='Prediction Start Points', 
-        marker=dict(size=4, symbol='circle', line_width=1)
+        marker=dict(size=4, symbol='circle', line_width=1, color='lightgreen')
     ))
 
-    fig.add_trace(go.Scatter(line_color='red', x=timestamps, y=actuals, mode='lines', name='Actual'))
 
     fig.update_layout(
         title="Predictions vs Actuals with Uncertainty",
@@ -96,7 +101,9 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len):
         plot_bgcolor='white',
         paper_bgcolor='white',
         xaxis=dict(showgrid=True, gridcolor='lightgrey'),
-        yaxis=dict(showgrid=True, gridcolor='lightgrey')
+        yaxis=dict(showgrid=True, gridcolor='lightgrey'),
+        width=PLOT_WIDTH,
+        height=PLOT_HEIGHT
     )
 
     fig.show()
@@ -123,7 +130,9 @@ def plot_deterministic_results(predictions, actuals, timestamps, horizon_len):
         xaxis_title="Time",
         yaxis_title="Indoor Temperature",
         legend_title="Legend",
-        hovermode="x"
+        hovermode="x",
+        width=PLOT_WIDTH,
+        height=PLOT_HEIGHT
     )
 
     fig.show()
@@ -159,7 +168,7 @@ def plot_comparative_results(predictions1, predictions2, actuals, timestamps, ho
         legend_title="Legend",
         hovermode="x",
         width=width,
-        height=height
+        height=height,
     )
     fig.show()
 
@@ -182,7 +191,9 @@ def plot_flex_probabilities(flex_probabilities, confidence):
         xaxis_title="Predicted Flexibility",
         yaxis_title="Probability",
         legend_title="Legend",
-        hovermode="x"
+        hovermode="x",
+        width=PLOT_WIDTH,
+        height=PLOT_HEIGHT
     )   
     
     fig.show()
@@ -200,7 +211,56 @@ def plot_loss(loss):
         xaxis_title="Epochs",
         yaxis_title="Loss",
         legend_title="Legend",
-        hovermode="x"
+        hovermode="x",
+        width=PLOT_WIDTH,
+        height=PLOT_HEIGHT
     )
 
     fig.show()
+
+
+def create_pillar_plot(keys, *dictionaries, title='Comparison of Values', x_title='Categories', y_title='Values'):
+    """
+    Create a Plotly bar plot comparing values across multiple dictionaries.
+    
+    Parameters:
+    - keys: List of keys to be used for comparison
+    - dictionaries: Unlimited number of dictionaries to compare
+    - title: Optional title for the plot
+    - x_title: Optional x-axis title
+    - y_title: Optional y-axis title
+    
+    Returns:
+    - Plotly figure object
+    """
+    # Validate input
+    if not keys:
+        raise ValueError("At least one key must be provided")
+    if not dictionaries:
+        raise ValueError("At least one dictionary must be provided")
+    
+    # Prepare data for plotting
+    traces = []
+    for i, dictionary in enumerate(dictionaries):
+        # Extract values for specified keys, defaulting to 0 if key not found
+        values = [dictionary.get(key, 0) for key in keys]
+        
+        # Create a bar trace for each dictionary
+        trace = go.Bar(
+            x=keys,
+            y=values,
+            name=f'Dictionary {i+1}'
+        )
+        traces.append(trace)
+    
+    # Create the layout
+    layout = go.Layout(
+        title=title,
+        xaxis=dict(title=x_title),
+        yaxis=dict(title=y_title),
+        barmode='group'  # This allows side-by-side comparison
+    )
+    
+    # Create figure and return
+    fig = go.Figure(data=traces, layout=layout)
+    return fig

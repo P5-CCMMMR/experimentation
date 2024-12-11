@@ -14,6 +14,11 @@ class Metric(ABC):
     def is_deterministic():
         pass
     
+    @staticmethod
+    @abstractmethod
+    def get_key():
+        pass
+
     @staticmethod 
     @abstractmethod
     def get_title():
@@ -32,11 +37,6 @@ class ProbabilisticMetric(Metric):
     @staticmethod 
     def is_deterministic():
         return False
-    
-    @staticmethod 
-    @abstractmethod
-    def get_title():
-        pass
 
 class DeterministicMetric(Metric):
     @staticmethod
@@ -51,8 +51,3 @@ class DeterministicMetric(Metric):
     @staticmethod 
     def is_deterministic():
         return True
-    
-    @staticmethod 
-    @abstractmethod
-    def get_title():
-        pass

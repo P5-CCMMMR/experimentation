@@ -3,6 +3,10 @@ from .metric import DeterministicMetric
 
 class MAXE(DeterministicMetric):
     @staticmethod
+    def get_key():
+        return "maxe"
+    
+    @staticmethod
     def get_title():
         return "MAXE Loss: " 
 
@@ -14,6 +18,10 @@ class MAXE(DeterministicMetric):
         return torch.max(torch.abs(y_hat - y))
     
 class NMAXE(MAXE):
+    @staticmethod
+    def get_key():
+        return "nmaxe" 
+
     @staticmethod
     def get_title():
         return "NMAXE Loss: " 

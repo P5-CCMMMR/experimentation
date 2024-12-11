@@ -47,16 +47,31 @@ def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, o
     off_data = normalize_and_convert_dates(off_data)
     evaluator = Evaluator(model, error, temp_boundary)
 
+    on_results = {}
+    off_results = {}
+
     print("Calculating On set...")
     evaluator.init_predictions(on_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence) 
-    print(f"On Mafe: {evaluator.evaluate(mafe)}") 
-    print(f"On Maofe: {evaluator.evaluate(maofe)}")
-    print(f"On Maufe: {evaluator.evaluate(maufe)}")
-    print(f"On EPFR: {evaluator.evaluate(epfr)}")
+    on_results['mafe'] = evaluator.evaluate(mafe)
+    on_results['maofe'] = evaluator.evaluate(maofe)
+    on_results['maufe'] = evaluator.evaluate(maufe)
+    on_results['epfr'] = evaluator.evaluate(epfr)
+
+    print(f"On Mafe: {on_results['mafe']}") 
+    print(f"On Maofe: {on_results['maofe']}")
+    print(f"On Maufe: {on_results['maufe']}")
+    print(f"On EPFR: {on_results['epfr']}")
 
     print("Calculating Off set...")
     evaluator.init_predictions(off_data, seq_len, time_horizon, TARGET_COLUMN, confidence=confidence)
-    print(f"Off Mafe: {evaluator.evaluate(mafe)}")
-    print(f"Off Maofe: {evaluator.evaluate(maofe)}")
-    print(f"Off Maufe: {evaluator.evaluate(maufe)}")
-    print(f"Off EPFR: {evaluator.evaluate(epfr)}")
+    off_results['mafe'] = evaluator.evaluate(mafe)
+    off_results['maofe'] = evaluator.evaluate(maofe)
+    off_results['maufe'] = evaluator.evaluate(maufe)
+    off_results['epfr'] = evaluator.evaluate(epfr)
+
+    print(f"Off Mafe: {off_results['mafe']}")
+    print(f"Off Maofe: {off_results['maofe']}")
+    print(f"Off Maufe: {off_results['maufe']}")
+    print(f"Off EPFR: {off_results['epfr']}")
+
+    return on_results, off_results

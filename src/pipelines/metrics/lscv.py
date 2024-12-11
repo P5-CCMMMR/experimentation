@@ -5,6 +5,10 @@ from scipy.stats import norm
 
 class TLSCV(ProbabilisticMetric):
     @staticmethod
+    def get_key():
+        return "lscv"
+    
+    @staticmethod
     def get_title():
         return "Total LSCV: "
 
@@ -30,6 +34,10 @@ class TLSCV(ProbabilisticMetric):
 
 class MLSCV(TLSCV):
     @staticmethod
+    def get_key():
+        return "mlscv"
+    
+    @staticmethod
     def get_title():
         return "MLSCV: "
 
@@ -42,6 +50,10 @@ class MLSCV(TLSCV):
     
     
 class NMLSCV(MLSCV):
+    @staticmethod
+    def get_key():
+        return "nmlscv"
+    
     @staticmethod
     def get_title():
         return "NMLSCV: "
