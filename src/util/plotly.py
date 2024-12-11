@@ -298,3 +298,34 @@ def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1.5):
         fig.update_yaxes(range=[0, y_max])
 
     fig.show()
+    
+def plot_metric_comparison(keys, dicts_array, titles=None):
+    if titles is None:
+        titles = [f'Dictionary {i+1}' for i in range(len(dicts_array))]
+
+    fig = make_subplots()
+
+    for i, d in enumerate(dicts_array):
+        x = d[keys[0]]
+        print(f"x {x}")
+        y = d[keys[1]]
+        print(f"y {y}")
+        fig.add_trace(go.Scatter(
+            x=x,
+            y=y,
+            mode='markers+text',
+            name=titles[i],
+            text=titles[i],
+            textposition='top center',
+            marker=dict(size=10, color=colors[i % len(colors)])
+        ))
+
+    fig.update_layout(
+        title="Metric Comparison",
+        xaxis_title=keys[0],
+        yaxis_title=keys[1],
+        legend_title="Legend",
+        hovermode="closest"
+    )
+
+    fig.show()

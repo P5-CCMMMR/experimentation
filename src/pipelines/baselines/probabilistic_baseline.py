@@ -23,9 +23,6 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
     
     def validation_step(self, batch):
         raise NotImplementedError("Validation_step not meant to be used for deterministic baseline")
-
-    def test_step(self, batch):
-        raise NotImplementedError("Test_step not meant to be used for deterministic baseline")
     
     def copy(self):
         raise NotImplementedError("Copy not meant to be used for deterministic baseline")
@@ -45,8 +42,52 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
     def fit(self):
         raise NotImplementedError("Fit not meant to be used for deterministic baseline")
 
+    def test_step(self, batch):
+        for batch in self.test_loader:
+            x, y = batch
+            mean_prediction, std_prediction = self.forward(x)
+            self.all_predictions[0].extend(mean_prediction.flatten())
+            self.all_predictions[1].extend(std_prediction.flatten())
+            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
+
+
+#    def test(self):
+#        results = {}
+#
+#        for batch in self.test_loader:
+#            x, y = batch
+#            mean_prediction, std_prediction = self.forward(x)
+#            self.all_predictions[0].extend(mean_prediction.flatten())
+#            self.all_predictions[1].extend(std_prediction.flatten())
+#            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
+#        
+#        #for func in self.test_error_func_arr:
+#        #    self.test_loss_dict[func.get_key()] = []
+##
+#        #for batch in self.test_loader:
+#        #    self.test_step(batch)
+#          
+#        self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
+#        self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
+#
+#        for func in self.test_error_func_arr:
+#            loss_arr = self.test_loss_dict[func.get_key()]
+#            loss = (sum(loss_arr)  / len(loss_arr)).item()
+#            results[func.get_key()] = loss
+#            
+#            title = func.get_title()
+#            print(f"{title:<30} {loss:.6f}")
+#
+#        return results
+
     def test(self):
         self.error_arr = [0] * self.horizen_len
+
+#       for func in self.test_error_func_arr:
+#           self.test_loss_dict[func.get_key()] = []
+#
+#       for batch in self.test_loader:
+#           self.test_step(batch)
 
         for batch in self.test_loader:
             x, y = batch
