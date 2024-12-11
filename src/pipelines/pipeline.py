@@ -122,11 +122,6 @@ class Pipeline(L.LightningModule, ABC):
             loss_arr = self.test_loss_dict[func.get_key()]
             results[func.get_key()] = (sum(loss_arr)  / len(loss_arr)).item()
 
-        #func_arr = self.test_error_func_arr
-        #for func in func_arr:
-        #    loss = func.calc(torch.tensor(self.all_predictions), torch.tensor(self.all_actuals))
-        #    results[func.get_key()] = loss.item()
-
         self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
 

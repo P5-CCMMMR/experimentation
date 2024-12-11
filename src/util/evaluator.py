@@ -37,7 +37,10 @@ class Evaluator:
 
             lower_boundery = last_in_temp - self.boundary
             upper_boundery = last_in_temp + self.boundary
-            result_predictions = self.model(input_data)
+            result_predictions = self.model.forward(input_data)
+
+            if isinstance(result_actual, list): result_actual = result_actual.squeeze()
+            if isinstance(result_predictions, list): result_predictions = result_predictions.squeeze()
 
             if len(result_actual) == 1 and isinstance(result_actual[0], list): result_actual.squeeze()
             if len(result_predictions) == 1 and isinstance(result_predictions[0], list): result_predictions.squeeze()
