@@ -54,9 +54,9 @@ POWER     = "PowerConsumption"
 # Model
 input_size = 4
 time_horizon = 4
-hidden_size = 48
+hidden_size = 96
 num_epochs = 100
-seq_len = 40
+seq_len = 96
 num_layers = 1
  
 # MC ONLY
@@ -68,7 +68,7 @@ num_channels = [16, 32, 64]
 kernel_size = 2
 
 # Training
-dropout = 0.01912819837766093
+dropout = 0.32791432787785835
 gradient_clipping = 0
 early_stopping_threshold = 0.18
 
@@ -80,7 +80,7 @@ temp_boundary = 0.1
 error = 0
 
 # Controlled by tuner
-batch_size = 256
+batch_size = 128
 learning_rate = 0.005
 
 # Data Split

@@ -57,9 +57,9 @@ input_size = 4
 time_horizon = 4
 hidden_size = 96
 num_epochs = 100
-seq_len = 88
+seq_len = 40
 num_layers = 1
- 
+
 # MC ONLY
 inference_samples = 50
 inference_dropout = 0.5
@@ -69,7 +69,7 @@ num_channels = [16, 32, 64]
 kernel_size = 2
 
 # Training
-dropout = 0.1434970061217543
+dropout = 0.26468513201166327
 gradient_clipping = 0
 early_stopping_threshold = 0.18
 
