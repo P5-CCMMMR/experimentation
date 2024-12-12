@@ -182,8 +182,6 @@ with open(output_file, "a") as f:
 
 def clean_and_sort_file(filename):
     data = []
-
-
     with open(filename, "r") as f:
         for line in f:
             if line.startswith("-") or "loss" in line or not line.strip():

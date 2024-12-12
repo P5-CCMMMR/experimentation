@@ -1,3 +1,4 @@
+import torch
 from src.pipelines.baselines.deterministic.deterministic_baseline import DeterministicBaseline
 
 class CopyDeterministicBaseline(DeterministicBaseline):

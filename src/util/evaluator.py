@@ -1,6 +1,8 @@
 import numpy as np
 import multiprocessing
-from src.pipelines.sequencers.time_sequencer import TimeSequencer
+
+import torch
+from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
 from torch.utils.data import DataLoader
 from src.util import flex_predict
 from src.util.flex_predict import prob_flex_predict, flex_predict
@@ -27,7 +29,7 @@ class Evaluator:
         
         print("DATA LEN: ", len(data))
 
-        dataset = TimeSequencer(data, seq_len, time_horizon, target_column)
+        dataset = AllTimeSequencer(data, seq_len, time_horizon, target_column)
         dataloader = DataLoader(dataset, 1, num_workers=multiprocessing.cpu_count())
 
         for batch in dataloader:
@@ -37,13 +39,11 @@ class Evaluator:
 
             lower_boundery = last_in_temp - self.boundary
             upper_boundery = last_in_temp + self.boundary
+
             result_predictions = self.model.forward(input_data)
 
-            if isinstance(result_actual, list): result_actual = result_actual.squeeze()
-            if isinstance(result_predictions, list): result_predictions = result_predictions.squeeze()
-
-            if len(result_actual) == 1 and isinstance(result_actual[0], list): result_actual.squeeze()
-            if len(result_predictions) == 1 and isinstance(result_predictions[0], list): result_predictions.squeeze()
+            if isinstance(result_actual, torch.Tensor): result_actual = result_actual.squeeze()
+            if isinstance(result_predictions, torch.Tensor): result_predictions = result_predictions.squeeze()
 
             if isinstance(result_predictions, tuple):
                 actual_flex = flex_predict(result_actual, lower_boundery, upper_boundery, self.error)
