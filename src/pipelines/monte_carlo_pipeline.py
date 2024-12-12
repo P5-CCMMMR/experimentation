@@ -15,7 +15,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                     train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                     test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                     train_error_func, val_error_func, test_error_func_arr,
-                    target_column: int,
+                    target_column: int, test_power, test_outdoor,
                     use_tuner: bool,
                     inference_samples: int,
                     inference_dropout: float):
@@ -24,7 +24,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                             train_loader, val_loader, test_loader,
                             test_timesteps, normalizer,
                             train_error_func, val_error_func, test_error_func_arr,
-                            target_column, use_tuner)
+                            target_column, test_power, test_outdoor, use_tuner)
         self.inference_samples = inference_samples
         self.inference_dropout = inference_dropout
     
@@ -125,6 +125,8 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                                           self.val_error_func,
                                           self.test_error_func_arr,
                                           self.target_column,
+                                          self.test_power,
+                                          self.test_outdoor,
                                           self.use_tuner,
                                           self.inference_samples,
                                           self.inference_dropout)

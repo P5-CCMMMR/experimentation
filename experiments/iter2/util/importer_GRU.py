@@ -48,6 +48,8 @@ matplotlib.use("Agg")
 
 NUM_WORKERS = multiprocessing.cpu_count()
 TARGET_COLUMN = 2
+POWER_COLUMN = 1
+OUTDOOR_COLUMN = 3
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 

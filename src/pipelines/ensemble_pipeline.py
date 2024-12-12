@@ -7,7 +7,7 @@ import os
 
 class EnsemblePipeline(ProbabilisticPipeline):
     def __init__(self, pipeline_arr, num_ensembles, horizon_len, test_error_func_arr, base_seed):
-        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None, None)
+        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None, None, None, None)
         self.pipeline_arr = pipeline_arr
         self.num_ensembles = num_ensembles
         self.horizon_len = horizon_len

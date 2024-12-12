@@ -15,13 +15,13 @@ class ProbabilisticPipeline(Pipeline):
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column: int, use_tuner: bool):
+                 target_column: int, test_power, test_outdoor, use_tuner: bool):
         super().__init__(learning_rate, seq_len, batch_size,
                  optimizer, model, trainer_wrapper,
                  train_loader, val_loader, test_loader,
                  test_timesteps, normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column, use_tuner)
+                 target_column, test_power, test_outdoor, use_tuner)
         self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
     def test_step(self, batch):

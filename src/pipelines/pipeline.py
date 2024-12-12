@@ -21,7 +21,8 @@ class Pipeline(L.LightningModule, ABC):
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column, use_tuner: bool = False):
+                 target_column, test_power, test_outdoor,
+                 use_tuner: bool = False):
         super().__init__()
         self.seq_len = seq_len
 
@@ -51,6 +52,9 @@ class Pipeline(L.LightningModule, ABC):
         self.tuner = None
 
         self.target_column = target_column
+
+        self.test_power = test_power
+        self.test_outdoor = test_outdoor
 
         self.all_predictions = []
         self.all_actuals = []
@@ -147,6 +151,12 @@ class Pipeline(L.LightningModule, ABC):
     
     def get_actuals(self):
         return self.all_actuals
+    
+    def get_outdoor(self):
+        return self.test_outdoor
+    
+    def get_power(self):
+        return self.test_power
     
     def get_validation_loss(self):
         return self.epoch_val_loss_arr
@@ -246,6 +256,14 @@ class Pipeline(L.LightningModule, ABC):
         def set_target_column(self, target_column):
             self.target_column = target_column
             return self
+        
+        def set_power_column(self, power_column):
+            self.power_column = power_column
+            return self
+        
+        def set_outdoor_column(self, outdoor_column):
+            self.outdoor_column = outdoor_column
+            return self
 
         def set_batch_size(self, batch_size: int):
             self.batch_size = batch_size
@@ -300,6 +318,8 @@ class Pipeline(L.LightningModule, ABC):
             test_df = pd.concat(test_dfs, ignore_index=True) if test_dfs else pd.DataFrame()
 
             self.test_timestamps = pd.to_datetime(test_df.values[:,0]) if not test_df.empty else pd.DatetimeIndex([])
+            self.test_power = test_df.values[:,self.power_column]
+            self.test_outdoor = test_df.values[:,self.outdoor_column]
 
             if not train_df.empty:
                 train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
@@ -354,6 +374,8 @@ class Pipeline(L.LightningModule, ABC):
                                           self.val_error_func,
                                           self.test_error_func_arr,
                                           self.target_column,
+                                          self.test_power,
+                                          self.test_outdoor,
                                           self.use_tuner)
 
             return pipeline
