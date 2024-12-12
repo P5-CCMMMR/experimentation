@@ -7,7 +7,7 @@ import os
 
 class EnsemblePipeline(ProbabilisticPipeline):
     def __init__(self, pipeline_arr, num_ensembles, horizon_len, test_error_func_arr, base_seed):
-        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None, None)
+        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None, None, None, None)
         self.pipeline_arr = pipeline_arr
         self.num_ensembles = num_ensembles
         self.horizon_len = horizon_len
@@ -53,37 +53,64 @@ class EnsemblePipeline(ProbabilisticPipeline):
             else:
                 pipeline.fit()
 
+#    def test(self):
+#        for i, pipeline in enumerate(self.pipeline_arr):
+#            if self.base_seed is not None:
+#                self._run_with_seed(pipeline.test, self._get_seed(i))
+#            else:
+#                pipeline.test()
+#
+#        self.all_actuals = self.pipeline_arr[0].get_actuals()
+#        for pipeline in self.pipeline_arr:
+#            self.all_predictions.append(pipeline.get_predictions())
+#
+#        if isinstance(self.all_predictions[0], tuple):
+#            self.all_predictions = self._ensemble_probabilistic_predictions(self.all_predictions)
+#        else:
+#            self.all_predictions = self._ensemble_deterministic_predictions(self.all_predictions)
+#
+#        mean_arr = self.all_predictions[0]
+#        stddev_arr = self.all_predictions[1] 
+#        all_y = self.all_actuals
+#
+#        func_arr = self.test_error_func_arr
+#        for func in func_arr:
+#            if func.is_deterministic():
+#                loss = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
+#            elif func.is_probabilistic():
+#                loss = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
+#            title = func.get_title()
+#            loss = loss.item()
+#            print(f"{title:<30} {loss:.6f}")
+
+
     def test(self):
-        for i, pipeline in enumerate(self.pipeline_arr):
-            if self.base_seed is not None:
-                self._run_with_seed(pipeline.test, self._get_seed(i))
-            else:
-                pipeline.test()
+        results = {}
 
-        self.all_actuals = self.pipeline_arr[0].get_actuals()
-        for pipeline in self.pipeline_arr:
-            self.all_predictions.append(pipeline.get_predictions())
+        for batch in self.test_loader:
+            x, y = batch
+            mean_prediction, std_prediction = self.forward(x)
+            self.all_predictions[0].extend(mean_prediction.flatten())
+            self.all_predictions[1].extend(std_prediction.flatten())
+            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
-        if isinstance(self.all_predictions[0], tuple):
-            self.all_predictions = self._ensemble_probabilistic_predictions(self.all_predictions)
-        else:
-            self.all_predictions = self._ensemble_deterministic_predictions(self.all_predictions)
-
-        mean_arr = self.all_predictions[0]
-        stddev_arr = self.all_predictions[1] 
-        all_y = self.all_actuals
+        mean, stddev = self.all_predictions
 
         func_arr = self.test_error_func_arr
         for func in func_arr:
-            loss_arr = []
             if func.is_deterministic():
-                temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
-            elif func.is_probabilistic():
-                loss_arr = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
+                loss = func.calc(torch.tensor(self.all_predictions[0], device=y.device), torch.tensor(self.all_actuals))
+            if func.is_probabilistic():
+                loss = func.calc(torch.tensor(self.all_predictions[0], device=y.device), torch.tensor(self.all_predictions[1], device=y.device), torch.tensor(self.all_actuals))
+            results[func.get_key()] = loss.item()
             title = func.get_title()
-            avg_loss = (sum(loss_arr) / len(loss_arr)).item()
-            print(f"{title:<30} {avg_loss:.6f}")
+            print(f"{title:<30} {loss:.6f}")
 
+        self.all_predictions = (self.normalizer.denormalize(np.array(mean), self.target_column),
+                                np.array(stddev) * (self.normalizer.max_vals[self.target_column] - self.normalizer.min_vals[self.target_column]))
+        
+        self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
+        
     def forward(self, x):
         predictions = []
         for i, pipeline in enumerate(self.pipeline_arr):
@@ -175,6 +202,7 @@ class EnsemblePipeline(ProbabilisticPipeline):
             return self
         
         def build(self):
+            self._init_loaders(self.horizon_len)
             for _ in range(self.num_ensembles):
                 self.pipeline_arr.append(self.sub_pipeline.copy())
                          

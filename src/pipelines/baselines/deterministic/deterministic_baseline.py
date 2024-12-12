@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 class DeterministicBaseline(DeterministicPipeline, ABC):
     def __init__(self, target_column, test_loader, test_timestamps, test_normalizer, test_error_func_arr, horizon_len):
-        super().__init__(None, None, None, None, None, None, None, None, test_loader, test_timestamps, test_normalizer, None, None, test_error_func_arr, target_column)
+        super().__init__(None, None, None, None, None, None, None, None, test_loader, test_timestamps, test_normalizer, None, None, test_error_func_arr, None, None, target_column)
         self.horizen_len = horizon_len
 
     def training_step(self, batch):

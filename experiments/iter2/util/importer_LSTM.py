@@ -43,10 +43,10 @@ from lightning.pytorch import seed_everything
 
 matplotlib.use("Agg")
 
-seed_everything(1337, workers=True)
-
 NUM_WORKERS = multiprocessing.cpu_count()
 TARGET_COLUMN = 2
+POWER_COLUMN = 1
+OUTDOOR_COLUMN = 3
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
@@ -54,9 +54,9 @@ POWER     = "PowerConsumption"
 # Model
 input_size = 4
 time_horizon = 4
-hidden_size = 104
+hidden_size = 40
 num_epochs = 100
-seq_len = 144
+seq_len = 72
 num_layers = 1
  
 # MC ONLY
@@ -68,7 +68,7 @@ num_channels = [16, 32, 64]
 kernel_size = 2
 
 # Training
-dropout = 0.07070662341463728
+dropout = 0.011207564113532955
 gradient_clipping = 0
 early_stopping_threshold = 0.18
 

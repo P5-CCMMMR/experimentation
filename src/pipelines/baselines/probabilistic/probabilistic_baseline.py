@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
     def __init__(self, penalty_strat, target_column, test_loader, test_timestamps, test_normalizer, test_error_func_arr, horizon_len):
-        super().__init__(None, None, None, None, None, None, None, None, test_loader, test_timestamps, test_normalizer, None, None, test_error_func_arr, target_column, False)
+        super().__init__(None, None, None, None, None, None, None, None, test_loader, test_timestamps, test_normalizer, None, None, test_error_func_arr, target_column, None, None, False)
 
         self.horizen_len = horizon_len
         self.penalty_strat = penalty_strat
