@@ -44,17 +44,9 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
     def fit(self):
         raise NotImplementedError("Fit not meant to be used for deterministic baseline")
 
-    def test_step(self, batch):
-        for batch in self.test_loader:
-            x, y = batch
-            mean_prediction, std_prediction = self.forward(x)
-            self.all_predictions[0].extend(mean_prediction.flatten())
-            self.all_predictions[1].extend(std_prediction.flatten())
-            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
-
 
     def test(self):
-        loss_dict = {}
+        results = {}
 
         for batch in self.test_loader:
             x, y = batch
@@ -71,8 +63,7 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
                 loss = func.calc(torch.tensor(self.all_predictions[0], device=y.device), torch.tensor(self.all_actuals))
             if func.is_probabilistic():
                 loss = func.calc(torch.tensor(self.all_predictions[0], device=y.device), torch.tensor(self.all_predictions[1], device=y.device), torch.tensor(self.all_actuals))
-            
-            loss_dict[func.get_key()] = loss
+            results[func.get_key()] = loss.item()
             title = func.get_title()
             print(f"{title:<30} {loss:.6f}")
 
@@ -81,7 +72,7 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
         
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
         
-        return loss_dict
+        return results
 
     @abstractmethod
     def forward(self, x):

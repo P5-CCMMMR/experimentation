@@ -277,6 +277,7 @@ def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1.5):
             y = []
             
             for key in keys:
+                
                 x.append(key)
                 y.append(round(d[key], 4))
 

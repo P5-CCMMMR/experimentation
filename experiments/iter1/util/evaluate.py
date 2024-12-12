@@ -43,11 +43,10 @@ def evaluate_model(model, df, splitter, cleaner, TIMESTAMP, POWER, on_limit_w, o
     def normalize_and_convert_dates(data):
         data[:, 0] = pd.to_datetime(data[:, 0]).astype(int) / 10**9
         temp = MinMaxNormalizer(data.astype(float)).normalize()
-        return temp #temp was indexed like temp[0], but that doens't work with baselines?!?!
+        return temp 
 
     on_data = np.array(on_df)
     on_data = normalize_and_convert_dates(on_data)
-
     off_data = np.array(off_df)
     off_data = normalize_and_convert_dates(off_data)
     evaluator = Evaluator(model, error, temp_boundary)
