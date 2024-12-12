@@ -7,6 +7,27 @@ from src.util.plotly import plot_results
 from src.pipelines.normalizers.min_max_normalizer import MinMaxNormalizer
 from src.util.evaluator import Evaluator
 
+def plot_models_old(model, time_horizon):
+    predictions = model.get_predictions()
+    
+    if isinstance(predictions, tuple):
+        predictions_2d_arr = tuple(np.array(pred).reshape(-1, time_horizon) for pred in predictions)
+    else:
+        predictions_2d_arr = np.array(predictions).reshape(-1, time_horizon)
+
+    actuals_arr = np.array(model.get_actuals()).reshape(-1, time_horizon)[::time_horizon].flatten()
+    timestep_arr = model.get_timestamps()
+
+    if isinstance(predictions_2d_arr, tuple):
+        for i in range(0, time_horizon):
+            predictions_arr = tuple(np.array(pred)[i::time_horizon].flatten() for pred in predictions_2d_arr)
+            plot_results(predictions_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
+    else: 
+        for i in range(0, time_horizon):
+            predictions_arr = predictions_2d_arr[i::time_horizon].flatten()
+            plot_results(predictions_arr, actuals_arr[i:], timestep_arr[i:], time_horizon)
+
+
 def plot_models(predictions_arr, time_horizon, time_stamps, actuals, titels=None):
     if not isinstance(predictions_arr, list):
         predictions_arr = [predictions_arr]
