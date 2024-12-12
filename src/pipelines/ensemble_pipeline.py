@@ -75,14 +75,13 @@ class EnsemblePipeline(ProbabilisticPipeline):
 
         func_arr = self.test_error_func_arr
         for func in func_arr:
-            loss_arr = []
             if func.is_deterministic():
-                temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
+                loss = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
             elif func.is_probabilistic():
-                loss_arr = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
+                loss = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
             title = func.get_title()
-            avg_loss = (sum(loss_arr) / len(loss_arr)).item()
-            print(f"{title:<30} {avg_loss:.6f}")
+            loss = loss.item()
+            print(f"{title:<30} {loss:.6f}")
 
     def forward(self, x):
         predictions = []
@@ -175,6 +174,7 @@ class EnsemblePipeline(ProbabilisticPipeline):
             return self
         
         def build(self):
+            self._init_loaders(self.horizon_len)
             for _ in range(self.num_ensembles):
                 self.pipeline_arr.append(self.sub_pipeline.copy())
                          
