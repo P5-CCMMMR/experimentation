@@ -2,9 +2,11 @@ import torch
 from .metric import ProbabilisticMetric
 
 class CALE(ProbabilisticMetric):
+    @staticmethod
     def get_key():
         return "cale"
     
+    @staticmethod
     def get_title():
         return "CALE: "
 

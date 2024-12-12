@@ -328,7 +328,7 @@ class Pipeline(L.LightningModule, ABC):
                 self.test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
                 test_df = self.test_normalizer.normalize()
                 self.test_error_func_arr = [error_func(test_df) for error_func in self.test_error_func_arr]
-                test_segmenter = self.sequencer_class(test_df, self.seq_len, horizon_len, self.target_column) #test_df was indexed like test_df[0], but that doens't work with baselines?!?!
+                test_segmenter = self.sequencer_class(test_df, self.seq_len, horizon_len, self.target_column) 
                 self.test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
                 self.test_loader = DataLoader([], batch_size=self.batch_size, num_workers=self.worker_num)

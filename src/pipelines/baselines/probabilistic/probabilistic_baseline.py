@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
     def __init__(self, penalty_strat, target_column, test_loader, test_timestamps, test_normalizer, test_error_func_arr, horizon_len):
-        super().__init__(None, None, None, None, None, None, None, None, None, test_loader, test_timestamps, test_normalizer, None, None, test_error_func_arr, target_column)
+        super().__init__(None, None, None, None, None, None, None, None, test_loader, test_timestamps, test_normalizer, None, None, test_error_func_arr, target_column, False)
 
         self.horizen_len = horizon_len
         self.penalty_strat = penalty_strat
@@ -53,43 +53,8 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
             self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
 
-#    def test(self):
-#        results = {}
-#
-#        for batch in self.test_loader:
-#            x, y = batch
-#            mean_prediction, std_prediction = self.forward(x)
-#            self.all_predictions[0].extend(mean_prediction.flatten())
-#            self.all_predictions[1].extend(std_prediction.flatten())
-#            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
-#        
-#        #for func in self.test_error_func_arr:
-#        #    self.test_loss_dict[func.get_key()] = []
-##
-#        #for batch in self.test_loader:
-#        #    self.test_step(batch)
-#          
-#        self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
-#        self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
-#
-#        for func in self.test_error_func_arr:
-#            loss_arr = self.test_loss_dict[func.get_key()]
-#            loss = (sum(loss_arr)  / len(loss_arr)).item()
-#            results[func.get_key()] = loss
-#            
-#            title = func.get_title()
-#            print(f"{title:<30} {loss:.6f}")
-#
-#        return results
-
     def test(self):
         loss_dict = {}
-
-#       for func in self.test_error_func_arr:
-#           self.test_loss_dict[func.get_key()] = []
-#
-#       for batch in self.test_loader:
-#           self.test_step(batch)
 
         for batch in self.test_loader:
             x, y = batch
@@ -99,11 +64,6 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
             self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
         mean, stddev = self.all_predictions
-
-        self.all_predictions = (self.normalizer.denormalize(np.array(mean), self.target_column),
-                                np.array(stddev) * (self.normalizer.max_vals[self.target_column] - self.normalizer.min_vals[self.target_column]))
-        
-        self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
 
         func_arr = self.test_error_func_arr
         for func in func_arr:
@@ -116,6 +76,11 @@ class ProbabilisticBaseline(ProbabilisticPipeline, ABC):
             title = func.get_title()
             print(f"{title:<30} {loss:.6f}")
 
+        self.all_predictions = (self.normalizer.denormalize(np.array(mean), self.target_column),
+                                np.array(stddev) * (self.normalizer.max_vals[self.target_column] - self.normalizer.min_vals[self.target_column]))
+        
+        self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
+        
         return loss_dict
 
     @abstractmethod
