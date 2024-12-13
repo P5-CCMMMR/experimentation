@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 class DeterministicBaseline(DeterministicPipeline, ABC):
     def __init__(self, target_column, test_loader, test_timestamps, test_normalizer, test_error_func_arr, horizon_len):
-        super().__init__(None, None, None, None, None, None, None, None, test_loader, test_timestamps, test_normalizer, None, None, test_error_func_arr, None, None, target_column)
+        super().__init__(None, None, None, None, None, None, None, None, test_loader, test_timestamps, test_normalizer, None, None, test_error_func_arr, target_column, None, None)
         self.horizen_len = horizon_len
 
     def training_step(self, batch):
@@ -36,36 +36,24 @@ class DeterministicBaseline(DeterministicPipeline, ABC):
     def fit(self):
         raise NotImplementedError("Fit not meant to be used for deterministic baseline")
     
-    def test_step(self, batch):
-        x, y = batch
-        y_hat = self.forward(x)
-
-        for func in self.test_error_func_arr:
-            loss = func.calc(y_hat, y)
-            self.test_loss_dict[func.get_key()].append(loss.cpu())
-           
-        self.all_predictions.extend(y_hat.detach().cpu().numpy().flatten())
-        self.all_actuals.extend(y.detach().cpu().numpy().flatten())
-
     def test(self):
         results = {}
-        
-        for func in self.test_error_func_arr:
-            self.test_loss_dict[func.get_key()] = []
 
         for batch in self.test_loader:
-            self.test_step(batch)
+            x, y = batch
+            y_hat = self.forward(x)
+            self.all_predictions.extend(y_hat.detach().cpu().numpy().flatten())
+            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
+
+        func_arr = self.test_error_func_arr
+        for func in func_arr:
+            loss = func.calc(torch.tensor(self.all_predictions, device=y.device), torch.tensor(self.all_actuals))
+            results[func.get_key()] = loss.item()
+            title = func.get_title()
+            print(f"{title:<30} {loss:.6f}")
           
         self.all_predictions = self.normalizer.denormalize(np.array(self.all_predictions), self.target_column)
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
-
-        for func in self.test_error_func_arr:
-            loss_arr = self.test_loss_dict[func.get_key()]
-            loss = (sum(loss_arr)  / len(loss_arr)).item()
-            results[func.get_key()] = loss
-            
-            title = func.get_title()
-            print(f"{title:<30} {loss:.6f}")
 
         return results
 

@@ -12,6 +12,8 @@ colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF
 def plot_results(predictions, actuals, timestamps, horizon_len, power=None, outdoor=None, titles=None):
     if not isinstance(predictions, list):
         predictions = [predictions]
+    if len(titles) != len(predictions):
+        raise RuntimeError("Amount of prediction arrays og titles was not matching")
     if isinstance(predictions[0], tuple):
         plot_probabilistic_results(predictions, actuals, timestamps, horizon_len, power, outdoor, titles)
     else:

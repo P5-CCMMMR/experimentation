@@ -9,7 +9,7 @@ from src.util.conditional_early_stopping import ConditionalEarlyStopping
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from src.util.power_splitter import PowerSplitter
 
-from src.util.plotly import plot_results, plot_loss, create_pillar_plot
+from src.util.plotly import plot_results, plot_loss
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
@@ -21,7 +21,7 @@ from src.pipelines.sequencers.all_time_sequencer import AllTimeSequencer
 from src.pipelines.splitters.std_splitter import StdSplitter
 from src.pipelines.splitters.day_splitter import DaySplitter
 from src.pipelines.splitters.blocked_k_fold_splitter import BlockedKFoldSplitter
-from src.pipelines.tuners.std_tuner_wrapper import StdTunerWrapper
+
 from src.pipelines.optimizers.optimizer import OptimizerWrapper
 
 from src.pipelines.metrics.crps import *
@@ -42,7 +42,7 @@ from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
 from src.pipelines.baselines.deterministic.copy_deterministic_baseline import CopyDeterministicBaseline
-from src.pipelines.baselines.deterministic.lag_deterministic_baseline import LagDeterministicBaseline
+from src.pipelines.baselines.deterministic.repeat_deterministic_baseline import LagDeterministicBaseline
 from src.pipelines.baselines.probabilistic.naive_probabilistic_baseline import NaiveProbabilisticBaseline
 
 from src.util.evaluator import Evaluator

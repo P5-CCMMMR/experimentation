@@ -42,7 +42,7 @@ from src.pipelines.ensemble_pipeline import EnsemblePipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
 
 from src.pipelines.baselines.deterministic.copy_deterministic_baseline import CopyDeterministicBaseline
-from src.pipelines.baselines.deterministic.lag_deterministic_baseline import LagDeterministicBaseline
+from src.pipelines.baselines.deterministic.repeat_deterministic_baseline import RepeatDeterministicBaseline
 from src.pipelines.baselines.probabilistic.naive_probabilistic_baseline import NaiveProbabilisticBaseline
 
 from src.util.evaluator import Evaluator
