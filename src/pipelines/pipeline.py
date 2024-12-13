@@ -331,7 +331,7 @@ class Pipeline(L.LightningModule, ABC):
                 train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
                 self.train_normalizer = self.normalizer_class(train_df.values.astype(float)) 
                 train_df = self.train_normalizer.normalize()
-                self.train_error_func = self.train_error_func(train_df)
+                self.train_error_func = self.train_error_func()
                 train_segmenter = self.sequencer_class(train_df, self.seq_len, horizon_len, self.target_column)
                 self.train_loader = DataLoader(train_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
@@ -341,8 +341,9 @@ class Pipeline(L.LightningModule, ABC):
             if not val_df.empty:
                 val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
                 self.val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
+                val_df = val_df.values.astype(float)
+                self.val_error_func = self.val_error_func(val_df[:, 2].min(), val_df[:, 2].max())
                 val_df = self.val_normalizer.normalize()
-                self.val_error_func = self.val_error_func(val_df)
                 val_segmenter = self.sequencer_class(val_df, self.seq_len, horizon_len, self.target_column)
                 self.val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:
@@ -352,8 +353,9 @@ class Pipeline(L.LightningModule, ABC):
             if not test_df.empty:
                 test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
                 self.test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
+                test_df = test_df.values.astype(float)
+                self.test_error_func_arr = [error_func(test_df[:, 2].min(), test_df[:, 2].max()) for error_func in self.test_error_func_arr]
                 test_df = self.test_normalizer.normalize()
-                self.test_error_func_arr = [error_func(test_df) for error_func in self.test_error_func_arr]
                 test_segmenter = self.sequencer_class(test_df, self.seq_len, horizon_len, self.target_column) 
                 self.test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
             else:

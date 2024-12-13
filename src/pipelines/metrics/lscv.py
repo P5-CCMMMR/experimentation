@@ -30,7 +30,6 @@ class TLSCV(ProbabilisticMetric):
         
         return torch.sum(-torch.log(pdf_tensor))
     
-
 class MLSCV(TLSCV):
     @staticmethod
     def get_key():
@@ -45,7 +44,6 @@ class MLSCV(TLSCV):
         Mean Logarithmic Score for Continuous Variables
         """
         return super().calc(mean, stddev, y) / y.size(0)
-    
     
 class NMLSCV(MLSCV):
     @staticmethod
@@ -66,3 +64,21 @@ class NMLSCV(MLSCV):
         denominator = max(eps, range)
         
         return super().calc(mean, stddev, y) / denominator
+    
+class DMRLSCV(TLSCV):
+    @staticmethod
+    def get_key():
+        return "dmrlscv"
+    
+    @staticmethod
+    def get_title():
+        return "DMRLSCV: "
+
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Denormalized Mean Logarithmic Score for Continuous Variables
+        """
+        mean = self._denormalize_temp(mean)
+        stddev = self._denormalize_stddev(stddev)
+        y = self._denormalize_temp(y)
+        return super().calc(mean, stddev, y)

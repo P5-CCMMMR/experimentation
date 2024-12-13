@@ -50,7 +50,7 @@ class MCRPS(TCRPS):
         """
         return super().calc(mean, stddev, y) / mean.size(0)
     
-class NMCRPS(TCRPS):
+class NMCRPS(MCRPS):
     @staticmethod
     def get_key():
         return "nmcrps"
@@ -69,3 +69,21 @@ class NMCRPS(TCRPS):
         denominator = max(eps, range)
         
         return super().calc(mean, stddev, y) / denominator
+    
+class DMCRPS(MCRPS):
+    @staticmethod
+    def get_key():
+        return "dmcrps"
+
+    @staticmethod
+    def get_title():
+        return "DMCRPS: "
+
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Denormalized Mean Continuous Ranked Probability Score
+        """
+        mean = self._denormalize_temp(mean)
+        stddev = self._denormalize_stddev(stddev)
+        y = self._denormalize_temp(y)
+        return super().calc(mean, stddev, y)

@@ -35,3 +35,20 @@ class NMAXE(MAXE):
         denominator = max(eps, range)
    
         return super().calc(y_hat, y) / denominator
+    
+class DMAXE(MAXE):
+    @staticmethod
+    def get_key():
+        return "dmaxe"
+    
+    @staticmethod
+    def get_title():
+        return "DMAXE Loss: " 
+
+    def calc(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Denormalized Maximum Absolute Error
+        """
+        y = self._denormalize_temp(y)
+        y_hat = self._denormalize_temp(y_hat)
+        return super().calc(y_hat, y)

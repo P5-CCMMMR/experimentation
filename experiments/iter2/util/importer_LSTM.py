@@ -11,6 +11,7 @@ from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from src.util.power_splitter import PowerSplitter
 
 from src.util.plotly import plot_results, plot_loss
+from experiments.util.evaluate import plot_models
 
 from src.pipelines.cleaners.temp_cleaner import TempCleaner
 from src.pipelines.models.lstm import LSTM
