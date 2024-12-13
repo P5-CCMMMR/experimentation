@@ -24,13 +24,11 @@ class NaiveProbabilisticBaseline(ProbabilisticBaseline):
         mean_arr = []
         std_dev_arr = []
 
-        T = prediction_arr_length # amount of elements until now (is also amount of guesses until now)
-        K = 1                     # amount of parameters
-        M = 0                     # amount of missing data
-
+        T = prediction_arr_length 
+  
         last_temp = input[len(input) - 1][self.target_column]
         
-        sigma = np.sqrt(self.error_arr[self.step_start_index] / (T - M - K)) # should be 0 // -1 if no prior elements
+        sigma = 0 if T == 0 else np.sqrt(self.error_arr[self.step_start_index] / T) 
         for i in range(0, self.horizen_len):
             std_dev = sigma * self.penalty_strat.calc(i + 1, T)
             mean_arr.append(last_temp)

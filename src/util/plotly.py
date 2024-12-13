@@ -55,7 +55,7 @@ def plot_deterministic_results(predictions, actuals, timestamps, horizon_len, po
         yaxis_title="Indoor Temperature",
         legend_title="Legend",
         hovermode="x",
-        height=300 * subplot_amount
+        height= 1500 * (subplot_amount / 3) 
     )
 
     fig.show()
@@ -159,7 +159,7 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len,  p
         yaxis_title="Indoor Temperature",
         legend_title="Legend",
         hovermode="x",
-        height=300 * subplot_amount
+        height= 1500 * (subplot_amount / 3) 
     )
 
     fig.show()

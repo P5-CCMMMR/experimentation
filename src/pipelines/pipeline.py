@@ -191,6 +191,12 @@ class Pipeline(L.LightningModule, ABC):
             
             self.use_tuner = False
 
+            self.power_column = None
+            self.outdoor_column = None
+
+            self.test_power = None
+            self.test_outdoor = None
+
             self.df_arr = []
             self.pipeline_class = Pipeline
 
@@ -318,8 +324,8 @@ class Pipeline(L.LightningModule, ABC):
             test_df = pd.concat(test_dfs, ignore_index=True) if test_dfs else pd.DataFrame()
 
             self.test_timestamps = pd.to_datetime(test_df.values[:,0]) if not test_df.empty else pd.DatetimeIndex([])
-            self.test_power = test_df.values[:,self.power_column]
-            self.test_outdoor = test_df.values[:,self.outdoor_column]
+            if self.power_column is not None: self.test_power = test_df.values[:,self.power_column]
+            if self.outdoor_column is not None: self.test_outdoor = test_df.values[:,self.outdoor_column]
 
             if not train_df.empty:
                 train_df.iloc[:, 0] = pd.to_datetime(train_df.iloc[:, 0]).astype(int) / 10**9
