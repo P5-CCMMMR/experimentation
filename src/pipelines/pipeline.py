@@ -342,7 +342,7 @@ class Pipeline(L.LightningModule, ABC):
                 val_df.iloc[:, 0] = pd.to_datetime(val_df.iloc[:, 0]).astype(int) / 10**9
                 self.val_normalizer = self.normalizer_class(val_df.values.astype(float)) 
                 val_df = val_df.values.astype(float)
-                self.val_error_func = self.val_error_func(val_df[:, 2].min(), val_df[:, 2].max())
+                self.val_error_func = self.val_error_func(val_df[:, self.target_column].min(), val_df[:, self.target_column].max())
                 val_df = self.val_normalizer.normalize()
                 val_segmenter = self.sequencer_class(val_df, self.seq_len, horizon_len, self.target_column)
                 self.val_loader = DataLoader(val_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
@@ -354,7 +354,7 @@ class Pipeline(L.LightningModule, ABC):
                 test_df.iloc[:, 0] = pd.to_datetime(test_df.iloc[:, 0]).astype(int) / 10**9
                 self.test_normalizer = self.normalizer_class(test_df.values.astype(float)) 
                 test_df = test_df.values.astype(float)
-                self.test_error_func_arr = [error_func(test_df[:, 2].min(), test_df[:, 2].max()) for error_func in self.test_error_func_arr]
+                self.test_error_func_arr = [error_func(test_df[:, self.target_column].min(), test_df[:, self.target_column].max()) for error_func in self.test_error_func_arr]
                 test_df = self.test_normalizer.normalize()
                 test_segmenter = self.sequencer_class(test_df, self.seq_len, horizon_len, self.target_column) 
                 self.test_loader = DataLoader(test_segmenter, batch_size=self.batch_size, num_workers=self.worker_num)
