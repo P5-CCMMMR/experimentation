@@ -4,10 +4,13 @@ from enum import Enum
 import torch
 
 class Metric(ABC):
-    def __init__(self, df):
-        self.max = df.max()
-        self.min = df.min()
-        
+    def __init__(self, min=None, max=None):
+        self.min = min
+        self.max = max
+    
+    def _denormalize_temp(self, prediction):
+        return prediction * (self.max - self.min) + self.min
+    
     @staticmethod
     @abstractmethod
     def get_key(self):
@@ -40,6 +43,9 @@ class ProbabilisticMetric(Metric):
     @staticmethod
     def is_deterministic():
         return False
+    
+    def _denormalize_stddev(self, stddev):
+        return stddev * (self.max - self.min)
 
 class DeterministicMetric(Metric):
     @abstractmethod

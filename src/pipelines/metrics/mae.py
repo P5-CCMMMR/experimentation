@@ -36,3 +36,20 @@ class NMAE(MAE):
         denominator = max(eps, range)
    
         return super().calc(y_hat, y) / denominator
+    
+class DMAE(MAE):
+    @staticmethod
+    def get_key():
+        return "dmae"
+    
+    @staticmethod
+    def get_title():
+        return "DMAE Loss: " 
+
+    def calc(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Denormalized Mean Absolute Error
+        """
+        y = self._denormalize_temp(y)
+        y_hat = self._denormalize_temp(y_hat)
+        return super().calc(y_hat, y)

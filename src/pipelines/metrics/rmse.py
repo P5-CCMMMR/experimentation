@@ -1,7 +1,6 @@
 import torch
 from .metric import DeterministicMetric
 import torch.nn as nn
-#from torchmetrics import NormalizedRootMeanSquaredError
 
 class RMSE(DeterministicMetric):
     @staticmethod
@@ -39,3 +38,21 @@ class NRMSE(RMSE):
         denominator = max(eps, range)
    
         return super().calc(y_hat, y) / denominator
+    
+class DRMSE(RMSE):
+    @staticmethod
+    def get_key():
+        return "drmse"
+    
+    @staticmethod
+    def get_title():
+        return "DRMSE Loss: " 
+
+    def calc(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Denormalized Root Mean Squared Error
+        """
+        y = self._denormalize_temp(y)
+        y_hat = self._denormalize_temp(y_hat)
+        return super().calc(y_hat, y)
+    
