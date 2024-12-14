@@ -51,34 +51,15 @@ OUTDOOR_COLUMN = 3
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
-# Hyper parameters
-# Model
-input_size = 4
-time_horizon = 4
-hidden_size = 64
-num_epochs = 100
-seq_len = 96
-num_layers = 1
- 
 # MC ONLY
 inference_samples = 50
 inference_dropout = 0.25
-
-# Training
-dropout = 0
-gradient_clipping = 0
-early_stopping_threshold = 0.18
-
 num_ensembles = 2
 
 # Flexibility
-flex_confidence = 0.90
+flex_confidence = 0.95
 temp_boundary = 0.1
 error = 0
-
-# Controlled by tuner
-batch_size = 128
-learning_rate = 0.005
 
 # Data Split
 train_days = 16
