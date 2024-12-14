@@ -37,12 +37,12 @@ config = {
     "hidden_size": tune.qrandint(32, 128, 8),
     "dropout": tune.loguniform(0.01, 0.4),
     "num_layers": tune.choice([1, 2]),
-    "arch": tune.choice(["TCN"]),
+    "arch": tune.choice(["TCN"]), # ["LSTM"] ["GRU"]
     "batch_size": tune.choice([128, 256])
 }
 
-arch_arr = [TCN]
-arch_dict = {"TCN": arch_arr[0]}
+arch_arr = [LSTM, GRU, TCN]
+arch_dict = {"LSTM": arch_arr[0], "GRU": arch_arr[1], "TCN": arch_arr[2]}
 
 matplotlib.use("Agg")
 
