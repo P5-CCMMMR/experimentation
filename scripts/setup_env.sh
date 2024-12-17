@@ -22,14 +22,23 @@ else
 fi
 
 # Check if python3-venv is installed
-if [ "$(package_installed python3.10-venv)" -eq 0 ]; then
+if ! dpkg -s python3-venv >/dev/null 2>&1; then
     echo "python3-venv is not installed. Installing python3-venv..."
     sudo apt update
-    sudo apt install -y python3.10-venv
+    sudo apt install -y python3-venv
 else
     echo "python3-venv is already installed. Upgrading to the latest version..."
     sudo apt update
     sudo apt upgrade -y python3-venv
+fi
+
+# Check if wget is installed
+if ! command_exists wget; then
+    echo "wget is not installed. Installing wget..."
+    sudo apt update
+    sudo apt install -y wget
+else
+    echo "wget is already installed."
 fi
 
 # Check if virtual environment exists
@@ -91,7 +100,6 @@ gdown 1Fv2xtlxWNabYTLpPyBVL__GR6mQ2T0MO -O src/data_preprocess/ukdata/
 unzip src/data_preprocess/ukdata/UKDATA_CLEANED.zip -d src/data_preprocess/ukdata/
 mv src/data_preprocess/ukdata/UKDATA_CLEANED src/data_preprocess/ukdata/data_root
 rm src/data_preprocess/ukdata/UKDATA_CLEANED.zip
-
 
 mkdir -p src/experiments/iter1/model_saves
 
