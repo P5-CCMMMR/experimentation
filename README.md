@@ -1,7 +1,7 @@
 # Setup
 To setup the environment on Ubuntu run:
 ```bash
-cd ./scripts/setup_env.sh
+sudo ./scripts/setup_env.sh
 ```
 
 # Cleaning the Datasets
