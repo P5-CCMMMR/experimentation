@@ -182,6 +182,7 @@ with open(output_file, "a") as f:
 
 def clean_and_sort_file(filename):
     data = []
+
     with open(filename, "r") as f:
         for line in f:
             if line.startswith("-") or "loss" in line or not line.strip():
@@ -198,7 +199,7 @@ def clean_and_sort_file(filename):
 
     with open(filename, "w") as f:
         f.write(f"{'-' * 100}\n")
-        f.write(f"{'loss':<20} | {'architecture':<12} | {'seq_len':<10} | {'hidden_size':<12} | {'dropout':<8} | {'num_layers':<10} | {'iter':<5} | {'total_time':<10}\n")
+        f.write(f"{'loss':<18} | {'architecture':<12} | {'batch_size':<10} | {'seq_len':<7} | {'hidden_size':<11} | {'dropout':<19} | {'num_layers':<10} | {'iter':<4} | {'total_time':<5}\n")
         for loss, rest_of_line in data:
             f.write(f"{loss:<20} | {rest_of_line}\n")
 
