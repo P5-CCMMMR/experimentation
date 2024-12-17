@@ -22,6 +22,8 @@ class DeterministicPipeline(Pipeline):
             val_error_func=self.val_error_func,
             test_error_func_arr=self.test_error_func_arr,
             target_column=self.target_column,
+            test_power=self.test_power,
+            test_outdoor=self.test_outdoor,
             use_tuner=self.use_tuner
         )
         return new_instance

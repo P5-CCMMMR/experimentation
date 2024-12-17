@@ -28,7 +28,7 @@ class ProbabilisticPipeline(Pipeline):
         x, y = batch
         mean_prediction, std_prediction = self.forward(x)
 
-        self._log_test_errors(mean_prediction, std_prediction, y)
+        #self._log_test_errors(mean_prediction, std_prediction, y)
         
         self.all_predictions[0].extend(mean_prediction.flatten())
         self.all_predictions[1].extend(std_prediction.flatten())
@@ -38,11 +38,10 @@ class ProbabilisticPipeline(Pipeline):
         for func in self.test_error_func_arr:
             if func.is_deterministic():
                 loss = func.calc(torch.tensor(mean_prediction, device=y.device), y)
-                print(func.get_title() + str(loss))
-                self.log(func.get_title(), loss, on_step=True, logger=True, prog_bar=True)
+                self.log(func.get_title(), loss, on_epoch=True, logger=True)
             if func.is_probabilistic():
                 loss = func.calc(torch.tensor(mean_prediction, device=y.device), torch.tensor(std_prediction, device=y.device), y)
-                self.log(func.get_title(), loss, on_step=True, logger=True, prog_bar=True)
+                self.log(func.get_title(), loss, on_epoch=True, logger=True)
 
     def test(self):
         results = {}
@@ -56,6 +55,9 @@ class ProbabilisticPipeline(Pipeline):
             if func.is_probabilistic():
                 loss = func.calc(torch.tensor(self.all_predictions[0]), torch.tensor(self.all_predictions[1]), torch.tensor(self.all_actuals))
             results[func.get_key()] = loss.item()
+            title = func.get_title()
+            print(f"{title:<30} {loss:.6f}")
+
 
         self.all_predictions = (self.normalizer.denormalize(np.array(mean), self.target_column),
                                 np.array(stddev) * (self.normalizer.max_vals[self.target_column] - self.normalizer.min_vals[self.target_column]))

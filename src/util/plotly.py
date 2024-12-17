@@ -2,12 +2,15 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-PLOT_WIDTH = 800
-PLOT_HEIGHT = 600
+PLOT_WIDTH = 1600
+PLOT_HEIGHT = 1300
 
+TITLE_FONT_SIZE = 24
+AXIS_TITLE_FONT_SIZE = 18
+LEGEND_FONT_SIZE = 14
+HOVER_LABEL_FONT_SIZE = 12
 
 colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
-
 
 def plot_results(predictions, actuals, timestamps, horizon_len, power=None, outdoor=None, titles=None):
     if not isinstance(predictions, list):
@@ -52,10 +55,11 @@ def plot_deterministic_results(predictions, actuals, timestamps, horizon_len, po
         fig.add_trace(go.Scatter(x=timestamps, y=outdoor, mode='lines', name='Outdoor temperature', line=dict(color='orange')), row=subplot_amount, col=1)
 
     fig.update_layout(
-        title="Predictions vs Actuals",
-        xaxis_title="Time",
-        yaxis_title="Indoor Temperature",
-        legend_title="Legend",
+        title=dict(text="Predictions vs Actuals", font=dict(size=TITLE_FONT_SIZE)),
+        xaxis_title=dict(text="Time", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        yaxis_title=dict(text="Indoor Temperature", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
         hovermode="x",
         height= 1500 * (subplot_amount / 3) 
     )
@@ -156,10 +160,11 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len,  p
 
 
     fig.update_layout(
-        title="Predictions vs Actuals with Uncertainty",
-        xaxis_title="Time",
-        yaxis_title="Indoor Temperature",
-        legend_title="Legend",
+        title=dict(text="Predictions vs Actuals with Uncertainty", font=dict(size=TITLE_FONT_SIZE)),
+        xaxis_title=dict(text="Time", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        yaxis_title=dict(text="Indoor Temperature", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
         hovermode="x",
         height= 1500 * (subplot_amount / 3) 
     )
@@ -192,10 +197,11 @@ def plot_comparative_results(predictions1, predictions2, actuals, timestamps, ho
     ))
     fig.add_trace(go.Scatter(x=timestamps, y=actuals, mode='lines', name='Actual', line=dict(color='red')))
     fig.update_layout(
-        title="Comparative Predictions vs Actuals",
-        xaxis_title="Time",
-        yaxis_title="Indoor Temperature",
-        legend_title="Legend",
+        title=dict(text="Comparative Predictions vs Actuals", font=dict(size=TITLE_FONT_SIZE)),
+        xaxis_title=dict(text="Time", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        yaxis_title=dict(text="Indoor Temperature", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
         hovermode="x",
         width=width,
         height=height,
@@ -218,10 +224,11 @@ def plot_flex_probabilities(flex_probabilities, confidence):
     fig.add_trace(go.Scatter(x=list(range(len(probabilities))), y=[confidence]*len(probabilities), mode='lines', name=f'Confidence Level ({confidence})', line=dict(dash='dash', color='red')))
     
     fig.update_layout(
-        title="Probability of Forecast Falling Within Bounds",
-        xaxis_title="Predicted Flexibility",
-        yaxis_title="Probability",
-        legend_title="Legend",
+        title=dict(text="Probability of Forecast Falling Within Bounds", font=dict(size=TITLE_FONT_SIZE)),
+        xaxis_title=dict(text="Predicted Flexibility", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        yaxis_title=dict(text="Probability", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
         hovermode="x",
         width=PLOT_WIDTH,
         height=PLOT_HEIGHT
@@ -247,10 +254,11 @@ def plot_loss(loss_arr, path, titles=None):
                                  name=titles[i] if titles[i] != None else "loss"))
 
     fig.update_layout(
-        title="Loss Over Epochs",
-        xaxis_title="Epochs",
-        yaxis_title="Loss",
-        legend_title="Legend",
+        title=dict(text="Loss Over Epochs", font=dict(size=TITLE_FONT_SIZE)),
+        xaxis_title=dict(text="Epochs", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        yaxis_title=dict(text="Loss", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
         hovermode="x",
         width=PLOT_WIDTH,
         height=PLOT_HEIGHT
@@ -259,7 +267,7 @@ def plot_loss(loss_arr, path, titles=None):
     fig.show()
     fig.write_image(path + ".png")
 
-def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1.5):
+def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1.5, pillar_width=0.25):
     if group_names is None:
         group_names = [f'Group {i+1}' for i in range(len(dicts_array))]
     
@@ -283,18 +291,21 @@ def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1.5):
                         textposition='auto',
                         name=d["title"],
                         marker_color=colors[j % len(colors)],
-                        width=0.25
+                        width=pillar_width
                     ),
                     row=1,
                     col=i+1
                 )
     
     fig.update_layout(
-        title="Pillar Diagrams",
-        xaxis_title="Metrics",
-        yaxis_title="Values",
-        legend_title="Legend",
-        barmode='group'
+        title=dict(text="Pillar Diagrams", font=dict(size=TITLE_FONT_SIZE)),
+        xaxis_title=dict(text="Metrics", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        yaxis_title=dict(text="Values", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
+        barmode='group',
+        width=PLOT_WIDTH,
+        height=PLOT_HEIGHT
     )
 
     if y_max is not None:
@@ -324,10 +335,11 @@ def plot_metric_comparison(keys, dicts_array, titles=None):
         ))
 
     fig.update_layout(
-        title="Metric Comparison",
-        xaxis_title=keys[0],
-        yaxis_title=keys[1],
-        legend_title="Legend",
+        title=dict(text="Metric Comparison", font=dict(size=TITLE_FONT_SIZE)),
+        xaxis_title=dict(text=keys[0], font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        yaxis_title=dict(text=keys[1], font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
         hovermode="closest"
     )
 
@@ -344,9 +356,10 @@ def plot_boxplots(predictions, titles=None):
         fig.add_trace(go.Box(y=prediction, name=titles[i] if titles else f'Prediction {i+1}', marker_color=colors[i % len(colors)]), row=1, col=i+1)
 
     fig.update_layout(
-        title="Boxplots of Predictions",
-        yaxis_title="Values",
-        legend_title="Legend",
+        title=dict(text="Boxplots of Predictions", font=dict(size=TITLE_FONT_SIZE)),
+        yaxis_title=dict(text="Values", font=dict(size=AXIS_TITLE_FONT_SIZE)),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
         hovermode="x"
     )
 

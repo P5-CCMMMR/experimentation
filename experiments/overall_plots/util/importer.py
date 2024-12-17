@@ -77,7 +77,7 @@ dropout = 0
 gradient_clipping = 0
 early_stopping_threshold = 0.18
 
-num_ensembles = 2
+num_ensembles = 5
 
 # Flexibility
 flex_confidence = 0.90

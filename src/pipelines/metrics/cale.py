@@ -34,6 +34,6 @@ class CALE(ProbabilisticMetric):
         expected_within_std = torch.tensor([0.6827, 0.9545, 0.9973], dtype=torch.float32)
         
         errors = torch.pow(torch.abs(predicted_within_std - expected_within_std), 2)
-        
+
         return errors.mean()
     

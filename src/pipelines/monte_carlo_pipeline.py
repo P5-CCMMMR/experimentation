@@ -70,6 +70,8 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             val_error_func=self.val_error_func,
             test_error_func_arr=self.test_error_func_arr,
             target_column=self.target_column,
+            test_power=self.test_power,
+            test_outdoor=self.test_outdoor,
             use_tuner=self.use_tuner,
             inference_samples=self.inference_samples,
             inference_dropout=self.inference_dropout
@@ -105,7 +107,6 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             assert error_func.is_deterministic(), "Validation error functions for Monte-Carlo has to be deterministic"
             super().set_val_error(error_func)
             return self
-        
         
         def build(self):
             self._init_loaders()
