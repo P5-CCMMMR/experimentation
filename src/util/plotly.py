@@ -2,13 +2,13 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-PLOT_WIDTH = 1600
-PLOT_HEIGHT = 1300
+PLOT_WIDTH = 1200
+PLOT_HEIGHT = 800
 
-TITLE_FONT_SIZE = 24
-AXIS_TITLE_FONT_SIZE = 18
-LEGEND_FONT_SIZE = 14
-HOVER_LABEL_FONT_SIZE = 12
+TITLE_FONT_SIZE = 26
+AXIS_TITLE_FONT_SIZE = 24
+LEGEND_FONT_SIZE = 20
+HOVER_LABEL_FONT_SIZE = 18
 
 colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
 
@@ -55,7 +55,7 @@ def plot_deterministic_results(predictions, actuals, timestamps, horizon_len, po
         fig.add_trace(go.Scatter(x=timestamps, y=outdoor, mode='lines', name='Outdoor temperature', line=dict(color='orange')), row=subplot_amount, col=1)
 
     fig.update_layout(
-        title=dict(text="Predictions vs Actuals", font=dict(size=TITLE_FONT_SIZE)),
+        #title=dict(text="Predictions vs Actuals", font=dict(size=TITLE_FONT_SIZE)),
         xaxis_title=dict(text="Time", font=dict(size=AXIS_TITLE_FONT_SIZE)),
         yaxis_title=dict(text="Indoor Temperature", font=dict(size=AXIS_TITLE_FONT_SIZE)),
         legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
@@ -160,7 +160,7 @@ def plot_probabilistic_results(predictions, actuals, timestamps, horizon_len,  p
 
 
     fig.update_layout(
-        title=dict(text="Predictions vs Actuals with Uncertainty", font=dict(size=TITLE_FONT_SIZE)),
+        #title=dict(text="Predictions vs Actuals with Uncertainty", font=dict(size=TITLE_FONT_SIZE)),
         xaxis_title=dict(text="Time", font=dict(size=AXIS_TITLE_FONT_SIZE)),
         yaxis_title=dict(text="Indoor Temperature", font=dict(size=AXIS_TITLE_FONT_SIZE)),
         legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
@@ -224,7 +224,7 @@ def plot_flex_probabilities(flex_probabilities, confidence):
     fig.add_trace(go.Scatter(x=list(range(len(probabilities))), y=[confidence]*len(probabilities), mode='lines', name=f'Confidence Level ({confidence})', line=dict(dash='dash', color='red')))
     
     fig.update_layout(
-        title=dict(text="Probability of Forecast Falling Within Bounds", font=dict(size=TITLE_FONT_SIZE)),
+        #title=dict(text="Probability of Forecast Falling Within Bounds", font=dict(size=TITLE_FONT_SIZE)),
         xaxis_title=dict(text="Predicted Flexibility", font=dict(size=AXIS_TITLE_FONT_SIZE)),
         yaxis_title=dict(text="Probability", font=dict(size=AXIS_TITLE_FONT_SIZE)),
         legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
@@ -291,17 +291,18 @@ def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1.5, pillar_
                         textposition='auto',
                         name=d["title"],
                         marker_color=colors[j % len(colors)],
-                        width=pillar_width
+                        width=pillar_width,
+                        textfont=dict(size=14)  # Increase text size on the pillars
                     ),
                     row=1,
                     col=i+1
                 )
     
     fig.update_layout(
-        title=dict(text="Pillar Diagrams", font=dict(size=TITLE_FONT_SIZE)),
+        #title=dict(text="Pillar Diagrams", font=dict(size=TITLE_FONT_SIZE)),
         xaxis_title=dict(text="Metrics", font=dict(size=AXIS_TITLE_FONT_SIZE)),
         yaxis_title=dict(text="Values", font=dict(size=AXIS_TITLE_FONT_SIZE)),
-        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE))),
+        legend=dict(title=dict(text="Legend", font=dict(size=LEGEND_FONT_SIZE)), font=dict(size=16)),  # Increase legend text size
         hoverlabel=dict(font=dict(size=HOVER_LABEL_FONT_SIZE)),
         barmode='group',
         width=PLOT_WIDTH,
@@ -309,7 +310,8 @@ def plot_pillar_diagrams(keys, dicts_array, group_names=None, y_max=1.5, pillar_
     )
 
     if y_max is not None:
-        fig.update_yaxes(range=[0, y_max])
+        fig.update_yaxes(range=[0, y_max], tickfont=dict(size=16))  # Increase y-axis tick font size
+        fig.update_xaxes(tickfont=dict(size=16))  # Increase x-axis tick font size
 
     fig.show()
     
