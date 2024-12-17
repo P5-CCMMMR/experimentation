@@ -41,6 +41,23 @@ else
     echo "wget is already installed."
 fi
 
+# Check if gdown is installed
+if ! command_exists gdown; then
+    echo "gdown is not installed. Installing gdown..."
+    pip install gdown
+else
+    echo "gdown is already installed."
+fi
+
+# Check if unzip is installed
+if ! command_exists unzip; then
+    echo "unzip is not installed. Installing unzip..."
+    sudo apt update
+    sudo apt install -y unzip
+else
+    echo "unzip is already installed."
+fi
+
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then
     echo "Virtual environment does not exist. Creating a new virtual environment..."
