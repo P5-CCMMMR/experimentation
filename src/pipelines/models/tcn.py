@@ -22,12 +22,12 @@ class TCN(Model):
         
         self.tcn = TCNModel(self.input_len, num_channels, kernel_size=kernel_size, dropout=dropout, causal=True, input_shape='NLC', use_skip_connections=True, activation='leaky_relu')
             
-        self.dropout_layer = nn.Dropout(dropout)
+        self.dropout_module = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_size, horizon_len)
         
     def forward(self, x):
         out = self.tcn(x)
-        out = self.dropout_layer(out[:, -1, :])
+        out = self.dropout_module(out[:, -1, :])
         return self.fc(out)
         
     def copy(self):

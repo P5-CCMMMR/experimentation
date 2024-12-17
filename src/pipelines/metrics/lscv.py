@@ -5,11 +5,14 @@ from scipy.stats import norm
 
 class TLSCV(ProbabilisticMetric):
     @staticmethod
+    def get_key():
+        return "lscv"
+    
+    @staticmethod
     def get_title():
         return "Total LSCV: "
 
-    @staticmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Total Logarithmic Score for Continuous Variables\n
         Returns sum of the logarithmic score for batch\n
@@ -27,33 +30,55 @@ class TLSCV(ProbabilisticMetric):
         
         return torch.sum(-torch.log(pdf_tensor))
     
-
 class MLSCV(TLSCV):
+    @staticmethod
+    def get_key():
+        return "mlscv"
+
     @staticmethod
     def get_title():
         return "MLSCV: "
 
-    @staticmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Mean Logarithmic Score for Continuous Variables
         """
-        return TLSCV.calc(mean, stddev, y) / y.size(0)
-    
+        return super().calc(mean, stddev, y) / y.size(0)
     
 class NMLSCV(MLSCV):
     @staticmethod
+    def get_key():
+        return "nmlscv"
+
+    @staticmethod
     def get_title():
         return "NMLSCV: "
-    
-    @staticmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Normalized Mean Logarithmic Score for Continuous Variables
         """
         # Add small term to avoid divison by zero
         eps = torch.tensor(1e-16)
-        range = y.max() - y.min()
+        range = self.max - self.min
         denominator = max(eps, range)
         
-        return MLSCV.calc(mean, stddev, y) / denominator
+        return super().calc(mean, stddev, y) / denominator
+    
+class DMRLSCV(TLSCV):
+    @staticmethod
+    def get_key():
+        return "dmrlscv"
+    
+    @staticmethod
+    def get_title():
+        return "DMRLSCV: "
+
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Denormalized Mean Logarithmic Score for Continuous Variables
+        """
+        mean = self._denormalize_temp(mean)
+        stddev = self._denormalize_stddev(stddev)
+        y = self._denormalize_temp(y)
+        return super().calc(mean, stddev, y)

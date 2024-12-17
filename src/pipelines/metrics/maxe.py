@@ -3,11 +3,14 @@ from .metric import DeterministicMetric
 
 class MAXE(DeterministicMetric):
     @staticmethod
+    def get_key():
+        return "maxe"
+    
+    @staticmethod
     def get_title():
         return "MAXE Loss: " 
 
-    @staticmethod
-    def calc(y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Maximum Absolute Error
         """
@@ -15,17 +18,37 @@ class MAXE(DeterministicMetric):
     
 class NMAXE(MAXE):
     @staticmethod
+    def get_key():
+        return "nmaxe"
+
+    @staticmethod
     def get_title():
         return "NMAXE Loss: " 
 
-    @staticmethod
-    def calc(y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Normalized Maximum Absolute Error
         """
         # Add small term to avoid divison by zero
         eps = torch.tensor(1e-16)
-        range = y.max() - y.min()
+        range = self.max - self.min
         denominator = max(eps, range)
    
-        return MAXE.calc(y_hat, y) / denominator
+        return super().calc(y_hat, y) / denominator
+    
+class DMAXE(MAXE):
+    @staticmethod
+    def get_key():
+        return "dmaxe"
+    
+    @staticmethod
+    def get_title():
+        return "DMAXE Loss: " 
+
+    def calc(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Denormalized Maximum Absolute Error
+        """
+        y = self._denormalize_temp(y)
+        y_hat = self._denormalize_temp(y_hat)
+        return super().calc(y_hat, y)

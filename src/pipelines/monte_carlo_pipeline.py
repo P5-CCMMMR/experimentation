@@ -15,7 +15,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                     train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                     test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                     train_error_func, val_error_func, test_error_func_arr,
-                    target_column: int,
+                    target_column: int, test_power, test_outdoor,
                     use_tuner: bool,
                     inference_samples: int,
                     inference_dropout: float):
@@ -24,7 +24,7 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                             train_loader, val_loader, test_loader,
                             test_timesteps, normalizer,
                             train_error_func, val_error_func, test_error_func_arr,
-                            target_column, use_tuner)
+                            target_column, test_power, test_outdoor, use_tuner)
         self.inference_samples = inference_samples
         self.inference_dropout = inference_dropout
     
@@ -70,6 +70,8 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             val_error_func=self.val_error_func,
             test_error_func_arr=self.test_error_func_arr,
             target_column=self.target_column,
+            test_power=self.test_power,
+            test_outdoor=self.test_outdoor,
             use_tuner=self.use_tuner,
             inference_samples=self.inference_samples,
             inference_dropout=self.inference_dropout
@@ -106,9 +108,8 @@ class MonteCarloPipeline(ProbabilisticPipeline):
             super().set_val_error(error_func)
             return self
         
-        
         def build(self):
-            train_loader, val_loader, test_loader, test_timestamps, test_normalizer = self._get_loaders()
+            self._init_loaders()
 
             pipeline = self.pipeline_class(self.learning_rate,
                                           self.seq_len, 
@@ -116,15 +117,17 @@ class MonteCarloPipeline(ProbabilisticPipeline):
                                           self.optimizer,
                                           self.model,
                                           self.trainer_wrapper,
-                                          train_loader,
-                                          val_loader,
-                                          test_loader,
-                                          test_timestamps,
-                                          test_normalizer,
+                                          self.train_loader,
+                                          self.val_loader,
+                                          self.test_loader,
+                                          self.test_timestamps,
+                                          self.test_normalizer,
                                           self.train_error_func,
                                           self.val_error_func,
                                           self.test_error_func_arr,
                                           self.target_column,
+                                          self.test_power,
+                                          self.test_outdoor,
                                           self.use_tuner,
                                           self.inference_samples,
                                           self.inference_dropout)

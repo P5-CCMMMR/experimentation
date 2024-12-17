@@ -14,7 +14,7 @@ class LSTM(Model):
         else:
             self.lstm = nn.LSTM(input_len, hidden_size, num_layers, batch_first=True, dropout=dropout)    
     
-        self.dropout_layer = nn.Dropout(dropout)
+        self.dropout_module = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_size, self.output_size)
 
     def forward(self, x):
@@ -22,7 +22,7 @@ class LSTM(Model):
         h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
         out, _ = self.lstm(x, (h0, c0))
-        out = self.dropout_layer(out[:, -1, :])
+        out = self.dropout_module(out[:, -1, :])
         return self.fc(out)
     
     def copy(self):

@@ -37,7 +37,7 @@ config = {
     "hidden_size": tune.qrandint(32, 128, 8),
     "dropout": tune.loguniform(0.01, 0.4),
     "num_layers": tune.choice([1, 2]),
-    "arch": tune.choice(["LSTM", "GRU", "TCN"]),
+    "arch": tune.choice(["TCN"]), # ["LSTM"] ["GRU"]
     "batch_size": tune.choice([128, 256])
 }
 
@@ -46,13 +46,13 @@ arch_dict = {"LSTM": arch_arr[0], "GRU": arch_arr[1], "TCN": arch_arr[2]}
 
 matplotlib.use("Agg")
 
-NUM_WORKERS = multiprocessing.cpu_count() // 2
+NUM_WORKERS = multiprocessing.cpu_count() 
 TARGET_COLUMN = 2
 TIMESTAMP = "Timestamp"
 POWER     = "PowerConsumption"
 
 gradient_clipping = 0
-gpus_per_trial = 0.5
+gpus_per_trial = 1
 
 # Data Split
 train_days = 16
@@ -136,7 +136,7 @@ def train(config):
                     .set_batch_size(batch_size) \
                     .set_seq_len(seq_len) \
                     .set_worker_num(NUM_WORKERS) \
-                    .set_error(NRMSE) \
+                    .set_error(DRMSE) \
                     .set_train_error(RMSE) \
                     .set_trainer(trainer) \
                     .set_use_tuner(True) \

@@ -7,6 +7,6 @@ class Tuner():
     
     def tune(self):
         tuner = LTuner(self.trainer)
-        lr_finder = tuner.lr_find(self.model)
+        lr_finder = tuner.lr_find(self.model, min_lr=1e-5)
         fig = lr_finder.plot(suggest=True)
         fig.savefig("lr_finder_plot.png")

@@ -3,11 +3,14 @@ from .metric import ProbabilisticMetric
 
 class CALE(ProbabilisticMetric):
     @staticmethod
+    def get_key():
+        return "cale"
+    
+    @staticmethod
     def get_title():
         return "CALE: "
 
-    @staticmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """
         Calibration Error (CALE)\\
         Returns the error of the calibration of the model\\
@@ -31,6 +34,6 @@ class CALE(ProbabilisticMetric):
         expected_within_std = torch.tensor([0.6827, 0.9545, 0.9973], dtype=torch.float32)
         
         errors = torch.pow(torch.abs(predicted_within_std - expected_within_std), 2)
-        
+
         return errors.mean()
     

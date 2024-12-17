@@ -4,55 +4,58 @@ from enum import Enum
 import torch
 
 class Metric(ABC):
+    def __init__(self, min=None, max=None):
+        self.min = min
+        self.max = max
+    
+    def _denormalize_temp(self, prediction):
+        return prediction * (self.max - self.min) + self.min
+    
     @staticmethod
     @abstractmethod
-    def is_probabilistic():
+    def get_key(self):
         pass
 
-    @staticmethod 
+    @staticmethod
     @abstractmethod
-    def is_deterministic():
+    def is_probabilistic(self):
         pass
-    
-    @staticmethod 
+
+    @staticmethod
     @abstractmethod
-    def get_title():
+    def is_deterministic(self):
+        pass
+
+    @staticmethod
+    @abstractmethod 
+    def get_title(self):
         pass
     
 class ProbabilisticMetric(Metric):
-    @staticmethod
     @abstractmethod
-    def calc(mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, mean: torch.Tensor, stddev: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         pass
 
     @staticmethod
     def is_probabilistic():
         return True
 
-    @staticmethod 
+    @staticmethod
     def is_deterministic():
         return False
     
-    @staticmethod 
-    @abstractmethod
-    def get_title():
-        pass
+    def _denormalize_stddev(self, stddev):
+        return stddev * (self.max - self.min)
 
 class DeterministicMetric(Metric):
-    @staticmethod
     @abstractmethod
-    def calc(y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def calc(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         pass
 
     @staticmethod
     def is_probabilistic():
         return False
-
-    @staticmethod 
+    
+    @staticmethod
     def is_deterministic():
         return True
-    
-    @staticmethod 
-    @abstractmethod
-    def get_title():
-        pass

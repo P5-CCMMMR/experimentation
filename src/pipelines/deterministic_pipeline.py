@@ -1,17 +1,6 @@
 from src.pipelines.pipeline import Pipeline
 
 class DeterministicPipeline(Pipeline):
-    def test_step(self, batch):
-        x, y = batch
-        y_hat = self.forward(x)
-        func_arr = self.test_error_func_arr
-        for func in func_arr:
-            loss = func.calc(y_hat, y)
-            self.log(func.get_title(), loss, on_step=True, logger=True, prog_bar=True)
-           
-        self.all_predictions.extend(y_hat.detach().cpu().numpy().flatten())
-        self.all_actuals.extend(y.detach().cpu().numpy().flatten())
-
     def copy(self):
         new_model = self.model.copy()
         new_optimizer = self.optimizer.copy(new_model)
@@ -33,6 +22,8 @@ class DeterministicPipeline(Pipeline):
             val_error_func=self.val_error_func,
             test_error_func_arr=self.test_error_func_arr,
             target_column=self.target_column,
+            test_power=self.test_power,
+            test_outdoor=self.test_outdoor,
             use_tuner=self.use_tuner
         )
         return new_instance

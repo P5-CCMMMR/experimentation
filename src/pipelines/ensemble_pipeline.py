@@ -1,20 +1,21 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
 import torch
 from src.pipelines.pipeline import Pipeline
 from src.pipelines.probabilistic_pipeline import ProbabilisticPipeline
+from pytorch_lightning import seed_everything
 import os
 
 class EnsemblePipeline(ProbabilisticPipeline):
-    def __init__(self, pipeline_arr, num_ensembles, horizon_len, test_error_func_arr):
-        super().__init__(None, None, None, None, None, None, None, None, None, None, None, None, None, test_error_func_arr, None, None)
+    def __init__(self, pipeline_arr, num_ensembles, horizon_len, test_error_func_arr, base_seed, 
+                 target_column, test_loader, test_timesteps, normalizer, seed_multiplier=1, test_power=None, test_outdoor=None):
+        super().__init__(None, None, None, None, None, None, None, None, test_loader, test_timesteps, normalizer, None, None, test_error_func_arr, target_column, test_power, test_outdoor, None)
         self.pipeline_arr = pipeline_arr
         self.num_ensembles = num_ensembles
         self.horizon_len = horizon_len
+        self.base_seed = base_seed
+        self.seed_multiplier = seed_multiplier
 
         self.timesteps = self.pipeline_arr[0].get_timestamps()
-        self.all_predictions = []
-        self.all_actuals = []
 
     def training_step(self, batch):
         raise NotImplementedError("Training_step not Meant to be used for ensemble")
@@ -37,65 +38,75 @@ class EnsemblePipeline(ProbabilisticPipeline):
     def save(self, path):
         print(f"saving to {path}")
         os.makedirs(path, exist_ok=True)
-        for i, (pipeline) in enumerate(self.pipeline_arr):
-            torch.save(pipeline.state_dict(), f"{path}/sub_model{i}.pth")
+        for i, pipeline in enumerate(self.pipeline_arr):
+            torch.save(pipeline.state_dict(), f"{path}/sub_model{self._get_seed(i)}.pth")
 
 
     def load(self, path):
-        for i, (pipeline) in enumerate(self.pipeline_arr):
-            pipeline.load_state_dict(torch.load(f"{path}/sub_model{i}.pth", weights_only=True))
+        for i, pipeline in enumerate(self.pipeline_arr):
+            pipeline.load_state_dict(torch.load(f"{path}/sub_model{self._get_seed(i)}.pth", weights_only=True))
     
     def fit(self): 
-        with ThreadPoolExecutor(max_workers=self.num_ensembles) as executor:
-            futures = [executor.submit(pipeline.fit) for pipeline in self.pipeline_arr]
-            for future in as_completed(futures):
-                future.result()
+        for i, pipeline in enumerate(self.pipeline_arr):
+            if self.base_seed is not None:
+                self._run_with_seed(pipeline.fit, self._get_seed(i))
+            else:
+                pipeline.fit()
 
     def test(self):
-        with ThreadPoolExecutor(max_workers=self.num_ensembles) as executor:
-            futures = [executor.submit(pipeline.test) for pipeline in self.pipeline_arr]
-            for future in as_completed(futures):
-                future.result()
+        results = {}
 
-        self.all_actuals = self.pipeline_arr[0].get_actuals()
-        for pipeline in self.pipeline_arr:
-            self.all_predictions.append(pipeline.get_predictions())
+        for batch in self.test_loader:
+            x, y = batch
+            mean_prediction, std_prediction = self.forward(x)
+            self.all_predictions[0].extend(mean_prediction)
+            self.all_predictions[1].extend(std_prediction)
+            self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
-        if (isinstance(self.all_predictions[0], tuple)):
-            self.all_predictions = self._ensemble_probabilistic_predictions(self.all_predictions)
-        else:
-            self.all_predictions = self._ensemble_deterministic_predictions(self.all_predictions)
-
-        mean_arr = self.all_predictions[0]
-        stddev_arr = self.all_predictions[1] 
-        all_y = self.all_actuals
+        mean, stddev = self.all_predictions
 
         func_arr = self.test_error_func_arr
         for func in func_arr:
-            loss_arr = []
             if func.is_deterministic():
-                    temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(all_y))
-            elif func.is_probabilistic():
-                temp_loss = func.calc(torch.tensor(mean_arr), torch.tensor(stddev_arr), torch.tensor(all_y))
-            loss_arr.append(temp_loss)
-
+                loss = func.calc(torch.tensor(self.all_predictions[0], device=y.device), torch.tensor(self.all_actuals))
+            if func.is_probabilistic():
+                loss = func.calc(torch.tensor(self.all_predictions[0], device=y.device), torch.tensor(self.all_predictions[1], device=y.device), torch.tensor(self.all_actuals))
+            results[func.get_key()] = loss.item()
             title = func.get_title()
-            avg_loss = (sum(loss_arr) / len(loss_arr)).item()
-            print(f"{title:<30} {avg_loss:.6f}")
+            print(f"{title:<30} {loss:.6f}")
 
+        self.all_predictions = (self.normalizer.denormalize(np.array(mean), self.target_column),
+                                np.array(stddev) * (self.normalizer.max_vals[self.target_column] - self.normalizer.min_vals[self.target_column]))
+        
+        self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
+
+        return results
+        
     def forward(self, x):
         predictions = []
+        for i, pipeline in enumerate(self.pipeline_arr):
+            if self.base_seed is not None:
+                result = self._run_with_seed(pipeline.forward, self._get_seed(i), x)
+            else:
+                result = pipeline.forward(x)
+                
+            if isinstance(result, tuple):
+                predictions.append(tuple(r.flatten() for r in result))
+            else:
+                predictions.append(result.flatten())
 
-        with ThreadPoolExecutor(max_workers=self.num_ensembles) as executor:
-            futures = [executor.submit(pipeline.forward, x) for pipeline in self.pipeline_arr]
-            for future in as_completed(futures):
-                predictions.append(future.result())
-
-        if (isinstance(predictions[0], tuple)):
+        if isinstance(predictions[0], tuple):
             predictions = self._ensemble_probabilistic_predictions(predictions)
         else:
             predictions = self._ensemble_deterministic_predictions(predictions)
         return predictions 
+
+    def _run_with_seed(self, func, seed, *args, **kwargs):
+        seed_everything(seed, workers=True, verbose=False)
+        return func(*args, **kwargs)
+     
+    def _get_seed(self, idx):
+        return self.base_seed + (idx * self.seed_multiplier)
             
     def _ensemble_probabilistic_predictions(self, predictions):
         mean_predictions = []
@@ -133,8 +144,7 @@ class EnsemblePipeline(ProbabilisticPipeline):
             std_predictions.append(std_prediction)
             
         return mean_predictions, std_predictions
-
- 
+    
     class Builder(ProbabilisticPipeline.Builder):
         def __init__(self):
             super().__init__()
@@ -142,12 +152,13 @@ class EnsemblePipeline(ProbabilisticPipeline):
             self.pipeline_arr = []
             self.sub_pipeline = None
             self.num_ensembles = None
+            self.base_seed = None
 
         def set_num_ensembles(self, num_ensembles):
             self.num_ensembles = num_ensembles
             
             if self.num_ensembles < 2:
-                raise ValueError("Ensemble pipeline should have atleast 2 models")
+                raise ValueError("Ensemble pipeline should have at least 2 models")
             return self
         
         def set_horizon_len(self, horizon_len):
@@ -160,11 +171,34 @@ class EnsemblePipeline(ProbabilisticPipeline):
             self.sub_pipeline = sub_pipeline
             return self
         
+        def set_base_seed(self, base_seed):
+            if not isinstance(base_seed, int):
+                raise ValueError("Base seed should be an integer")
+            self.base_seed = base_seed
+            return self
+        
+        def set_seed_multiplier(self, seed_multiplier):
+            if not isinstance(seed_multiplier, int):
+                raise ValueError("Seed multiplier should be an integer")
+            self.seed_multiplier = seed_multiplier
+            return self
+        
+        
         def build(self):
-            for _ in range(0, self.num_ensembles):
+            self._init_loaders(self.horizon_len)
+            for _ in range(self.num_ensembles):
                 self.pipeline_arr.append(self.sub_pipeline.copy())
                          
-            return self.pipeline_class(self.pipeline_arr,
-                                       self.num_ensembles,
-                                       self.horizon_len,
-                                       self.test_error_func_arr)
+            return self.pipeline_class(pipeline_arr=self.pipeline_arr,
+                                       target_column=self.target_column,
+                                       test_loader=self.test_loader,
+                                       test_timesteps=self.test_timestamps,
+                                       normalizer=self.test_normalizer,
+                                       num_ensembles=self.num_ensembles,
+                                       horizon_len=self.horizon_len,
+                                       test_error_func_arr=self.test_error_func_arr,
+                                       base_seed=self.base_seed,
+                                       seed_multiplier=self.seed_multiplier,
+                                       test_power=self.test_power,
+                                       test_outdoor=self.test_outdoor)
+            

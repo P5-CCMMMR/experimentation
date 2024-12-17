@@ -1,8 +1,6 @@
 import pandas as pd
-import matplotlib
-import matplotlib.pyplot as plt
-
-matplotlib.use("Agg")
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Paths
 DATASETFOLDER = "src/data_preprocess/nist/data_root/"
@@ -59,9 +57,6 @@ df = df.dropna()
 
 df.to_csv(CLEAN_NIST_PATH, index=False)
 
-# Plotting of the cleaned data
-fig, ax = plt.subplots(3)
-
 values = df.values
 
 power_consumption = [i[1] for i in values]
@@ -70,18 +65,19 @@ outdoor_temp = [i[3] for i in values]
 
 timestamps = df[TIMESTAMP]
 
-ax[0].plot(timestamps, power_consumption)
-ax[0].set_title("Power Consumption")
-ax[0].grid()
+fig = make_subplots(rows=3, cols=1, shared_xaxes=True, subplot_titles=("Power Consumption", "Indoor Temperature", "Outdoor Temperature"))
 
-ax[1].plot(timestamps, indoor_temp, color="r")
-ax[1].set_title("Indoor Temperature")
-ax[1].grid()
+# Power Consumption
+fig.add_trace(go.Scatter(x=df[TIMESTAMP], y=df["PowerConsumption"], mode='lines', name='Power Consumption'), row=1, col=1)
 
-ax[2].plot(timestamps, outdoor_temp, color="g")
-ax[2].set_title("Outdoor Temperature")
-ax[2].grid()
+# Indoor Temperature
+fig.add_trace(go.Scatter(x=df[TIMESTAMP], y=df["IndoorTemp"], mode='lines', name='Indoor Temperature', line=dict(color='red')), row=2, col=1)
 
-plt.subplots_adjust(hspace=1)
-plt.gcf().autofmt_xdate()
-plt.savefig("graph/NIST_cleaned_graph.png")
+# Outdoor Temperature
+fig.add_trace(go.Scatter(x=df[TIMESTAMP], y=df["OutdoorTemp"], mode='lines', name='Outdoor Temperature', line=dict(color='green')), row=3, col=1)
+
+fig.update_layout(height=800, width=800, title_text="NIST Cleaned Graphs", showlegend=False)
+fig.update_xaxes(title_text="Timestamps")
+fig.update_yaxes(title_text="Values")
+
+fig.write_image("graph/NIST_cleaned_graph.png")

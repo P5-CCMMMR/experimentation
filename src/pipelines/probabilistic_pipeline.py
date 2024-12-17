@@ -15,45 +15,56 @@ class ProbabilisticPipeline(Pipeline):
                  train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                  test_timesteps: pd.DatetimeIndex, normalizer: Normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column: int, use_tuner: bool):
+                 target_column: int, test_power, test_outdoor, use_tuner: bool):
         super().__init__(learning_rate, seq_len, batch_size,
                  optimizer, model, trainer_wrapper,
                  train_loader, val_loader, test_loader,
                  test_timesteps, normalizer,
                  train_error_func, val_error_func, test_error_func_arr,
-                 target_column, use_tuner)
+                 target_column, test_power, test_outdoor, use_tuner)
         self.all_predictions: tuple[list[float], list[float]] = ([], []) # type: ignore
 
     def test_step(self, batch):
         x, y = batch
         mean_prediction, std_prediction = self.forward(x)
 
-        self._log_test_errors(mean_prediction, std_prediction, y)
+        #self._log_test_errors(mean_prediction, std_prediction, y)
         
         self.all_predictions[0].extend(mean_prediction.flatten())
         self.all_predictions[1].extend(std_prediction.flatten())
         self.all_actuals.extend(y.detach().cpu().numpy().flatten())
 
     def _log_test_errors(self, mean_prediction, std_prediction, y):
-        func_arr = self.test_error_func_arr
-        for func in func_arr:
+        for func in self.test_error_func_arr:
             if func.is_deterministic():
                 loss = func.calc(torch.tensor(mean_prediction, device=y.device), y)
-                print(func.get_title() + str(loss))
-                self.log(func.get_title(), loss, on_step=True, logger=True, prog_bar=True)
+                self.log(func.get_title(), loss, on_epoch=True, logger=True)
             if func.is_probabilistic():
                 loss = func.calc(torch.tensor(mean_prediction, device=y.device), torch.tensor(std_prediction, device=y.device), y)
-                self.log(func.get_title(), loss, on_step=True, logger=True, prog_bar=True)
+                self.log(func.get_title(), loss, on_epoch=True, logger=True)
 
     def test(self):
+        results = {}
         self.trainer.test(self)
 
         mean, stddev = self.all_predictions
-        
+
+        for func in self.test_error_func_arr:
+            if func.is_deterministic():
+                loss = func.calc(torch.tensor(self.all_predictions[0]), torch.tensor(self.all_actuals))
+            if func.is_probabilistic():
+                loss = func.calc(torch.tensor(self.all_predictions[0]), torch.tensor(self.all_predictions[1]), torch.tensor(self.all_actuals))
+            results[func.get_key()] = loss.item()
+            title = func.get_title()
+            print(f"{title:<30} {loss:.6f}")
+
+
         self.all_predictions = (self.normalizer.denormalize(np.array(mean), self.target_column),
                                 np.array(stddev) * (self.normalizer.max_vals[self.target_column] - self.normalizer.min_vals[self.target_column]))
         
         self.all_actuals = self.normalizer.denormalize(np.array(self.all_actuals), self.target_column)
+        
+        return results
     
     class Builder(Pipeline.Builder):
         def __init__(self):
