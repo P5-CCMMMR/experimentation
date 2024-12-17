@@ -13,37 +13,62 @@ package_installed() {
 # Check if Python is installed
 if ! command_exists python3; then
     echo "Python is not installed. Installing the latest version of Python..."
-    sudo apt update
-    sudo apt install -y python3 python3-venv python3-pip unzip
+    apt update
+    apt install -y python3 python3-venv python3-pip unzip
 else
     echo "Python is already installed."
-    sudo apt update
-    sudo apt upgrade -y python3 python3-venv python3-pip
+    apt update
+    apt upgrade -y python3 python3-venv python3-pip
 fi
 
 # Check if python3-venv is installed
-if [ "$(package_installed python3.10-venv)" -eq 0 ]; then
+if ! dpkg -s python3-venv >/dev/null 2>&1; then
     echo "python3-venv is not installed. Installing python3-venv..."
-    sudo apt update
-    sudo apt install -y python3.10-venv
+    apt update
+    apt install -y python3-venv
 else
     echo "python3-venv is already installed. Upgrading to the latest version..."
-    sudo apt update
-    sudo apt upgrade -y python3-venv
+    apt update
+    apt upgrade -y python3-venv
+fi
+
+# Check if wget is installed
+if ! command_exists wget; then
+    echo "wget is not installed. Installing wget..."
+    apt update
+    apt install -y wget
+else
+    echo "wget is already installed."
+fi
+
+# Check if unzip is installed
+if ! command_exists unzip; then
+    echo "unzip is not installed. Installing unzip..."
+    apt update
+    apt install -y unzip
+else
+    echo "unzip is already installed."
 fi
 
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then
     echo "Virtual environment does not exist. Creating a new virtual environment..."
     python3 -m venv .venv
-else
-    echo "Virtual environment already exists. Upgrading pip and setuptools..."
-    source .venv/bin/activate
-    pip install --upgrade pip setuptools
 fi
 
 # Activate the virtual environment
 source .venv/bin/activate
+
+# Check if gdown is installed within the virtual environment
+if ! command_exists gdown; then
+    echo "gdown is not installed. Installing gdown..."
+    .venv/bin/pip install gdown
+else
+    echo "gdown is already installed."
+fi
+
+# Upgrade pip and setuptools
+pip install --upgrade pip setuptools
 
 # Install libraries from requirements.txt
 if [ -f "requirements.txt" ]; then
@@ -92,8 +117,6 @@ unzip src/data_preprocess/ukdata/UKDATA_CLEANED.zip -d src/data_preprocess/ukdat
 mv src/data_preprocess/ukdata/UKDATA_CLEANED src/data_preprocess/ukdata/data_root
 rm src/data_preprocess/ukdata/UKDATA_CLEANED.zip
 
-
 mkdir -p src/experiments/iter1/model_saves
 
 echo "Setup complete."
-

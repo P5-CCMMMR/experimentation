@@ -1,17 +1,30 @@
-# Setup
-Run to setup python, python env and datasets
-    
-'bash scripts/setup_env.sh'
+# Probabilistic HeatFlex Experimentation
+Repository for experimenting with flexibility prediction of heat pumps using probabilistic models.
 
-# Running program
-Firstly run *python -m src.data_preprocess.nist.nist_dataset* & *python -m src.data_preprocess.ukdata.ukdata_dataset* 
+## Setup
+To setup the environment on Ubuntu run:
+```bash
+sudo ./scripts/setup_env.sh
+```
 
-Secondly you can run the experiments in the Experiments folder.
-    -   Firstly you will have to run the top most code block in order to initialze the jupyter envirement with imports and constants (This step every time a change ocours in the enviroment)
-    -   Secondly you have to run the second code block to train and save the model for the experiment. (This step once for every experiment)
-    -   Lastly you can run the last code block which is used for evaluation, after training of a model it will be saved and you can re evaluate as long as the save file exist. (This step at your leisure)
+## Cleaning the Datasets
+Run the following commands to clean datasets:
+```bash
+python -m src.data_preprocess.nist.nist_dataset
+python -m src.data_preprocess.ukdata.ukdata_dataset
+```
 
-If you wish to do hyperparameter tuning this can be done by running *python -m src.hyper_tuning*, but you wil your self have to change the hyper parameters in import under util in experiments or in the file you are running.
+## Runing the Experiments
+1. Firstly you will have to run the topmost code block to initialize the Jupyter environment with imports and constants (This step every time a change occurs in the environment)
+2. Secondly you have to run the second code block to train and save the model for the experiment. (This step is once for every experiment)
+3. Lastly you can run the last code block which is used for evaluation, after training a model it will be saved and you can re-evaluate as long as the save file exists. (This step at your leisure)
 
-# Tests
+## Hypertuning
+If you wish to do hyperparameter tuning this can be done by running:
+```bash
+python -m src.hyper_tuning
+```
+But you will your self have to change the hyperparameters in import under util in experiments or in the file you are running.
+
+## Tests
 Tests can be run with python run_tests.py
