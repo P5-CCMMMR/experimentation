@@ -1,13 +1,15 @@
 # Setup
 To setup environment on Ubuntu run:
-```cd scripts && ./setup_env.sh```
+```bash
+cd scripts && ./setup_env.sh
+```
 
 # Clean Datasets
 Run the following commands to clean datasets:
-```python
+```bash
 python -m src.data_preprocess.nist.nist_dataset
 ```
-```python
+```bash
 python -m src.data_preprocess.ukdata.ukdata_dataset
 ```
 
@@ -18,7 +20,7 @@ python -m src.data_preprocess.ukdata.ukdata_dataset
 
 # Hypertuning
 If you wish to do hyperparameter tuning this can be done by running:
-```python
+```bash
 python -m src.hyper_tuning
 ```
 but you wil your self have to change the hyper parameters in import under util in experiments or in the file you are running.
