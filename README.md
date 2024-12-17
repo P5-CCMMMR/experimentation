@@ -1,5 +1,5 @@
 # Setup
-To setup environment run:
+To setup environment on Ubuntu run:
 ```cd scripts && ./setup_env.sh```
 
 # Clean Datasets
