@@ -4,13 +4,8 @@ from plotly.subplots import make_subplots
 
 # Paths
 DATASETFOLDER = "src/data_preprocess/nist/data_root/"
-HVAC_MIN_PATH_2014 = DATASETFOLDER + "HVAC-minute-2014.csv"
 HVAC_MIN_PATH_2015 = DATASETFOLDER + "HVAC-minute-2015.csv"
-
-INDENV_MIN_PATH_2014 = DATASETFOLDER + "IndEnv-minute-2014.csv"
 INDENV_MIN_PATH_2015 = DATASETFOLDER + "IndEnv-minute-2015.csv"
-
-OUTENV_MIN_PATH_2014 = DATASETFOLDER + "OutEnv-minute-2014.csv"
 OUTENV_MIN_PATH_2015 = DATASETFOLDER + "OutEnv-minute-2015.csv"
 
 CLEAN_NIST_PATH = "src/data_preprocess/dataset/NIST_cleaned.csv"
@@ -22,7 +17,7 @@ USE_UTC = True
 MAX_TEMP_DELTA = 15
 
 # HVAC
-hvac_df = pd.read_csv(HVAC_MIN_PATH_2015) #pd.concat([pd.read_csv(HVAC_MIN_PATH_2014), pd.read_csv(HVAC_MIN_PATH_2015)])
+hvac_df = pd.read_csv(HVAC_MIN_PATH_2015) 
 hvac_df = hvac_df[[TIMESTAMP, "HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"]]
 hvac_df["PowerConsumption"] = hvac_df.HVAC_HeatPumpIndoorUnitPower + hvac_df.HVAC_HeatPumpOutdoorUnitPower
 hvac_df = hvac_df.drop(["HVAC_HeatPumpIndoorUnitPower", "HVAC_HeatPumpOutdoorUnitPower"], axis="columns")
