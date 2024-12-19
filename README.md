@@ -1,4 +1,4 @@
-# Probabilistic HeatFlex Experimentation
+# Probabilistic Heat Flexibility
 Repository for experimenting with flexibility prediction of heat pumps using probabilistic models.
 
 ## Setup
