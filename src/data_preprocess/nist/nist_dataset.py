@@ -30,7 +30,7 @@ hvac_df.Timestamp = pd.to_datetime(hvac_df.Timestamp, utc=USE_UTC)
 hvac_df = hvac_df.resample(SAMPLE_TIME, on=TIMESTAMP).mean().reset_index()
 
 # Indoor
-indoor_df = pd.concat([pd.read_csv(INDENV_MIN_PATH_2014), pd.read_csv(INDENV_MIN_PATH_2015)])
+indoor_df = pd.read_csv(INDENV_MIN_PATH_2015)
 indoor_df = indoor_df[[TIMESTAMP, "IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]]
 indoor_df["IndoorTemp"] = indoor_df[["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"]].mean(axis="columns")
 indoor_df = indoor_df.drop(["IndEnv_RoomTempBasementNW", "IndEnv_RoomTempBasementNE","IndEnv_RoomTempBasementSE", "IndEnv_RoomTempBasementSW"], axis="columns")
@@ -38,7 +38,7 @@ indoor_df.Timestamp = pd.to_datetime(indoor_df.Timestamp, utc=USE_UTC)
 indoor_df = indoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
 
 # Outdoor
-outdoor_df = pd.concat([pd.read_csv(OUTENV_MIN_PATH_2014), pd.read_csv(OUTENV_MIN_PATH_2015)])
+outdoor_df =  pd.read_csv(OUTENV_MIN_PATH_2015)
 outdoor_df = outdoor_df[[TIMESTAMP, "OutEnv_OutdoorAmbTemp"]]
 outdoor_df.Timestamp = pd.to_datetime(outdoor_df.Timestamp, utc=USE_UTC)
 outdoor_df = outdoor_df.resample(SAMPLE_TIME, on=TIMESTAMP).last().reset_index()
